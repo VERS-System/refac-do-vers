@@ -1,0 +1,147 @@
+// Prisma schema do VERS
+//
+// Define as entidades do sistema: testes, configurações, telemetria,
+// mensagens MQTT, interações com IA e previsões.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────
+// Configuration — montagem física usada nos testes
+// ────────────────────────────────────────────
+model Configuration {
+  id                String   @id @default(uuid())
+  name              String
+  piezoAssociation  String   @map("piezo_association") // series | parallel
+  installationPoint String   @map("installation_point")
+  storageType       String   @map("storage_type")
+  firmwareVersion   String   @map("firmware_version")
+  description       String?
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  tests Test[]
+
+  @@map("configurations")
+}
+
+// ────────────────────────────────────────────
+// Test — execução experimental
+// ────────────────────────────────────────────
+model Test {
+  id               String    @id @default(uuid())
+  name             String
+  configurationId  String    @map("configuration_id")
+  satisfatory      Boolean   @default(false)
+  terrain          String    // highway | city | offroad | mixed | other
+  rpm              Float?
+  watts            Float?
+  amp              Float?
+  current          Float?
+  batteryUsed      Float?    @map("battery_used")
+  batteryGenerated Float?    @map("battery_generated")
+  numPiezos        Int       @map("num_piezos")
+  startTime        DateTime? @map("start_time")
+  endTime          DateTime? @map("end_time")
+  duration         Int?      // segundos
+  weight           Float?
+  avgSpeed         Float?    @map("avg_speed")
+  incline          Float?
+  notes            String?
+  status           String    @default("planned") // planned | running | completed | failed
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  configuration Configuration @relation(fields: [configurationId], references: [id])
+  telemetry     Telemetry[]
+  predictions   AiPrediction[]
+
+  @@map("tests")
+}
+
+// ────────────────────────────────────────────
+// Telemetry — leituras individuais dos sensores
+// ────────────────────────────────────────────
+model Telemetry {
+  id                String   @id @default(uuid())
+  testId            String   @map("test_id")
+  timestamp         DateTime
+  voltage           Float?
+  current           Float?
+  power             Float?
+  energyAccumulated Float?   @map("energy_accumulated")
+  accelerationX     Float?   @map("acceleration_x")
+  accelerationY     Float?   @map("acceleration_y")
+  accelerationZ     Float?   @map("acceleration_z")
+  temperature       Float?
+  sensorStatus      String?  @map("sensor_status")
+  quality           String?
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  test Test @relation(fields: [testId], references: [id])
+
+  @@map("telemetries")
+}
+
+// ────────────────────────────────────────────
+// EnergySummary — resumos diários/mensais para dashboard
+// ────────────────────────────────────────────
+model EnergySummary {
+  id              String   @id @default(uuid())
+  date            DateTime
+  period          String   // daily | monthly
+  batteryRecovered Float?  @map("battery_recovered")
+  batteryUsed     Float?   @map("battery_used")
+  energyPerHour   Json?    @map("energy_per_hour")
+  moneyEconomy    Float?   @map("money_economy")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("energy_summaries")
+}
+
+// ────────────────────────────────────────────
+// MqttMessage — dados brutos recebidos via MQTT
+// ────────────────────────────────────────────
+model MqttMessage {
+  id        String   @id @default(uuid())
+  topic     String
+  payload   Json
+  timestamp DateTime
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("mqtt_messages")
+}
+
+// ────────────────────────────────────────────
+// AiInteraction — histórico do chat Viber
+// ────────────────────────────────────────────
+model AiInteraction {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  question  String
+  answer    String
+  context   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("ai_interactions")
+}
+
+// ────────────────────────────────────────────
+// AiPrediction — previsões geradas pela IA
+// ────────────────────────────────────────────
+model AiPrediction {
+  id              String   @id @default(uuid())
+  testId          String   @map("test_id")
+  predictionType  String   @map("prediction_type") // anomaly | trend | forecast
+  predictionData  Json     @map("prediction_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  test Test @relation(fields: [testId], references: [id])
+
+  @@map("ai_predictions")
+}

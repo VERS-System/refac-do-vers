@@ -6,6 +6,8 @@
 - [Visão geral do VERS](docs/01_visao-geral-vers.md)
 - [Arquitetura do sistema](docs/02_arquitetura-do-sistema.md)
 - [Dados e indicadores](docs/03_dados-e-indicadores.md)
+- [Infraestrutura (Docker, envs, backend)](docs/04-infraestrutura.md)
+- [Schema do banco (plano)](docs/plans/schema-core.md)
 - [Contextos de trabalho](docs/contexts/)
 - [Planos](docs/plans/)
 - [Problemas](docs/problems/)

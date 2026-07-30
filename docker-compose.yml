@@ -1,28 +1,11 @@
 # docker-compose.yml — Infraestrutura do VERS
 #
-# Define os serviços de infraestrutura (PostgreSQL, Redis) e as aplicações
+# Define os serviços de apoio (Redis) e as aplicações
 # (backend, web, dashboard, mobile, ai-service) para desenvolvimento local.
+# Banco: Neon (nuvem) — sem PostgreSQL local.
 # Uso: docker compose up -d
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: vers-postgres
-    restart: unless-stopped
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-vers}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vers123}
-      POSTGRES_DB: ${POSTGRES_DB:-vers}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vers} -d ${POSTGRES_DB:-vers}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     container_name: vers-redis
@@ -49,11 +32,9 @@ services:
       - .env
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-vers}:${POSTGRES_PASSWORD:-vers123}@postgres:5432/${POSTGRES_DB:-vers}
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_HOST: redis
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
@@ -119,12 +100,8 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-vers}:${POSTGRES_PASSWORD:-vers123}@postgres:5432/${POSTGRES_DB:-vers}
+      DATABASE_URL: ${DATABASE_URL}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-    depends_on:
-      postgres:
-        condition: service_healthy
 
 volumes:
-  pgdata:
   redisdata:

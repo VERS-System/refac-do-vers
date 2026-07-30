@@ -6,11 +6,12 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 
 ## Documentos principais
 
-| Documento                                             | Finalidade                                                               |
-| ----------------------------------------------------- | ------------------------------------------------------------------------ |
-| [01 — Visão geral](01_visao-geral-vers.md)            | Contexto, objetivo, escopo e funcionamento do projeto.                   |
-| [02 — Arquitetura](02_arquitetura-do-sistema.md)      | Componentes físicos, fluxo de energia, telemetria e fronteiras técnicas. |
-| [03 — Dados e indicadores](03_dados-e-indicadores.md) | Informações de testes, métricas e modelo conceitual de armazenamento.    |
+| Documento                                                         | Finalidade                                                               |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [01 — Visão geral](01_visao-geral-vers.md)                        | Contexto, objetivo, escopo e funcionamento do projeto.                   |
+| [02 — Arquitetura](02_arquitetura-do-sistema.md)                  | Componentes físicos, fluxo de energia, telemetria e fronteiras técnicas. |
+| [03 — Dados e indicadores](03_dados-e-indicadores.md)             | Informações de testes, métricas e modelo conceitual de armazenamento.    |
+| [04 — Infraestrutura](04-infraestrutura.md)                       | Docker, variáveis de ambiente, core backend e fluxo de dados.           |
 
 ## Organização
 

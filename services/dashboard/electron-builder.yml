@@ -1,0 +1,39 @@
+# electron-builder.yml — Configuração de build do Electron
+#
+# Define os alvos de empacotamento para Windows, macOS e Linux.
+# Usado por: pnpm build:electron
+
+appId: br.edu.ucb.vers
+productName: VERS Dashboard
+copyright: Copyright © 2026
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  icon: build/icon.icns
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  icon: build/icon.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

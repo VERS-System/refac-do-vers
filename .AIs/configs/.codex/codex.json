@@ -1,0 +1,12 @@
+{
+  "agent": "codex",
+  "instructions": "../../AGENTS.md",
+  "runtimeConfig": "../../../.codex/config.toml",
+  "policies": {
+    "approval": "on-request",
+    "sandbox": "workspace-write",
+    "envFiles": "deny",
+    "testFirst": true,
+    "sessionContext": "../../docs/contexts/Context_dd_mm_aaaa.md"
+  }
+}

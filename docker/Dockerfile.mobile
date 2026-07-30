@@ -1,0 +1,26 @@
+# Dockerfile.mobile — Dev server do Mobile (Expo/React Native)
+#
+# Roda o servidor de desenvolvimento do Expo. O app em si executa
+# no dispositivo físico ou emulador e conecta-se a este servidor.
+# A variável EXPO_HOST deve apontar para o IP do host (ex: 192.168.x.x).
+
+FROM node:22-alpine
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copia os manifests
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY services/mobile/package.json ./services/mobile/
+COPY packages/ ./packages/
+
+# Instala dependências
+RUN pnpm install --frozen-lockfile
+
+# Copia o código-fonte
+COPY services/mobile/ ./services/mobile/
+COPY packages/ ./packages/
+
+EXPOSE 8081
+
+CMD ["pnpm", "--filter", "@vers/mobile", "start", "--port", "8081"]

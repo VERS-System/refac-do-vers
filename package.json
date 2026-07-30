@@ -1,0 +1,16 @@
+{
+  "name": "vers-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "VERS — Vibration Energy Recovery System",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "bcrypt",
+      "electron",
+      "esbuild",
+      "prisma"
+    ]
+  }
+}

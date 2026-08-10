@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
+import { HomeScreen } from './src/screens/HomeScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 
 const SPLASH_DURATION_MS = 1500;
@@ -15,6 +16,7 @@ const SPLASH_DURATION_MS = 1500;
  */
 export default function App() {
   const [isSplashVisible, setIsSplashVisible] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   /** Agenda a saída da Splash e cancela o temporizador se o app for desmontado. */
   useEffect(() => {
@@ -23,9 +25,20 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, []);
 
+  /** Libera apenas localmente a área principal até a API de autenticação existir. */
+  function handleAuthenticated() {
+    setIsAuthenticated(true);
+  }
+
   return (
     <>
-      {isSplashVisible ? <SplashScreen /> : <AuthNavigator />}
+      {isSplashVisible ? (
+        <SplashScreen />
+      ) : isAuthenticated ? (
+        <HomeScreen />
+      ) : (
+        <AuthNavigator onAuthenticated={handleAuthenticated} />
+      )}
       <StatusBar hidden />
     </>
   );

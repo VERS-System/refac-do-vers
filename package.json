@@ -12,5 +12,8 @@
       "esbuild",
       "prisma"
     ]
+  },
+  "dependencies": {
+    "expo": "^57.0.12"
   }
 }

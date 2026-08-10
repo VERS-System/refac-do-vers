@@ -10,6 +10,7 @@
     "test:unit": "jest --runInBand"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.0.4",
     "@react-navigation/native": "^7.3.16",
     "@react-navigation/native-stack": "^7.18.8",
     "expo": "~52.0.0",
@@ -17,7 +18,8 @@
     "react": "^18.3.1",
     "react-native": "^0.76.0",
     "react-native-safe-area-context": "^4.14.0",
-    "react-native-screens": "~4.4.0"
+    "react-native-screens": "~4.4.0",
+    "react-native-svg": "15.8.0"
   },
   "devDependencies": {
     "@testing-library/react-native": "^12.9.0",
@@ -30,6 +32,9 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!.*(?:react-native|@react-native|react-navigation|@react-navigation|expo|@expo))"
     ]

@@ -42,4 +42,19 @@ describe('App', () => {
     fireEvent.press(getByRole('button', { name: 'Voltar para o Login' }));
     expect(getByTestId('login-screen')).toBeTruthy();
   });
+
+  /** Abre a Home local depois que o formulário de Login é enviado. */
+  it('avança do Login para a Home', () => {
+    const { getByLabelText, getByRole, getByTestId } = render(<App />);
+
+    act(() => {
+      jest.advanceTimersByTime(1500);
+    });
+
+    fireEvent.changeText(getByLabelText('Email'), 'anna@vers.com');
+    fireEvent.changeText(getByLabelText('Password'), 'Password123!');
+    fireEvent.press(getByRole('button', { name: 'Login' }));
+
+    expect(getByTestId('home-screen')).toBeTruthy();
+  });
 });

@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { LoginScreen } from './src/screens/LoginScreen';
+import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { SplashScreen } from './src/screens/SplashScreen';
 
 const SPLASH_DURATION_MS = 1500;
@@ -25,7 +25,7 @@ export default function App() {
 
   return (
     <>
-      {isSplashVisible ? <SplashScreen /> : <LoginScreen />}
+      {isSplashVisible ? <SplashScreen /> : <AuthNavigator />}
       <StatusBar hidden />
     </>
   );

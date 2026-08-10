@@ -5,9 +5,9 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
-      "backgroundColor": "#0f172a"
+      "backgroundColor": "#0c0c0c"
     },
     "ios": {
       "supportsTablet": true,

@@ -1,12 +1,32 @@
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, Text } from 'react-native';
-import { colors } from './src/constants/colors';
+/**
+ * Define o ponto de entrada visual do aplicativo mobile do VERS.
+ */
 
+import { useEffect, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { LoginScreen } from './src/screens/LoginScreen';
+import { SplashScreen } from './src/screens/SplashScreen';
+
+const SPLASH_DURATION_MS = 1500;
+
+/**
+ * Renderiza o fluxo inicial e troca a apresentação pela autenticação depois que
+ * o tempo mínimo de exposição da marca é concluído.
+ */
 export default function App() {
+  const [isSplashVisible, setIsSplashVisible] = useState(true);
+
+  /** Agenda a saída da Splash e cancela o temporizador se o app for desmontado. */
+  useEffect(() => {
+    const timeout = setTimeout(() => setIsSplashVisible(false), SPLASH_DURATION_MS);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
   return (
-    <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.primary }}>VERS</Text>
-      <StatusBar style="light" />
-    </SafeAreaView>
+    <>
+      {isSplashVisible ? <SplashScreen /> : <LoginScreen />}
+      <StatusBar hidden />
+    </>
   );
 }

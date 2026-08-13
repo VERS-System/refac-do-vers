@@ -1,5 +1,10 @@
 # Infraestrutura do VERS
 
+> **Estado em 13/08/2026:** este documento descreve a infraestrutura já criada,
+> mas não garante que todos os scaffolds estejam integrados. O `AppModule` atual
+> ainda registra somente configuração e Prisma. A ordem de estabilização está no
+> [roadmap do core](plans/core-roadmap.md).
+
 ## Docker Compose
 
 O ambiente de desenvolvimento local é gerenciado por Docker Compose.
@@ -83,7 +88,8 @@ services/backend/
 │   ├── prisma/
 │   │   ├── prisma.module.ts ← Módulo global do Prisma
 │   │   └── prisma.service.ts ← Conexão com banco
-│   └── modules/            ← Módulos de negócio (vazios)
+│   └── modules/            ← Scaffolds de auth, data, mqtt, ai, websocket,
+│                              roles e tokens; integração ainda a validar
 │       ├── auth/
 │       ├── data/
 │       ├── mqtt/
@@ -111,8 +117,8 @@ services/backend/
 # Gerar Prisma Client (após alterar schema)
 pnpm --filter @vers/backend prisma:generate
 
-# Aplicar schema no Neon
-pnpm --filter @vers/backend prisma db push
+# Aplicar schema experimental no Neon (legado; não usar em evolução versionada)
+pnpm --filter @vers/backend prisma:push
 
 # Criar migration
 pnpm --filter @vers/backend prisma:migrate
@@ -123,9 +129,13 @@ pnpm --filter @vers/backend prisma:studio
 # Build
 pnpm --filter @vers/backend build
 
-# Testes
+# Testes atuais (a Fase 0 adicionará o alias obrigatório test:unit)
 pnpm --filter @vers/backend test
 ```
+
+Novas alterações de schema devem usar migrations versionadas. `prisma db push`
+permanece documentado apenas para explicar o histórico inicial e não é o fluxo
+previsto para evolução do banco.
 
 ---
 

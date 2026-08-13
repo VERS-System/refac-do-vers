@@ -12,7 +12,10 @@ O armazenamento pode ser organizado inicialmente em três grupos: **teste**, **c
 | Configuração | Descreve a montagem usada em um ou mais testes. | Número de piezos, associação elétrica, ponto de instalação, tipo de armazenamento e versão do firmware.  |
 | Leitura      | Registra uma observação durante o teste.        | Timestamp, tensão, corrente, potência, aceleração, temperatura, energia acumulada e estado dos sensores. |
 
-O modelo físico do banco, as chaves e os tipos de dados serão definidos quando a arquitetura do backend for escolhida.
+O primeiro modelo físico já existe em `services/backend/prisma/schema.prisma` e
+usa PostgreSQL/Neon. Ele é experimental e será estabilizado na Fase 1 do
+[roadmap do core](plans/core-roadmap.md), incluindo chaves, enums, índices,
+precisão, unidades e novas entidades de identidade, veículo e dispositivo.
 
 ## 2. Dados mínimos por teste
 

@@ -26,7 +26,8 @@ O VERS deve permitir:
 - registrar leituras com data, hora e identificação do teste;
 - enviar telemetria a uma API de backend;
 - persistir os dados em banco de dados;
-- apresentar resultados em dashboard e, futuramente, aplicativo, relatórios ou modelos de IA.
+- apresentar resultados no dashboard e no aplicativo mobile, com evolução
+  planejada para relatórios e análises por modelos de IA.
 
 ## 4. Funcionamento resumido
 

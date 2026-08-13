@@ -8,6 +8,7 @@
 - [Dados e indicadores](docs/03_dados-e-indicadores.md)
 - [Infraestrutura (Docker, envs, backend)](docs/04-infraestrutura.md)
 - [Schema do banco (plano)](docs/plans/schema-core.md)
+- [Roadmap de implementação do core](docs/plans/core-roadmap.md)
 - [Contextos de trabalho](docs/contexts/)
 - [Planos](docs/plans/)
 - [Problemas](docs/problems/)

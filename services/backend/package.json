@@ -7,6 +7,7 @@
     "build": "nest build",
     "start": "node dist/main",
     "test": "jest",
+    "test:unit": "jest --runInBand --passWithNoTests",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",

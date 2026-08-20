@@ -18,6 +18,7 @@ describe('configureApplication', () => {
         const values: Record<string, string | number> = {
           API_PREFIX: 'api',
           CORS_ORIGINS: 'https://app.vers.dev',
+          NODE_ENV: 'production',
           PORT: 4100,
         };
 
@@ -40,6 +41,7 @@ describe('configureApplication', () => {
     expect(app.enableShutdownHooks).toHaveBeenCalledTimes(1);
     expect(configService.getOrThrow).toHaveBeenCalledWith('API_PREFIX');
     expect(configService.getOrThrow).toHaveBeenCalledWith('CORS_ORIGINS');
+    expect(configService.getOrThrow).toHaveBeenCalledWith('NODE_ENV');
     expect(configService.getOrThrow).toHaveBeenCalledWith('PORT');
   });
 });

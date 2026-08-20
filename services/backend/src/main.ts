@@ -6,7 +6,7 @@ import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { createCorsConfig } from './config/cors.config';
-import { helmetConfig } from './config/security.config';
+import { createHelmetConfig } from './config/security.config';
 
 /**
  * Aplica os comportamentos globais e devolve a porta já validada.
@@ -16,9 +16,10 @@ export function configureApplication(
   app: INestApplication,
   configService: ConfigService,
 ): number {
-  app.use(helmet(helmetConfig));
+  const nodeEnvironment = configService.getOrThrow<string>('NODE_ENV');
   const corsOrigins = configService.getOrThrow<string>('CORS_ORIGINS');
 
+  app.use(helmet(createHelmetConfig(nodeEnvironment)));
   app.enableCors(createCorsConfig(corsOrigins));
   app.useGlobalPipes(
     new ValidationPipe({

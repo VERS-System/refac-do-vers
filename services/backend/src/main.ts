@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { corsConfig } from './config/cors.config';
+import { createCorsConfig } from './config/cors.config';
 import { helmetConfig } from './config/security.config';
 
 /**
@@ -17,7 +17,9 @@ export function configureApplication(
   configService: ConfigService,
 ): number {
   app.use(helmet(helmetConfig));
-  app.enableCors(corsConfig);
+  const corsOrigins = configService.getOrThrow<string>('CORS_ORIGINS');
+
+  app.enableCors(createCorsConfig(corsOrigins));
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

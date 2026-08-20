@@ -17,6 +17,7 @@ describe('configureApplication', () => {
       getOrThrow: jest.fn((key: string) => {
         const values: Record<string, string | number> = {
           API_PREFIX: 'api',
+          CORS_ORIGINS: 'https://app.vers.dev',
           PORT: 4100,
         };
 
@@ -28,11 +29,17 @@ describe('configureApplication', () => {
 
     expect(port).toBe(4100);
     expect(app.use).toHaveBeenCalledTimes(1);
-    expect(app.enableCors).toHaveBeenCalledTimes(1);
+    expect(app.enableCors).toHaveBeenCalledWith(
+      expect.objectContaining({
+        origin: ['https://app.vers.dev'],
+        credentials: true,
+      }),
+    );
     expect(app.useGlobalPipes).toHaveBeenCalledTimes(1);
     expect(app.setGlobalPrefix).toHaveBeenCalledWith('api');
     expect(app.enableShutdownHooks).toHaveBeenCalledTimes(1);
     expect(configService.getOrThrow).toHaveBeenCalledWith('API_PREFIX');
+    expect(configService.getOrThrow).toHaveBeenCalledWith('CORS_ORIGINS');
     expect(configService.getOrThrow).toHaveBeenCalledWith('PORT');
   });
 });

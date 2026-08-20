@@ -13,8 +13,12 @@ import { envValidationSchema } from './config/env.config';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      cache: true,
       envFilePath: '.env',
       validationSchema: envValidationSchema,
+      validationOptions: {
+        abortEarly: false,
+      },
     }),
     PrismaModule,
   ],

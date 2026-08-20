@@ -9,9 +9,10 @@
     "test": "jest",
     "test:unit": "jest --runInBand --passWithNoTests",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
+    "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

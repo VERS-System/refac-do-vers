@@ -1,37 +1,50 @@
-// main.ts — Ponto de entrada da aplicação NestJS
-//
-// Inicializa o servidor HTTP com configurações globais:
-// - CORS para os frontends
-// - Helmet para segurança básica
-// - ValidationPipe global para validação de DTOs
-// - Config de ambiente
+// Ponto de entrada que aplica a configuração global e inicia o backend VERS.
 
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { corsConfig } from './config/cors.config';
-import { helmetConfig } from './config/security.config';
+import { createCorsConfig } from './config/cors.config';
+import { createHelmetConfig } from './config/security.config';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+/**
+ * Aplica os comportamentos globais e devolve a porta já validada.
+ * A separação mantém o bootstrap testável sem abrir conexões HTTP nos testes.
+ */
+export function configureApplication(
+  app: INestApplication,
+  configService: ConfigService,
+): number {
+  const nodeEnvironment = configService.getOrThrow<string>('NODE_ENV');
+  const corsOrigins = configService.getOrThrow<string>('CORS_ORIGINS');
 
-  // Segurança
-  app.use(helmet(helmetConfig));
-
-  // CORS
-  app.enableCors(corsConfig);
-
-  // Validação global de DTOs
+  app.use(helmet(createHelmetConfig(nodeEnvironment)));
+  app.enableCors(createCorsConfig(corsOrigins));
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,          // remove campos não decorados
-      forbidNonWhitelisted: true, // erro se campo extra for enviado
-      transform: true,          // converte tipos automaticamente
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
+  app.setGlobalPrefix(configService.getOrThrow<string>('API_PREFIX'));
+  app.enableShutdownHooks();
 
-  const port = process.env.PORT || 3000;
+  return configService.getOrThrow<number>('PORT');
+}
+
+/**
+ * Cria a aplicação NestJS e inicia o servidor com a configuração validada.
+ */
+export async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  const port = configureApplication(app, configService);
+
   await app.listen(port);
 }
-bootstrap();
+
+if (require.main === module) {
+  void bootstrap();
+}

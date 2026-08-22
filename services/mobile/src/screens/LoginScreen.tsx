@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -49,6 +50,7 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
         style={styles.keyboardArea}
       >
         <ScrollView
+        scrollEnabled={false}
           bounces={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -56,7 +58,7 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
         >
           <View style={styles.content}>
             <Text accessibilityRole="header" style={styles.title}>
-              LOGIN
+              Welcome back
             </Text>
 
             <View style={styles.form}>
@@ -65,7 +67,7 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
                 keyboardType="email-address"
                 label="Email:"
                 onChangeText={setEmail}
-                placeholder="Emailexample@example.com.ex"
+                placeholder="Enter your email"
                 textContentType="emailAddress"
                 value={email}
               />
@@ -73,7 +75,7 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
                 autoComplete="current-password"
                 label="Password:"
                 onChangeText={setPassword}
-                placeholder="Password123!!"
+                placeholder="Enter your password"
                 secureTextEntry
                 textContentType="password"
                 value={password}
@@ -84,7 +86,7 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
               </View>
             </View>
 
-            <Text style={styles.socialTitle}>OR LOGIN WITH:</Text>
+            <Text style={styles.socialTitle}>OR</Text>
             <Pressable
               accessibilityLabel="Entrar com Google"
               accessibilityRole="button"
@@ -92,18 +94,24 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
               onPress={onGoogleLogin}
               style={({ pressed }) => [styles.googleButton, pressed && styles.pressed]}
             >
-              <Text style={styles.googleMark}>G</Text>
+              <View style={styles.googleCTA}>
+                <Image 
+                  source={require('../assets/googleIcon.png')} 
+                  style={styles.googleIcon} 
+                />
+                <Text style={styles.accountText}>Continue with Google</Text>
+              </View>
             </Pressable>
 
             <View style={styles.accountRow}>
-              <Text style={styles.accountText}>Do not have an account? </Text>
+              <Text style={styles.accountText}>Don't have an account? </Text>
               <Pressable
                 accessibilityLabel="Criar uma conta"
                 accessibilityRole="button"
                 hitSlop={8}
                 onPress={onSignUp}
               >
-                <Text style={styles.accountLink}>Sing-up here</Text>
+                <Text style={styles.accountLink}>Sing up</Text>
               </Pressable>
             </View>
 
@@ -132,23 +140,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     paddingBottom: 38,
-    paddingHorizontal: 40,
     paddingTop: 82,
   },
   title: {
     color: colors.primary,
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: '600',
     marginBottom: 28,
   },
   form: {
     gap: 29,
-    maxWidth: 300,
+    maxWidth: 350,
     width: '100%',
   },
   loginButton: {
-    marginHorizontal: 35,
     marginTop: 31,
+    width: '100%',
   },
   socialTitle: {
     color: colors.primary,
@@ -157,16 +164,27 @@ const styles = StyleSheet.create({
     marginTop: 43,
   },
   googleButton: {
+    justifyContent: 'center',
     alignItems: 'center',
     height: 48,
-    justifyContent: 'center',
-    marginTop: 10,
-    width: 48,
+    textAlign: 'center',
+    marginTop: 29,
+    maxWidth: 350,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 100,
   },
-  googleMark: {
-    color: '#4285f4',
-    fontSize: 37,
-    fontWeight: '900',
+  googleIcon: {
+    width: 25,
+    height: 25,
+    resizeMode: 'contain',
+  },
+  googleCTA: {
+    flexDirection: 'row',
+    alignItems: 'center',     // <--- Alinha o ícone e o texto no eixo vertical
+    justifyContent: 'center',
+    gap: 10,
   },
   pressed: {
     opacity: 0.7,
@@ -179,11 +197,11 @@ const styles = StyleSheet.create({
   },
   accountText: {
     color: colors.white,
-    fontSize: 12,
+    fontSize: 14,
   },
   accountLink: {
     color: colors.primary,
-    fontSize: 12,
+    fontSize: 14,
     textDecorationLine: 'underline',
   },
   logoContainer: {

@@ -57,10 +57,12 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea} testID="register-screen">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         style={styles.keyboardArea}
       >
         <ScrollView
+          scrollEnabled={true}
           bounces={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -69,13 +71,17 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
           <View style={styles.content}>
             <VersLogo size={100} />
 
+            <Text accessibilityRole="header" style={styles.title}>
+              Create account
+            </Text>
+
             <View style={styles.form}>
               <AuthTextField
                 autoComplete="email"
                 keyboardType="email-address"
                 label="Email:"
                 onChangeText={setEmail}
-                placeholder="Emailexample@example.com.ex"
+                placeholder="Enter your email"
                 textContentType="emailAddress"
                 value={email}
               />
@@ -83,7 +89,7 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
                 autoComplete="new-password"
                 label="Password:"
                 onChangeText={setPassword}
-                placeholder="Password123!!"
+                placeholder="Enter your password"
                 secureTextEntry
                 textContentType="newPassword"
                 value={password}
@@ -95,7 +101,7 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
                 autoComplete="new-password"
                 label="Confirm Password:"
                 onChangeText={setConfirmPassword}
-                placeholder="Password123!!"
+                placeholder="Enter your password"
                 secureTextEntry
                 textContentType="newPassword"
                 value={confirmPassword}
@@ -103,23 +109,23 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
 
               <View style={styles.signUpButton}>
                 <PrimaryButton
-                  accessibilityLabel="Sign-up"
+                  accessibilityLabel="Sign up"
                   disabled={!canSubmit}
-                  label="SING-UP"
+                  label="SING UP"
                   onPress={handleRegister}
                 />
               </View>
             </View>
 
             <View style={styles.accountRow}>
-              <Text style={styles.accountText}>Alredy have an account? </Text>
+              <Text style={styles.accountText}>Already have an account? </Text>
               <Pressable
                 accessibilityLabel="Voltar para o Login"
                 accessibilityRole="button"
                 hitSlop={8}
                 onPress={onLogin}
               >
-                <Text style={styles.accountLink}>Login right here</Text>
+                <Text style={styles.accountLink}>Sign In</Text>
               </Pressable>
             </View>
           </View>
@@ -144,18 +150,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     paddingBottom: 48,
-    paddingHorizontal: 40,
     paddingTop: 48,
+  },
+  title: {
+    marginTop: 28,
+    color: colors.primary,
+    fontSize: 26,
+    fontWeight: '600',
+    marginBottom: 22,
   },
   form: {
     gap: 26,
-    marginTop: 42,
-    maxWidth: 300,
+    maxWidth: 350,
     width: '100%',
   },
   signUpButton: {
-    marginHorizontal: 38,
-    marginTop: 58,
+    width: '100%',
+    maxWidth: 350,
+    marginTop: 34,
   },
   accountRow: {
     alignItems: 'center',

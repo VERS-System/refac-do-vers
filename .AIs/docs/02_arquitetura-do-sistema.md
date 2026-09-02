@@ -2,6 +2,12 @@
 
 # Arquitetura do sistema
 
+> **Estado em 13/08/2026:** a implementação digital usa um monorepo com NestJS,
+> Prisma/PostgreSQL (Neon), React, Electron, React Native e FastAPI. MQTT e
+> WebSocket possuem scaffolds dentro do backend, mas sua integração funcional
+> ainda será validada pelas fases 0, 5 e 7 do
+> [roadmap do core](plans/core-roadmap.md).
+
 ## 1. Camadas do VERS
 
 | Camada                   | Responsabilidade                                                | Componentes previstos                                             |
@@ -58,7 +64,8 @@ O firmware deverá, em uma evolução posterior:
 - associação em série/paralelo e número de elementos ativos;
 - localização do INA219 e método de cálculo de energia;
 - taxa de amostragem, formato de telemetria e estratégia offline;
-- tecnologia da API, banco de dados e dashboard;
+- contratos definitivos entre a API NestJS, PostgreSQL/Neon, dashboard e os
+  módulos de MQTT/WebSocket;
 - requisitos de proteção elétrica e mecânica para uso em veículo.
 
 Essas decisões devem ser registradas em planos específicos antes de modificar hardware ou iniciar o desenvolvimento do software.

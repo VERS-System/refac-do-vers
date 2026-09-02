@@ -1,5 +1,14 @@
 # Schema do Core — VERS
 
+> **Status em 13/08/2026:** este é o plano inicial que originou o schema
+> experimental já aplicado. Ele não representa o contrato final. A revisão de
+> usuários, veículos, dispositivos, autenticação, enums, índices, precisão e
+> retenção ocorrerá na Fase 1 do [roadmap do core](core-roadmap.md). Em caso de
+> divergência sobre próximos passos, o roadmap é a fonte de verdade.
+
+A proposta detalhada de entidades e variáveis para as features mobile e para a
+ingestão MQTT está em [Schema v2 — Mobile e MQTT](schema-mobile-mqtt.md).
+
 ## Entidades
 
 ### Test

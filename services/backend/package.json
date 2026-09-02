@@ -7,10 +7,12 @@
     "build": "nest build",
     "start": "node dist/main",
     "test": "jest",
+    "test:unit": "jest --runInBand --passWithNoTests",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
+    "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
@@ -21,6 +23,7 @@
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/platform-socket.io": "^11.0.0",
+    "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.0.0",
     "@prisma/client": "^6.0.0",
     "bcrypt": "^5.1.1",

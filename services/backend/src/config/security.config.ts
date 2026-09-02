@@ -1,11 +1,18 @@
-// Configuração de segurança
-//
-// Define as opções do helmet para proteção contra ataques comuns
-// (XSS, clickjacking, MIME sniffing, etc).
+// Define as políticas HTTP do Helmet conforme o ambiente do backend VERS.
 
 import { HelmetOptions } from 'helmet';
 
-export const helmetConfig: HelmetOptions = {
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-  contentSecurityPolicy: false, // desabilitado para desenvolvimento
-};
+/**
+ * Monta políticas permissivas apenas para ferramentas locais e testes.
+ * Em produção, habilita CSP e restringe recursos ao mesmo site.
+ */
+export function createHelmetConfig(nodeEnvironment: string): HelmetOptions {
+  const isProduction = nodeEnvironment === 'production';
+
+  return {
+    contentSecurityPolicy: isProduction,
+    crossOriginResourcePolicy: {
+      policy: isProduction ? 'same-site' : 'cross-origin',
+    },
+  };
+}

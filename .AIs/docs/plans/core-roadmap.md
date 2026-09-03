@@ -2,6 +2,10 @@
 
 # Roadmap de implementação do core — VERS
 
+> Para desenvolvimento do backend, ingestão MQTT, tratamento de dados e APIs,
+> a fonte de verdade detalhada é o
+> [Roadmap de Backend e MQTT](backend-mqtt-roadmap.md).
+
 ## 1. Objetivo
 
 Este documento é a fonte de verdade para a evolução do core do VERS. Ele organiza
@@ -161,7 +165,7 @@ mobile consegue autenticar sem dados simulados.
 3. ciclo de vida de testes experimentais;
 4. consulta paginada de telemetria;
 5. resumos energéticos e indicadores;
-6. diagnóstico, relatórios e exportações.
+6. relatórios e exportações.
 
 **Entregas:** DTOs validados, services, controllers, autorização por recurso,
 paginação, filtros e documentação em `docs/api/endpoints.md`.
@@ -239,7 +243,7 @@ nenhuma chave ou dado sensível exposto aos clientes.
 **Objetivo:** substituir dados simulados por contratos estáveis.
 
 **Ordem recomendada:** autenticação mobile, Home/energia, perfil/veículo,
-diagnóstico/Viber, dashboard REST/tempo real e web.
+Viber, dashboard REST/tempo real e web.
 
 **Critério de saída:** fluxos críticos têm estados de carregamento, vazio, erro,
 expiração de sessão e reconexão testados.
@@ -302,4 +306,3 @@ A próxima atividade é a **Fase 0 — Baseline e capacidade de validação**. A
 concluí-la, a equipe deve produzir uma auditoria objetiva do backend e abrir a
 Fase 1 com uma proposta detalhada de alteração do schema, antes de criar a
 migration.
-

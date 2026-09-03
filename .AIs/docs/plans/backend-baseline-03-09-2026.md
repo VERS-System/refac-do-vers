@@ -17,30 +17,45 @@ no repositório não representam funcionalidades implementadas.
 - há 48 arquivos vazios em `src/common` e `src/modules`;
 - auth, data, MQTT, roles, tokens, WebSocket, AI e os componentes comuns são
   scaffolds vazios;
+- `services/backend/src` é a única árvore canônica da aplicação NestJS;
+- as árvores vazias `services/backend/mobile`, `dashboard`, `general` e `web`
+  são legadas e não devem receber implementação nova;
 - o schema Prisma atual é experimental e não atende ao roadmap novo;
-- build NestJS aprovado usando o binário local;
+- não há migrations versionadas no diretório `prisma/migrations`;
+- Prisma Client 6.19.3 gerado e carregado com sucesso;
+- schema Prisma validado com URL PostgreSQL sintética, sem conexão externa;
+- `prisma.config.ts` impede carregamento implícito de `.env` pelo CLI;
+- `postinstall` regenera o Prisma Client sem depender de conexão com o banco;
+- build NestJS aprovado pelo script do workspace;
 - 7 suítes e 23 testes preexistentes aprovados;
-- Jest mantém um handle aberto após a suíte e precisa de investigação;
-- lint não executa porque ESLint não está instalado no workspace atual.
+- execução com `--detectOpenHandles` não identificou handle aberto;
+- lint configurado com ESLint 9 e aprovado sem autofix.
 
 ## Limitação do gerenciador de pacotes
 
-O comando por `pnpm.cmd --filter` tentou reconciliar `node_modules`, acessar o
-registry e remover módulos sem TTY. Como a rede não estava disponível, a
-validação foi executada com os binários locais de Jest e Nest. A configuração
-legada `pnpm.onlyBuiltDependencies` da raiz também gera aviso porque a versão
-atual do pnpm espera essa configuração no workspace.
+O monorepo foi fixado em pnpm 11.21.0. A configuração duplicada e obsoleta
+`pnpm.onlyBuiltDependencies` foi removida do `package.json`; `allowBuilds` no
+`pnpm-workspace.yaml` permanece como fonte de verdade. As dependências foram
+reconciliadas com o lockfile sem atualização de versões de produção.
 
-## Primeira entrega iniciada
+## Limite da validação Prisma
 
-Foi escolhido o contrato comum de respostas e erros HTTP, porque todas as APIs
-de mobile e desktop dependerão dele. O teste foi escrito e executado antes da
-implementação.
+O mecanismo de geração foi validado com uma cópia temporária do schema e uma URL
+PostgreSQL sintética. Isso confirma o CLI e o Client, mas não aprova o schema
+experimental, não valida conectividade com o Neon e não cria migrations.
+
+## Pendências fora do backend
+
+`pnpm peers check` identifica incompatibilidades preexistentes de React entre os
+workspaces mobile/web. Elas não impedem o baseline do backend e devem ser
+tratadas pelo responsável pelos clientes sem alterar versões nesta entrega.
 
 ## Próximas ações
 
-1. estabilizar o comando pnpm e instalar/configurar ESLint de forma versionada;
-2. investigar o handle aberto do Jest;
-3. concluir os contratos das APIs dos aplicativos;
-4. implementar cada recurso verticalmente com TDD, sem preencher scaffolds em
+1. concluir os contratos compartilhados pelas aplicações mobile e desktop;
+2. revisar o schema experimental somente após os contratos;
+3. implementar cada recurso verticalmente com TDD, sem preencher scaffolds em
    massa.
+
+Uma implementação prematura do envelope comum de respostas foi revertida para
+que nenhum código das fases posteriores permaneça antes dos contratos.

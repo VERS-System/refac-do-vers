@@ -405,9 +405,9 @@ consultas e análises sem depender do ESP32 ou do broker.
 
 ### Fase 0 — Baseline real
 
-**Estado:** executada em 03/09/2026. Resultado registrado em
-[Baseline do backend](backend-baseline-03-09-2026.md). Permanecem pendentes a
-correção do lint e a investigação do handle aberto do Jest.
+**Estado:** concluída em 03/09/2026. Resultado registrado em
+[Baseline do backend](backend-baseline-03-09-2026.md). Testes, lint, build,
+pnpm e geração do Prisma Client possuem baseline reproduzível.
 
 **Entregas:** auditar scaffolds, classificar código funcional/parcial/vazio,
 executar testes, lint e build, documentar falhas preexistentes e fechar

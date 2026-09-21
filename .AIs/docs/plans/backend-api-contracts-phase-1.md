@@ -101,7 +101,11 @@ separados conceitualmente, validar cada um e informar os arquivos correspondente
 - todos os campos JSON usam inglês e `camelCase`;
 - datas trafegam como strings ISO 8601 em UTC;
 - IDs são strings opacas no contrato e serão UUIDs na persistência;
-- access e refresh tokens são retornados somente pelos endpoints de autenticação;
+- access e refresh tokens trafegam somente em cookies `HttpOnly` e nunca são
+  expostos no JSON ou ao JavaScript;
+- cookies de autenticação usam `Secure` fora do desenvolvimento local e a API
+  de produção aceita autenticação somente por HTTPS;
+- refresh e logout recebem a sessão pelos cookies e não aceitam tokens no body;
 - a API usa `/api/v1` e um envelope uniforme com `requestId`;
 - documentos pessoais não fazem parte deste contrato;
 - clientes dependem dos contratos compartilhados, não dos tipos gerados pelo

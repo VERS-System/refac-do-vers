@@ -1,7 +1,9 @@
 // Fixtures sintéticas e tipadas para integração dos clientes com a API VERS.
 
 import type { AuthResponse } from './auth';
+import type { PaginatedResponse } from './api';
 import type { UserProfile } from './users';
+import type { Vehicle } from './vehicles';
 
 export const userProfileFixture = {
   id: '00000000-0000-4000-8000-000000000001',
@@ -18,3 +20,26 @@ export const userProfileFixture = {
 export const authResponseFixture = {
   user: userProfileFixture,
 } satisfies AuthResponse;
+
+export const vehicleFixture = {
+  id: '00000000-0000-4000-8000-000000000101',
+  licensePlate: 'ABC1D23',
+  brand: 'Marca Exemplo',
+  model: 'Modelo Exemplo',
+  modelYear: 2026,
+  relationship: 'OWNER',
+  isPrimary: true,
+  createdAt: '2026-09-20T12:00:00.000Z',
+  updatedAt: '2026-09-20T12:00:00.000Z',
+} satisfies Vehicle;
+
+export const vehicleListFixture = {
+  data: [vehicleFixture],
+  meta: {
+    page: 1,
+    pageSize: 20,
+    totalItems: 1,
+    totalPages: 1,
+  },
+  requestId: 'request-vehicles-001',
+} satisfies PaginatedResponse<Vehicle>;

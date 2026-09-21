@@ -26,6 +26,7 @@ fixtures tipadas enquanto a persistência ainda não existe.
 - alteração do schema Prisma ou criação de migration;
 - login Google, recuperação de senha e administração de usuários;
 - armazenamento de CPF, CRLV, RENAVAM ou arquivos de documentos;
+- integração ou consulta automática aos sistemas do DETRAN;
 - instalações VERS, testes experimentais, telemetria, MQTT e WebSocket.
 
 ## Arquivos previstos
@@ -108,6 +109,10 @@ separados conceitualmente, validar cada um e informar os arquivos correspondente
 - refresh e logout recebem a sessão pelos cookies e não aceitam tokens no body;
 - a API usa `/api/v1` e um envelope uniforme com `requestId`;
 - documentos pessoais não fazem parte deste contrato;
+- a placa é obrigatória e normalizada no cadastro, torna-se imutável depois e
+  deve ser única; para trocar a placa, o usuário cadastra outro veículo;
+- uma futura validação no DETRAN depende de viabilidade técnica, burocrática,
+  financeira e jurídica e não condiciona este contrato;
 - clientes dependem dos contratos compartilhados, não dos tipos gerados pelo
   Prisma.
 

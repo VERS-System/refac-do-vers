@@ -63,7 +63,7 @@ ESP32
             └─ eventos ao vivo → Redis Pub/Sub → WebSocket → dashboard
 
 mobile / web / dashboard
-  └─ REST + JWT → backend
+  └─ REST + cookies JWT HttpOnly sobre HTTPS → backend
                      └─ REST interno sob demanda → ai-service/OpenAI
 ```
 
@@ -109,7 +109,8 @@ baseline documentado.
 
 - revisar `Configuration`, `Test`, `Telemetry`, `EnergySummary`, `MqttMessage`,
   `AiInteraction` e `AiPrediction`;
-- modelar usuários, papéis, sessões/refresh tokens, veículos e dispositivos;
+- modelar usuários, papéis e sessões revogáveis com hash de refresh token,
+  veículos e dispositivos;
 - remover ou definir campos redundantes e separar medições de agregados;
 - converter estados finitos em enums e definir nulabilidade, precisão e unidades;
 - definir índices, unicidade, relacionamentos, deleções e retenção de telemetria;
@@ -129,7 +130,8 @@ dados aprovados e dicionário de dados atualizado.
 - integrar ao `AppModule` apenas módulos já cobertos por testes;
 - padronizar validação, respostas, paginação e tratamento de erros;
 - configurar logging estruturado, correlação de requisições e auditoria;
-- validar CORS, Helmet, rate limit e configuração por ambiente;
+- validar CORS com credenciais e allowlist, proteção CSRF, Helmet, rate limit e
+  configuração por ambiente;
 - criar health checks de aplicação, banco e Redis;
 - definir versionamento e prefixo da API.
 
@@ -143,13 +145,16 @@ e erros seguem contrato único.
 **Entregas:**
 
 - cadastro, login e hash de senha;
-- access token e rotação/revogação de refresh token;
+- access token curto e refresh token rotativo/revogável exclusivamente em
+  cookies `HttpOnly`, sem exposição em JSON ou ao JavaScript;
+- HTTPS e cookies `Secure` em produção, com política `SameSite` definida antes
+  da implementação;
 - Passport JWT, guards e decorators de usuário atual;
 - papéis e permissões de usuário e administrador;
 - recuperação de senha e login social somente após contrato específico;
 - autenticação separada e mínima para dispositivos MQTT;
-- testes contra enumeração de usuários, escalada de privilégio e reutilização de
-  refresh token.
+- testes contra enumeração de usuários, escalada de privilégio, CSRF,
+  reutilização de refresh token e exposição de tokens ao JavaScript.
 
 **Critério de saída:** fluxos principais e casos de abuso cobertos por testes;
 mobile consegue autenticar sem dados simulados.

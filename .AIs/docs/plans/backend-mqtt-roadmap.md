@@ -133,7 +133,7 @@ envelope, a idempotência nem a arquitetura do pipeline.
 
 | Módulo | Responsabilidade |
 | --- | --- |
-| `AuthModule` | cadastro, login, access token, rotação e revogação de refresh token |
+| `AuthModule` | cadastro, login e sessões JWT em cookies `HttpOnly`, com rotação e revogação |
 | `UsersModule` | perfil e administração autorizada de usuários |
 | `VehiclesModule` | veículos e vínculos com usuários |
 | `InstallationsModule` | instalações VERS e configurações físicas versionadas |
@@ -225,6 +225,10 @@ aplicável e autorização por recurso.
 - `POST /auth/refresh`
 - `POST /auth/logout`
 - `POST /auth/logout-all`
+
+Login, cadastro e refresh não retornam tokens no JSON. Access e refresh tokens
+são definidos exclusivamente por cabeçalhos `Set-Cookie` com `HttpOnly`; refresh
+e logout recebem a sessão pelos cookies e não aceitam token no body.
 
 Recuperação de senha e login Google ficam fora do MVP inicial e exigem contrato
 específico antes da implementação.
@@ -320,7 +324,12 @@ Regras:
 ### REST e WebSocket
 
 - JWT próprio com access token curto e refresh token rotativo e revogável;
-- hash seguro de senha e de refresh token;
+- access e refresh tokens exclusivamente em cookies `HttpOnly`, sem acesso por
+  JavaScript e sem inclusão no corpo JSON;
+- HTTPS obrigatório e cookies `Secure` em produção;
+- CORS com credenciais restrito à allowlist, proteção CSRF e política `SameSite`
+  definida conforme os domínios finais dos clientes;
+- hash seguro de senha e de refresh token; somente o hash da sessão é persistido;
 - rotas públicas, autenticadas e administrativas explicitamente classificadas;
 - autorização por papel e por propriedade do veículo/instalação/teste;
 - validação global, rejeição de campos extras e proteção contra mass assignment;
@@ -383,7 +392,9 @@ Toda entrega funcional seguirá TDD e deverá passar em `test:unit`, lint e buil
 - NestJS com Prisma em banco isolado;
 - entrada MQTT até persistência de mensagem e telemetria;
 - publicação Redis até entrega WebSocket;
-- autenticação, refresh, revogação e acesso por recurso;
+- autenticação, refresh por cookie, revogação, CSRF e acesso por recurso;
+- ausência de tokens nos corpos JSON e indisponibilidade dos cookies ao
+  JavaScript;
 - migrations, índices e concorrência nas chaves idempotentes.
 
 ### Testes end-to-end
@@ -444,8 +455,9 @@ erros, logging, correlação, auditoria, health checks, paginação e OpenAPI.
 
 ### Fase 4 — Autenticação e autorização
 
-**Entregas:** cadastro, login, tokens, logout, sessões, papéis, propriedade de
-recursos e proteção WebSocket. Definir separadamente a identidade MQTT.
+**Entregas:** cadastro, login, cookies JWT `HttpOnly`, refresh, logout, sessões,
+proteção CSRF, papéis, propriedade de recursos e proteção WebSocket. Definir
+separadamente a identidade MQTT.
 
 **Saída:** acessos legítimos e casos de abuso cobertos por testes.
 

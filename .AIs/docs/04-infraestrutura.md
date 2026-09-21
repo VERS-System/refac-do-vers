@@ -59,7 +59,7 @@ docker compose down
 | `NODE_ENV`             | Não         | `development`  | Ambiente de execução          |
 | `PORT`                 | Não         | `3000`         | Porta do backend              |
 | `JWT_SECRET`           | Sim         | —              | Chave secreta JWT (mín. 16 caracteres) |
-| `JWT_EXPIRATION`       | Não         | `7d`           | Tempo de expiração do token   |
+| `JWT_EXPIRATION`       | Não         | `7d`           | Expiração JWT do baseline atual; será separada por tipo de token na implementação da autenticação |
 | `VITE_API_URL`         | Não         | `http://localhost:3000` | URL da API para web    |
 | `VITE_WS_URL`          | Não         | `ws://localhost:3000`   | URL do WebSocket       |
 | `EXPO_HOST`            | Não         | `localhost`    | IP do host para Expo          |
@@ -67,6 +67,17 @@ docker compose down
 | `OPENAI_MODEL`         | Não         | `gpt-4o-mini`  | Modelo OpenAI                 |
 
 Cada serviço também possui seu próprio `.env.example` com as variáveis específicas.
+
+### Transporte da autenticação
+
+- access e refresh tokens serão emitidos somente como cookies `HttpOnly`;
+- nenhum token será retornado em JSON ou disponibilizado ao JavaScript;
+- produção aceitará autenticação somente por HTTPS e usará cookies `Secure`;
+- refresh e logout usarão os cookies recebidos, sem token no body;
+- o backend deverá habilitar CORS com credenciais apenas para origens permitidas
+  e aplicar proteção CSRF adequada ao modelo de cookies;
+- a política `SameSite` ainda precisa ser definida conforme os clientes e os
+  domínios finais de implantação.
 
 ---
 

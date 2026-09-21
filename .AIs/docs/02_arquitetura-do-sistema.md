@@ -8,6 +8,13 @@
 > ainda será validada pelas fases 0, 5 e 7 do
 > [roadmap do core](plans/core-roadmap.md).
 
+A autenticação dos clientes usa JWT próprio no backend NestJS. Access e refresh
+tokens trafegam exclusivamente em cookies `HttpOnly`, sem exposição ao
+JavaScript ou aos corpos JSON. Em produção, a API e os clientes devem operar por
+HTTPS e os cookies devem usar o atributo `Secure`. CORS com credenciais,
+proteção CSRF e a política `SameSite` serão fechados antes da implementação do
+módulo de autenticação.
+
 ## 1. Camadas do VERS
 
 | Camada                   | Responsabilidade                                                | Componentes previstos                                             |

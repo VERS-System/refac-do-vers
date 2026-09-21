@@ -86,13 +86,19 @@ Restrição: `@@unique([provider, providerSubject])`.
 | --- | --- | --- | --- |
 | `id` | `String @id @default(uuid())` | Sim | Sessão autenticada. |
 | `userId` | `String` | Sim | Usuário. |
-| `tokenHash` | `String @unique` | Sim | Hash do refresh token; nunca o token puro. |
+| `tokenHash` | `String @unique` | Sim | Hash do refresh token usado para rotação/revogação; nunca o token puro. |
 | `deviceLabel` | `String?` | Não | Identificação amigável do aparelho. |
 | `expiresAt` | `DateTime` | Sim | Expiração. |
 | `revokedAt` | `DateTime?` | Não | Revogação/rotação. |
 | `createdAt` | `DateTime @default(now())` | Sim | Auditoria. |
 
 Índice: `@@index([userId, expiresAt])`.
+
+O token bruto não é persistido nem retornado em JSON. Access e refresh tokens
+trafegam exclusivamente em cookies `HttpOnly`; somente o hash necessário para
+controlar a sessão revogável fica no banco. Em produção, os cookies usam
+`Secure` sobre HTTPS. Proteção CSRF e a política `SameSite` devem ser definidas
+antes da implementação do módulo de autenticação.
 
 ## 5. Veículo e instalação VERS
 

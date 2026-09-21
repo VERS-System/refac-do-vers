@@ -113,6 +113,13 @@ separados conceitualmente, validar cada um e informar os arquivos correspondente
   deve ser única; para trocar a placa, o usuário cadastra outro veículo;
 - uma futura validação no DETRAN depende de viabilidade técnica, burocrática,
   financeira e jurídica e não condiciona este contrato;
+- `USER` é o papel global padrão da conta; o cadastro de veículo cria um vínculo
+  `UserVehicle` com FKs para usuário e veículo e relacionamento `OWNER`;
+- o primeiro veículo da conta é principal; promover outro remove o principal
+  anterior atomicamente;
+- o último veículo da conta não pode ser excluído;
+- ao excluir o principal, o único veículo restante é promovido automaticamente;
+  com múltiplos candidatos, o usuário informa o `replacementVehicleId`;
 - clientes dependem dos contratos compartilhados, não dos tipos gerados pelo
   Prisma.
 

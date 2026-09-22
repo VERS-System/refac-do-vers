@@ -212,6 +212,59 @@ de alteração; usar `409` quando uma transição for impedida pelo estado atual
 `INSTALLATION_NOT_FOUND` e `CONFIGURATION_NOT_FOUND` cobrem ausência e falta de
 acesso. Parâmetros ou filtros inválidos retornam `VALIDATION_ERROR`.
 
+## Testes experimentais
+
+As rotas exigem access cookie. O usuário pode criar testes para uma instalação
+de veículo a que tem acesso e consultar os testes que criou ou aos quais ainda
+tem acesso pela instalação. Após excluir um veículo, os testes criados continuam
+disponíveis ao criador sem reexpor placa ou identificadores específicos. Recurso
+inexistente ou sem acesso retorna `TEST_NOT_FOUND` (`404`).
+
+| Método | Rota | Resultado |
+| --- | --- | --- |
+| `GET` | `/tests?page=1&pageSize=20&installationId={id}&status=COMPLETED&startedFrom={utc}&startedTo={utc}` | Lista paginada; filtros opcionais. |
+| `POST` | `/tests` | Cria teste em `PLANNED`. |
+| `GET` | `/tests/{testId}` | Consulta teste autorizado. |
+| `POST` | `/tests/{testId}/start` | Inicia teste planejado; body vazio. |
+| `POST` | `/tests/{testId}/finish` | Finaliza teste em `COMPLETED` ou `FAILED`. |
+| `POST` | `/tests/{testId}/cancel` | Cancela teste planejado ou em execução. |
+
+Na criação, o cliente informa `installationId`, `configurationId`, `name`,
+`terrain`, `testLocation` e, se conhecido, `vehicleWeightKg` e `notes`. A
+configuração precisa pertencer à instalação, que deve estar ativa. O servidor
+atribui `createdById`, `status`, `createdAt` e o snapshot da montagem: modelo
+do veículo, local informado, quantidade de piezos e versão da configuração.
+Placa, CPF, documentos e identificadores específicos não entram no snapshot.
+
+`TestRecord` contém contexto, estado, snapshot, referências opcionais à
+instalação e configuração, horários, peso no teste, RPM e velocidade médios,
+inclinação, resultado e observações. As referências podem se tornar `null`
+quando a exclusão do veículo remover seus identificadores. Medições de tensão,
+corrente, potência e energia não pertencem a esse contrato. O peso é informado
+ou medido no teste, nunca inferido apenas do modelo do veículo.
+
+### Estados e concorrência
+
+```text
+PLANNED -> RUNNING -> COMPLETED | FAILED
+    |          |
+    +----------+-> CANCELLED
+```
+
+`start` aceita body vazio e atribui `startedAt` pelo relógio do servidor.
+`finish` exige `status` igual a `COMPLETED` ou `FAILED`, aceita `outcome`,
+`averageEngineRpm`, `averageSpeedKph`, `inclineDegrees`, `vehicleWeightKg` e
+`notes`, e atribui `endedAt` pelo servidor. `cancel` aceita `reason` opcional e
+atribui `endedAt` somente se o teste estava em execução. Toda transição ocorre
+atomicamente; duas transições concorrentes não podem ter sucesso sobre o mesmo
+estado anterior. Repetição ou transição inválida retorna
+`TEST_STATE_CONFLICT` (`409`) com o estado atual consultável por `GET`.
+
+`startedFrom` é inclusivo e `startedTo` é exclusivo; ambos usam ISO 8601 UTC.
+O intervalo deve ter início anterior ao fim. Resultados são ordenados por
+`createdAt` decrescente, com `id` como desempate. Filtros inválidos retornam
+`VALIDATION_ERROR` (`400`).
+
 ## Códigos iniciais de erro
 
 | Código | Uso |
@@ -224,6 +277,8 @@ acesso. Parâmetros ou filtros inválidos retornam `VALIDATION_ERROR`.
 | `CONFIGURATION_NOT_FOUND` | Configuração inexistente ou inacessível dentro da instalação. |
 | `INSTALLATION_NOT_FOUND` | Instalação inexistente ou não acessível ao usuário. |
 | `INSTALLATION_STATE_CONFLICT` | Transição futura incompatível com o estado atual da instalação. |
+| `TEST_NOT_FOUND` | Teste inexistente ou não acessível ao usuário. |
+| `TEST_STATE_CONFLICT` | Transição solicitada incompatível ou concorrente com o estado atual. |
 | `USER_NOT_FOUND` | Perfil autenticado indisponível. |
 | `VEHICLE_LICENSE_PLATE_ALREADY_REGISTERED` | Placa já cadastrada. |
 | `VEHICLE_NOT_FOUND` | Veículo inexistente ou não acessível ao usuário. |

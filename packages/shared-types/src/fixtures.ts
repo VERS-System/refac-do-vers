@@ -3,6 +3,7 @@
 import type { AuthResponse } from './auth';
 import type { PaginatedResponse } from './api';
 import type { Configuration, Installation } from './installations';
+import type { TestRecord } from './tests';
 import type { UserProfile } from './users';
 import type { Vehicle } from './vehicles';
 
@@ -86,3 +87,35 @@ export const configurationListFixture = {
   meta: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
   requestId: 'request-configurations-001',
 } satisfies PaginatedResponse<Configuration>;
+
+export const testRecordFixture = {
+  id: '00000000-0000-4000-8000-000000000301',
+  installationId: installationFixture.id,
+  configurationId: configurationFixture.id,
+  createdById: userProfileFixture.id,
+  name: 'Percurso de demonstração',
+  status: 'COMPLETED',
+  terrain: 'CITY',
+  snapshot: {
+    vehicleModel: 'Modelo Exemplo',
+    testLocation: 'Pista de testes',
+    activePiezoCount: 8,
+    configurationVersion: 1,
+  },
+  startedAt: '2026-09-22T12:00:00.000Z',
+  endedAt: '2026-09-22T12:05:00.000Z',
+  vehicleWeightKg: 1200,
+  averageEngineRpm: 1900,
+  averageSpeedKph: 32,
+  inclineDegrees: 0,
+  outcome: 'SATISFACTORY',
+  notes: null,
+  createdAt: '2026-09-22T11:55:00.000Z',
+  updatedAt: '2026-09-22T12:05:00.000Z',
+} satisfies TestRecord;
+
+export const testListFixture = {
+  data: [testRecordFixture],
+  meta: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+  requestId: 'request-tests-001',
+} satisfies PaginatedResponse<TestRecord>;

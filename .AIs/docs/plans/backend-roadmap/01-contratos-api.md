@@ -40,12 +40,17 @@ OpenAPI concluídos em 22/09/2026. A ausência de acesso é apresentada como
 `404`; o conflito de estado está catalogado para futuras operações de escrita,
 pois as rotas deste lote são somente de leitura.
 
-## Etapa D — Testes experimentais
+## Etapa D — Testes experimentais — concluída
 
 - criar, iniciar, finalizar, cancelar e consultar testes;
 - definir transições de estado e conflitos concorrentes;
 - separar contexto do teste de medições e agregados;
 - definir filtros, paginação e intervalos.
+
+Contratos de ciclo de vida, snapshot histórico, fixtures, testes de compilação,
+documentação humana e OpenAPI concluídos em 22/09/2026. Instantes de início e
+fim são atribuídos pelo servidor; transições inválidas ou concorrentes usam
+`TEST_STATE_CONFLICT`.
 
 ## Etapa E — Telemetria, resumos e suporte
 

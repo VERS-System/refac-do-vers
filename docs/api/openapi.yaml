@@ -4,7 +4,7 @@ info:
   title: VERS API
   version: 0.1.0
   description: >-
-    Contratos de autenticação, perfil, veículos, instalações e configurações. Tokens JWT trafegam
+    Contratos de autenticação, perfil, veículos, instalações, configurações e testes. Tokens JWT trafegam
     somente em cookies HttpOnly e nunca são retornados no JSON.
 servers:
   - url: https://api.example.vers/api/v1
@@ -14,6 +14,7 @@ tags:
   - name: Users
   - name: Vehicles
   - name: Installations
+  - name: Tests
 paths:
   /auth/register:
     post:
@@ -328,6 +329,157 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+  /tests:
+    get:
+      tags: [Tests]
+      summary: Lista testes experimentais autorizados
+      description: Ordenação por createdAt decrescente, com id como desempate.
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/TestInstallationId'
+        - $ref: '#/components/parameters/TestStatusFilter'
+        - $ref: '#/components/parameters/StartedFrom'
+        - $ref: '#/components/parameters/StartedTo'
+      responses:
+        '200':
+          description: Testes paginados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    post:
+      tags: [Tests]
+      summary: Cria teste planejado
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTestRequest'
+      responses:
+        '201':
+          description: Teste criado em PLANNED.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /tests/{testId}:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    get:
+      tags: [Tests]
+      summary: Consulta teste autorizado
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Teste encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /tests/{testId}/start:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    post:
+      tags: [Tests]
+      summary: Inicia teste planejado
+      description: Body vazio; startedAt é atribuído pelo servidor.
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Teste iniciado em RUNNING.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /tests/{testId}/finish:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    post:
+      tags: [Tests]
+      summary: Conclui ou falha teste em execução
+      description: endedAt é atribuído pelo servidor.
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinishTestRequest'
+      responses:
+        '200':
+          description: Teste finalizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /tests/{testId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    post:
+      tags: [Tests]
+      summary: Cancela teste planejado ou em execução
+      security:
+        - accessCookie: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelTestRequest'
+      responses:
+        '200':
+          description: Teste cancelado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 components:
   securitySchemes:
     accessCookie:
@@ -396,6 +548,39 @@ components:
       schema:
         type: string
         enum: [ACTIVE, MAINTENANCE, INACTIVE, FAULT]
+    TestId:
+      name: testId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TestInstallationId:
+      name: installationId
+      in: query
+      schema:
+        type: string
+        format: uuid
+    TestStatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [PLANNED, RUNNING, COMPLETED, FAILED, CANCELLED]
+    StartedFrom:
+      name: startedFrom
+      in: query
+      description: Início inclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    StartedTo:
+      name: startedTo
+      in: query
+      description: Fim exclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
   responses:
     Authenticated:
       description: Sessão iniciada; tokens disponíveis somente nos cookies.
@@ -663,6 +848,133 @@ components:
         createdAt:
           type: string
           format: date-time
+    CreateTestRequest:
+      type: object
+      additionalProperties: false
+      required: [installationId, configurationId, name, terrain, testLocation]
+      properties:
+        installationId:
+          type: string
+          format: uuid
+        configurationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        terrain:
+          type: string
+          enum: [HIGHWAY, CITY, OFFROAD, MIXED, OTHER]
+        testLocation:
+          type: string
+          minLength: 1
+          maxLength: 160
+        vehicleWeightKg:
+          type: [number, 'null']
+          exclusiveMinimum: 0
+        notes:
+          type: [string, 'null']
+          maxLength: 1000
+    FinishTestRequest:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [COMPLETED, FAILED]
+        outcome:
+          type: [string, 'null']
+          enum: [SATISFACTORY, UNSATISFACTORY, INCONCLUSIVE, null]
+        averageEngineRpm:
+          type: [number, 'null']
+          minimum: 0
+        averageSpeedKph:
+          type: [number, 'null']
+          minimum: 0
+        inclineDegrees:
+          type: [number, 'null']
+        vehicleWeightKg:
+          type: [number, 'null']
+          exclusiveMinimum: 0
+        notes:
+          type: [string, 'null']
+          maxLength: 1000
+    CancelTestRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+    TestSnapshot:
+      type: object
+      additionalProperties: false
+      required: [vehicleModel, testLocation, activePiezoCount, configurationVersion]
+      properties:
+        vehicleModel:
+          type: [string, 'null']
+        testLocation:
+          type: string
+        activePiezoCount:
+          type: integer
+          minimum: 0
+        configurationVersion:
+          type: integer
+          minimum: 1
+    TestRecord:
+      type: object
+      additionalProperties: false
+      required: [id, installationId, configurationId, createdById, name, status, terrain, snapshot, startedAt, endedAt, vehicleWeightKg, averageEngineRpm, averageSpeedKph, inclineDegrees, outcome, notes, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        installationId:
+          type: [string, 'null']
+          format: uuid
+        configurationId:
+          type: [string, 'null']
+          format: uuid
+        createdById:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [PLANNED, RUNNING, COMPLETED, FAILED, CANCELLED]
+        terrain:
+          type: string
+          enum: [HIGHWAY, CITY, OFFROAD, MIXED, OTHER]
+        snapshot:
+          $ref: '#/components/schemas/TestSnapshot'
+        startedAt:
+          type: [string, 'null']
+          format: date-time
+        endedAt:
+          type: [string, 'null']
+          format: date-time
+        vehicleWeightKg:
+          type: [number, 'null']
+        averageEngineRpm:
+          type: [number, 'null']
+        averageSpeedKph:
+          type: [number, 'null']
+        inclineDegrees:
+          type: [number, 'null']
+        outcome:
+          type: [string, 'null']
+          enum: [SATISFACTORY, UNSATISFACTORY, INCONCLUSIVE, null]
+        notes:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     PaginationMeta:
       type: object
       required: [page, pageSize, totalItems, totalPages]
@@ -704,6 +1016,8 @@ components:
                 - CONFIGURATION_NOT_FOUND
                 - INSTALLATION_NOT_FOUND
                 - INSTALLATION_STATE_CONFLICT
+                - TEST_NOT_FOUND
+                - TEST_STATE_CONFLICT
                 - USER_NOT_FOUND
                 - VALIDATION_ERROR
                 - VEHICLE_LICENSE_PLATE_ALREADY_REGISTERED
@@ -795,6 +1109,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Configuration'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    TestResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/TestRecord'
+        requestId:
+          type: string
+    TestListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestRecord'
         meta:
           $ref: '#/components/schemas/PaginationMeta'
         requestId:

@@ -18,6 +18,7 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [Schema v2 — Mobile e MQTT](plans/schema-mobile-mqtt.md)          | Variáveis, entidades, payload e decisões abertas do novo schema.       |
 | [Fase 2 — Schema e migration](plans/backend-schema-phase-2.md)    | Plano seguro do banco, reconciliação, testes e pequenos commits.       |
 | [Roadmap executável do backend](plans/backend-roadmap/README.md)  | Fases detalhadas do backend, dependências, etapas e critérios de saída. |
+| [Roadmap de telas do mobile](plans/mobile-roadmap/README.md)      | Tasks por tela, navegação, estados visuais e encaixe com o backend.     |
 
 ## Organização
 

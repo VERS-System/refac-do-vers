@@ -9,7 +9,7 @@
     "postinstall": "prisma generate",
     "test": "jest",
     "test:unit": "jest --runInBand --passWithNoTests",
-    "test:db": "jest --config test/jest.db.config.cjs --runInBand",
+    "test:db": "node test/db/prepare.cjs && jest --config test/jest.db.config.cjs --runInBand",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "prisma:validate": "prisma validate",

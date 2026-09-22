@@ -3,6 +3,7 @@
 export * from './api';
 export * from './auth';
 export * from './fixtures';
+export * from './installations';
 export * from './users';
 export * from './vehicles';
 

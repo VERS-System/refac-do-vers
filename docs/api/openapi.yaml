@@ -1,10 +1,10 @@
-# Especificação OpenAPI dos contratos iniciais da API REST do VERS.
+# Especificação OpenAPI dos contratos REST iniciais do VERS.
 openapi: 3.1.0
 info:
   title: VERS API
   version: 0.1.0
   description: >-
-    Contratos iniciais de autenticação, perfil e veículos. Tokens JWT trafegam
+    Contratos de autenticação, perfil, veículos, instalações e configurações. Tokens JWT trafegam
     somente em cookies HttpOnly e nunca são retornados no JSON.
 servers:
   - url: https://api.example.vers/api/v1
@@ -13,6 +13,7 @@ tags:
   - name: Auth
   - name: Users
   - name: Vehicles
+  - name: Installations
 paths:
   /auth/register:
     post:
@@ -241,6 +242,92 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+  /installations:
+    get:
+      tags: [Installations]
+      summary: Lista instalações autorizadas
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/InstallationVehicleId'
+        - $ref: '#/components/parameters/InstallationStatusFilter'
+      responses:
+        '200':
+          description: Instalações autorizadas, paginadas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstallationListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /installations/{installationId}:
+    parameters:
+      - $ref: '#/components/parameters/InstallationId'
+    get:
+      tags: [Installations]
+      summary: Consulta instalação autorizada
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Instalação encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstallationResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /installations/{installationId}/configurations:
+    parameters:
+      - $ref: '#/components/parameters/InstallationId'
+    get:
+      tags: [Installations]
+      summary: Lista configurações versionadas da instalação
+      description: Ordenação por version decrescente, com id como desempate.
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Configurações paginadas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /installations/{installationId}/configurations/{configurationId}:
+    parameters:
+      - $ref: '#/components/parameters/InstallationId'
+      - $ref: '#/components/parameters/ConfigurationId'
+    get:
+      tags: [Installations]
+      summary: Consulta versão da configuração autorizada
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Configuração encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 components:
   securitySchemes:
     accessCookie:
@@ -283,6 +370,32 @@ components:
       schema:
         type: string
         format: uuid
+    InstallationId:
+      name: installationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ConfigurationId:
+      name: configurationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    InstallationVehicleId:
+      name: vehicleId
+      in: query
+      schema:
+        type: string
+        format: uuid
+    InstallationStatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [ACTIVE, MAINTENANCE, INACTIVE, FAULT]
   responses:
     Authenticated:
       description: Sessão iniciada; tokens disponíveis somente nos cookies.
@@ -306,7 +419,7 @@ components:
           schema:
             $ref: '#/components/schemas/ApiErrorResponse'
     ConflictError:
-      description: Email ou placa já cadastrados.
+      description: Recurso em conflito com estado ou unicidade.
       content:
         application/json:
           schema:
@@ -471,6 +584,85 @@ components:
         updatedAt:
           type: string
           format: date-time
+    PublicDevice:
+      type: object
+      additionalProperties: false
+      required: [id, name, firmwareVersion, status, lastSeenAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: [string, 'null']
+        firmwareVersion:
+          type: [string, 'null']
+        status:
+          type: string
+          enum: [PROVISIONING, ONLINE, OFFLINE, REVOKED, FAULT]
+        lastSeenAt:
+          type: [string, 'null']
+          format: date-time
+    Installation:
+      type: object
+      additionalProperties: false
+      required: [id, vehicleId, systemModel, status, installedAt, activeDevice, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        vehicleId:
+          type: string
+          format: uuid
+        systemModel:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, MAINTENANCE, INACTIVE, FAULT]
+        installedAt:
+          type: [string, 'null']
+          format: date-time
+        activeDevice:
+          oneOf:
+            - $ref: '#/components/schemas/PublicDevice'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Configuration:
+      type: object
+      additionalProperties: false
+      required: [id, installationId, name, version, activePiezoCount, piezoAssociation, installationPoint, storageType, notes, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        installationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        activePiezoCount:
+          type: integer
+          minimum: 0
+        piezoAssociation:
+          type: string
+          enum: [SERIES, PARALLEL, MIXED]
+        installationPoint:
+          type: string
+        storageType:
+          type: string
+          enum: [BATTERY, SUPERCAPACITOR, CAPACITOR, NONE]
+        notes:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
     PaginationMeta:
       type: object
       required: [page, pageSize, totalItems, totalPages]
@@ -509,6 +701,9 @@ components:
                 - AUTH_INVALID_REFRESH_TOKEN
                 - AUTH_SESSION_REVOKED
                 - AUTH_UNAUTHORIZED
+                - CONFIGURATION_NOT_FOUND
+                - INSTALLATION_NOT_FOUND
+                - INSTALLATION_STATE_CONFLICT
                 - USER_NOT_FOUND
                 - VALIDATION_ERROR
                 - VEHICLE_LICENSE_PLATE_ALREADY_REGISTERED
@@ -560,6 +755,46 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Vehicle'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    InstallationResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/Installation'
+        requestId:
+          type: string
+    InstallationListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Installation'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    ConfigurationResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/Configuration'
+        requestId:
+          type: string
+    ConfigurationListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Configuration'
         meta:
           $ref: '#/components/schemas/PaginationMeta'
         requestId:

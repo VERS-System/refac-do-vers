@@ -28,12 +28,17 @@ plano e as decisões desse recorte estão em
 - veículos, vínculo `OWNER` e regras de principal;
 - placa imutável e documentos pessoais fora do contrato.
 
-## Etapa C — Instalações e configurações
+## Etapa C — Instalações e configurações — concluída
 
 - listar e consultar instalações autorizadas;
 - listar configurações versionadas;
 - definir campos públicos de dispositivo sem credenciais;
 - definir erros de propriedade, estado e conflito.
+
+Contratos de leitura, fixtures, testes de compilação, documentação humana e
+OpenAPI concluídos em 22/09/2026. A ausência de acesso é apresentada como
+`404`; o conflito de estado está catalogado para futuras operações de escrita,
+pois as rotas deste lote são somente de leitura.
 
 ## Etapa D — Testes experimentais
 

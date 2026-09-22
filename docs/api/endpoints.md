@@ -175,6 +175,43 @@ alteráveis por este endpoint.
   permanecem com snapshot de modelo, local informado, piezos e condições do
   experimento, sem placa.
 
+## Instalações e configurações
+
+As rotas deste recorte são somente de leitura e exigem access cookie. A API
+retorna apenas instalações vinculadas a veículos acessíveis ao usuário.
+Recursos inexistentes ou sem autorização recebem `404`, sem revelar a existência
+de instalações de outra conta.
+
+| Método | Rota | Resultado |
+| --- | --- | --- |
+| `GET` | `/installations?page=1&pageSize=20&vehicleId={vehicleId}&status=ACTIVE` | Lista paginada de instalações autorizadas. Filtros opcionais. |
+| `GET` | `/installations/{installationId}` | Consulta instalação autorizada. |
+| `GET` | `/installations/{installationId}/configurations?page=1&pageSize=20` | Lista versões da montagem da instalação. |
+| `GET` | `/installations/{installationId}/configurations/{configurationId}` | Consulta uma versão da montagem. |
+
+`Installation` contém `id`, `vehicleId`, `systemModel`, `status`,
+`installedAt`, `activeDevice`, `createdAt` e `updatedAt`. O dispositivo público
+contém apenas `id`, `name`, `firmwareVersion`, `status` e `lastSeenAt`;
+`activeDevice` é `null` se não houver ESP32 ativo. Não retornamos `deviceUid`,
+credenciais MQTT, tópicos privados ou número de série da instalação.
+
+`Configuration` contém `id`, `installationId`, `name`, `version`,
+`activePiezoCount`, `piezoAssociation`, `installationPoint`, `storageType`,
+`notes` e `createdAt`. Cada versão é um retrato imutável da montagem. A listagem
+é paginada e ordenada por `version` decrescente, com `id` como desempate.
+`configurationId` de outra instalação recebe `404`.
+
+Estados públicos: instalação `ACTIVE`, `MAINTENANCE`, `INACTIVE` ou `FAULT`;
+dispositivo `PROVISIONING`, `ONLINE`, `OFFLINE`, `REVOKED` ou `FAULT`;
+associação dos piezos `SERIES`, `PARALLEL` ou `MIXED`; armazenamento `BATTERY`,
+`SUPERCAPACITOR`, `CAPACITOR` ou `NONE`. Todas as datas são UTC.
+
+As rotas de leitura não alteram estado e, portanto, não retornam conflito de
+estado. `INSTALLATION_STATE_CONFLICT` fica no catálogo para futuras operações
+de alteração; usar `409` quando uma transição for impedida pelo estado atual.
+`INSTALLATION_NOT_FOUND` e `CONFIGURATION_NOT_FOUND` cobrem ausência e falta de
+acesso. Parâmetros ou filtros inválidos retornam `VALIDATION_ERROR`.
+
 ## Códigos iniciais de erro
 
 | Código | Uso |
@@ -184,6 +221,9 @@ alteráveis por este endpoint.
 | `AUTH_INVALID_REFRESH_TOKEN` | Refresh cookie ausente, inválido ou expirado. |
 | `AUTH_SESSION_REVOKED` | Sessão já revogada. |
 | `AUTH_UNAUTHORIZED` | Recurso exige autenticação válida. |
+| `CONFIGURATION_NOT_FOUND` | Configuração inexistente ou inacessível dentro da instalação. |
+| `INSTALLATION_NOT_FOUND` | Instalação inexistente ou não acessível ao usuário. |
+| `INSTALLATION_STATE_CONFLICT` | Transição futura incompatível com o estado atual da instalação. |
 | `USER_NOT_FOUND` | Perfil autenticado indisponível. |
 | `VEHICLE_LICENSE_PLATE_ALREADY_REGISTERED` | Placa já cadastrada. |
 | `VEHICLE_NOT_FOUND` | Veículo inexistente ou não acessível ao usuário. |

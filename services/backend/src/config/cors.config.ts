@@ -1,19 +1,28 @@
-// Configuração de CORS
-//
-// Define origens, métodos e headers permitidos para as requisições
-// cross-origin dos frontends (web, dashboard, mobile).
+// Constrói as regras CORS a partir das origens validadas do ambiente.
 
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 
-export const corsConfig: CorsOptions = {
-  origin: [
-    'http://localhost:3001', // web
-    'http://localhost:3050', // dashboard (Vite)
-    'http://localhost:5173', // web (Vite direto)
-    'http://localhost:5174', // dashboard (Vite direto)
-    'http://localhost:8081', // mobile (Expo dev)
-    'http://localhost:8080', // mobile (Docker)
-  ],
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  credentials: true,
-};
+/**
+ * Converte a lista textual de origens em opções CORS normalizadas.
+ * Valores vazios e repetidos são removidos para manter uma única fonte clara.
+ */
+export function createCorsConfig(originsValue: string): CorsOptions {
+  const origins = [
+    ...new Set(
+      originsValue
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    ),
+  ];
+
+  if (origins.length === 0) {
+    throw new Error('CORS_ORIGINS deve possuir ao menos uma origem');
+  }
+
+  return {
+    origin: origins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  };
+}

@@ -1,5 +1,10 @@
 # Infraestrutura do VERS
 
+> **Estado em 13/08/2026:** este documento descreve a infraestrutura já criada,
+> mas não garante que todos os scaffolds estejam integrados. O `AppModule` atual
+> ainda registra somente configuração e Prisma. A ordem de estabilização está no
+> [roadmap do core](plans/core-roadmap.md).
+
 ## Docker Compose
 
 O ambiente de desenvolvimento local é gerenciado por Docker Compose.
@@ -54,7 +59,7 @@ docker compose down
 | `NODE_ENV`             | Não         | `development`  | Ambiente de execução          |
 | `PORT`                 | Não         | `3000`         | Porta do backend              |
 | `JWT_SECRET`           | Sim         | —              | Chave secreta JWT (mín. 16 caracteres) |
-| `JWT_EXPIRATION`       | Não         | `7d`           | Tempo de expiração do token   |
+| `JWT_EXPIRATION`       | Não         | `7d`           | Expiração JWT do baseline atual; será separada por tipo de token na implementação da autenticação |
 | `VITE_API_URL`         | Não         | `http://localhost:3000` | URL da API para web    |
 | `VITE_WS_URL`          | Não         | `ws://localhost:3000`   | URL do WebSocket       |
 | `EXPO_HOST`            | Não         | `localhost`    | IP do host para Expo          |
@@ -62,6 +67,17 @@ docker compose down
 | `OPENAI_MODEL`         | Não         | `gpt-4o-mini`  | Modelo OpenAI                 |
 
 Cada serviço também possui seu próprio `.env.example` com as variáveis específicas.
+
+### Transporte da autenticação
+
+- access e refresh tokens serão emitidos somente como cookies `HttpOnly`;
+- nenhum token será retornado em JSON ou disponibilizado ao JavaScript;
+- produção aceitará autenticação somente por HTTPS e usará cookies `Secure`;
+- refresh e logout usarão os cookies recebidos, sem token no body;
+- o backend deverá habilitar CORS com credenciais apenas para origens permitidas
+  e aplicar proteção CSRF adequada ao modelo de cookies;
+- a política `SameSite` ainda precisa ser definida conforme os clientes e os
+  domínios finais de implantação.
 
 ---
 
@@ -83,7 +99,8 @@ services/backend/
 │   ├── prisma/
 │   │   ├── prisma.module.ts ← Módulo global do Prisma
 │   │   └── prisma.service.ts ← Conexão com banco
-│   └── modules/            ← Módulos de negócio (vazios)
+│   └── modules/            ← Scaffolds de auth, data, mqtt, ai, websocket,
+│                              roles e tokens; integração ainda a validar
 │       ├── auth/
 │       ├── data/
 │       ├── mqtt/
@@ -111,8 +128,8 @@ services/backend/
 # Gerar Prisma Client (após alterar schema)
 pnpm --filter @vers/backend prisma:generate
 
-# Aplicar schema no Neon
-pnpm --filter @vers/backend prisma db push
+# Aplicar schema experimental no Neon (legado; não usar em evolução versionada)
+pnpm --filter @vers/backend prisma:push
 
 # Criar migration
 pnpm --filter @vers/backend prisma:migrate
@@ -123,9 +140,13 @@ pnpm --filter @vers/backend prisma:studio
 # Build
 pnpm --filter @vers/backend build
 
-# Testes
+# Testes atuais (a Fase 0 adicionará o alias obrigatório test:unit)
 pnpm --filter @vers/backend test
 ```
+
+Novas alterações de schema devem usar migrations versionadas. `prisma db push`
+permanece documentado apenas para explicar o histórico inicial e não é o fluxo
+previsto para evolução do banco.
 
 ---
 

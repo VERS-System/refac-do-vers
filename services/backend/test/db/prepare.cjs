@@ -1,5 +1,6 @@
 // Prepara somente o PostgreSQL sintético local antes dos testes de integração.
 const { spawnSync } = require('node:child_process');
+const { readFileSync } = require('node:fs');
 
 const databaseUrl =
   'postgresql://vers_test:vers_test_local_only@127.0.0.1:55432/vers_test?schema=public';
@@ -36,6 +37,10 @@ function prepareDatabase() {
   if (sql.trim()) {
     runPrisma(['db', 'execute', '--url', databaseUrl, '--stdin'], sql);
   }
+  runPrisma(
+    ['db', 'execute', '--url', databaseUrl, '--stdin'],
+    readFileSync('prisma/manual-constraints/vehicles.sql', 'utf8'),
+  );
 }
 
 prepareDatabase();

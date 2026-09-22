@@ -29,6 +29,15 @@ enum UserRole {
   @@map("user_role")
 }
 
+// Define o tipo de vínculo de uma conta com um veículo.
+enum VehicleRelationship {
+  OWNER
+  DRIVER
+  ADMIN
+
+  @@map("vehicle_relationship")
+}
+
 // Guarda a identidade local sem persistir senha ou token em texto puro.
 model User {
   id              String           @id @default(uuid()) @db.Uuid
@@ -42,6 +51,7 @@ model User {
   updatedAt       DateTime         @updatedAt @map("updated_at")
   roles           UserRoleAssignment[]
   refreshSessions RefreshSession[]
+  vehicles        UserVehicle[]
 
   @@map("users")
 }
@@ -75,6 +85,36 @@ model RefreshSession {
   @@index([userId, revokedAt, expiresAt])
   @@index([expiresAt])
   @@map("refresh_sessions")
+}
+
+// Guarda a identificação atual do veículo enquanto houver contas vinculadas.
+model Vehicle {
+  id           String        @id @default(uuid()) @db.Uuid
+  licensePlate String        @unique @map("license_plate") @db.Citext
+  brand        String?
+  model        String?
+  modelYear    Int?          @map("model_year")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  users        UserVehicle[]
+
+  @@map("vehicles")
+}
+
+// Associa contas e veículos sem transferir a propriedade do registro físico.
+model UserVehicle {
+  userId       String              @map("user_id") @db.Uuid
+  vehicleId    String              @map("vehicle_id") @db.Uuid
+  relationship VehicleRelationship
+  isPrimary    Boolean             @default(false) @map("is_primary")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  user         User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  vehicle      Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, vehicleId])
+  @@index([vehicleId])
+  @@map("user_vehicles")
 }
 
 // ────────────────────────────────────────────

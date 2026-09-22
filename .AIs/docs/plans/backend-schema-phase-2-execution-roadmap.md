@@ -10,8 +10,8 @@ antes de qualquer aplicação ao Neon. Este documento detalha **apenas a Fase
 02** do [roadmap do backend](backend-roadmap/README.md); controllers, regras de
 API e ingestão funcional pertencem às fases seguintes.
 
-**Estado em 22/09/2026:** lotes 1 a 3 concluídos. `schema.prisma` contém os sete
-modelos experimentais e os novos modelos de identidade; ainda não há migration
+**Estado em 22/09/2026:** lotes 1 a 4 concluídos. `schema.prisma` contém os sete
+modelos experimentais, identidade, veículos e vínculos; ainda não há migration
 versionada nem alteração no Neon. O [plano técnico](backend-schema-phase-2.md)
 e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 
@@ -40,7 +40,7 @@ e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 | 01 — Baseline local | Concluído | Inventário dos sete models legados, ausência de migrations, contratos F01 e decisões do banco. | `prisma validate` local com URL fictícia; sem conexão. |
 | 02 — Infraestrutura de testes | Concluído | PostgreSQL descartável em Compose separado, URL sintética obrigatória e suíte Jest de integração independente dos testes unitários. O teste de conexão foi escrito antes da configuração e falhou inicialmente pela ausência do script. Os cenários de domínio serão escritos antes de cada lote de implementação correspondente. | `test:db`: 1 teste; `test:unit`: 23 testes; lint e build passaram. Nenhum schema ou dado remoto alterado. |
 | 03 — Identidade e sessões | Concluído | `User`, enum `UserStatus`, `UserRoleAssignment` com enum `USER`/`ADMIN` e `RefreshSession`. Email em `citext`; senha e refresh token têm apenas colunas de hash. Sem `Role` ou `AuthIdentity`. SQL local gerado por diff, sem migration versionada nesta etapa. | `test:db`: 4 testes incluindo unicidade case-insensitive, coexistência de papéis e rotação/revogação; `test:unit`: 23; `prisma validate`, client, lint e build passaram. |
-| 04 — Veículos e vínculos | Planejado | `Vehicle`, `UserVehicle`, papel no vínculo e principal por conta. Desvincular só a conta atual; apagar o veículo após o último vínculo. Planejar FKs do histórico e índice único parcial do principal. | Concorrência não cria dois principais nem apaga veículo ainda compartilhado; último vínculo pode sair sem apagar testes. |
+| 04 — Veículos e vínculos | Concluído no schema | `Vehicle`, `UserVehicle` e enum `OWNER`/`DRIVER`/`ADMIN`; placa `citext` única e imutável por trigger; FKs restritivas e índice parcial de um principal por conta em SQL complementar. A transação de desvinculação, promoção do principal e remoção após o último vínculo fica para o serviço de veículos; FKs do histórico entram no lote 6. | `test:db` verifica compartilhamento, concorrência do principal, placa e proteção contra exclusão direta; `test:unit`, Prisma, lint e build passaram. |
 | 05 — Instalações e configurações | Planejado | `VersInstallation`, `Device` e `Configuration` versionada e imutável. Um ESP32 ativo por veículo; substituir dispositivo sem apagar histórico. | Unicidade de `deviceUid`, versão por instalação e limite de dispositivo ativo. |
 | 06 — Testes e snapshots | Planejado | `Test` com enum de estados, horários, condições medidas e snapshot sem placa: modelo, local informado, piezos e versão da configuração. Referências opcionais preservam o teste após exclusão física. A lógica das transições fica para os services. | FKs compatíveis, estados restritos ao enum, peso não inferido do modelo; histórico permanece após desvinculação e remoção final. |
 | 07 — MQTT e telemetria | Planejado | `MqttMessage` bruto e `TelemetrySample` normalizada em relação 1:N, com ordem/instante no lote, qualidade, unidades, unicidade e índices. | Duplicata não duplica amostras; uma mensagem pode gerar várias; dados inválidos não viram zeros. |
@@ -60,6 +60,9 @@ Para repetir os testes de integração locais, executar
 `pnpm --filter @vers/backend test:db`. A preparação cria `citext` e aplica ao
 banco sintético apenas o delta gerado entre ele e `schema.prisma`. Essa operação
 não produz migration versionada e usa URL fixa em `127.0.0.1:55432/vers_test`.
+O SQL complementar em `services/backend/prisma/manual-constraints/vehicles.sql`
+é aplicado somente nesse ensaio local e deve ser incorporado e revisado na
+primeira migration do lote 9.
 
 ## Decisões do domínio já incorporadas
 

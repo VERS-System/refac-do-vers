@@ -8,9 +8,9 @@ Planejar a substituição controlada do schema experimental por um modelo
 relacional capaz de sustentar os contratos aprovados e as fases posteriores do
 backend. Prisma continuará como fonte de verdade do PostgreSQL/Neon.
 
-**Estado:** decisões de modelagem registradas em 22/09/2026; implementação
-pendente da conclusão dos contratos da Fase 1. Este documento não autoriza
-alteração de `schema.prisma`, aplicação de migration nem acesso ao Neon.
+**Estado:** contratos da Fase 1 concluídos; baseline local da Fase 2 registrado
+em [backend-schema-phase-2-lot1-baseline.md](backend-schema-phase-2-lot1-baseline.md).
+Este documento não autoriza aplicação de migration nem acesso ao Neon.
 
 ## 2. Risco principal da fase
 
@@ -67,10 +67,9 @@ podem ser inferidos pelo repositório. Portanto:
 ## 6. Modelo relacional proposto
 
 ```text
-User ──< UserRoleAssignment >── Role
+User ──< UserRoleAssignment (papel enum)
   │
   ├──< RefreshSession
-  ├──< AuthIdentity
   ├──< UserVehicle >── Vehicle ──< VersInstallation ──< Device
   │                           │              │
   │                           │              └──< Configuration
@@ -108,7 +107,8 @@ Regras:
 Papéis globais iniciais são `USER` e `ADMIN`. Usar associação relacional
 `UserRoleAssignment` para permitir os dois papéis ao mesmo usuário. `ADMIN` é
 um papel do usuário. `TECHNICIAN` não entra no escopo atual; só será criado se
-houver uma função operacional definida.
+houver uma função operacional definida. O papel é enum na associação; não criar
+uma tabela `Role` separada neste MVP.
 
 `OWNER`, `DRIVER` e `ADMIN` em `UserVehicle` são relações com um veículo e não
 papéis globais.
@@ -144,8 +144,12 @@ Regras:
 - placa normalizada, única e imutável após criação;
 - não armazenar CPF, CRLV, RENAVAM ou documento;
 - não colocar `userId` diretamente em `Vehicle`;
-- a exclusão solicitada remove placa e demais identificadores específicos do
-  veículo, inclusive da instalação ativa; não apaga testes nem medições;
+- a exclusão solicitada remove primeiro o vínculo da conta atual; se outras
+  contas ainda estiverem vinculadas, o veículo e seus identificadores
+  permanecem para elas;
+- após a remoção do último vínculo ativo, remover o veículo, a placa e demais
+  identificadores específicos, inclusive da instalação ativa; testes e
+  medições permanecem;
 - dados históricos necessários são copiados para um snapshot do teste antes da
   exclusão, sem placa ou outro identificador específico.
 
@@ -161,6 +165,8 @@ Invariantes:
 - no máximo um vínculo ativo principal por usuário;
 - troca do principal ocorre em transação;
 - o usuário pode remover seu último veículo ativo; testes anteriores permanecem;
+- remover o registro `Vehicle` somente quando não restar vínculo ativo com
+  nenhuma conta; contagem, desvinculação e remoção ocorrem em transação;
 - remoção do principal promove o único restante ou exige escolha entre vários;
 - substituto pertence ao mesmo usuário e não está removido.
 
@@ -174,9 +180,10 @@ SQL deverá ser revisada manualmente e conter um teste de concorrência.
 ### `VersInstallation`
 
 Vincula o sistema físico ao veículo e contém modelo, número de série, status e
-datas de instalação. Existe no máximo um ESP32 ativo por veículo. A exclusão do
-veículo encerra o vínculo e remove seus dados identificadores sem apagar o
-snapshot da montagem usado pelos testes.
+datas de instalação. Existe no máximo um ESP32 ativo por veículo. Desvincular
+uma conta não apaga a instalação usada pelas demais. A remoção física do
+veículo após o último vínculo encerra a instalação ativa e remove seus dados
+identificadores sem apagar o snapshot da montagem usado pelos testes.
 
 ### `Device`
 
@@ -267,8 +274,8 @@ Estratégia decidida para o desenvolvimento:
 | Dado | Exclusão proposta | Observação |
 | --- | --- | --- |
 | Sessão expirada/revogada | sem limpeza periódica automática | expiração e revogação continuam valendo para autenticação |
-| Vínculo usuário–veículo | remover na exclusão solicitada | inclusive quando for o último veículo |
-| Veículo excluído | remover placa e dados identificadores | testes usam snapshots sem placa; nenhuma cascata apaga telemetria |
+| Vínculo usuário–veículo | remover na exclusão solicitada | outras contas vinculadas mantêm acesso ao veículo |
+| Veículo sem vínculos ativos | remover placa e dados identificadores | testes usam snapshots sem placa; nenhuma cascata apaga telemetria |
 | Configuração usada | `Restrict` | snapshot experimental imutável |
 | Teste e telemetria | sem limpeza periódica automática | preservar integridade científica |
 | MQTT bruto | sem limpeza periódica automática | não incluir identificadores do veículo no payload |
@@ -331,8 +338,11 @@ confirmação de que nenhum consumidor ou dado depende da estrutura antiga.
 - último vínculo de veículo pode ser removido sem apagar testes;
 - usuário A não consulta ou altera vínculo do usuário B;
 - refresh token bruto não é persistido;
-- exclusão de veículo remove seus identificadores e preserva testes e
-  telemetria; payload MQTT e auditoria não retêm placa;
+- desvincular uma conta preserva o veículo para outras contas; a remoção do
+  último vínculo apaga seus identificadores e preserva testes e telemetria;
+  payload MQTT e auditoria não retêm placa;
+- duas desvinculações concorrentes não deixam veículo órfão nem apagam um
+  veículo ainda vinculado a outra conta;
 - duplicatas MQTT não duplicam telemetria ou energia;
 - consultas principais utilizam os índices planejados;
 - logs e erros não contêm email completo, placa, token, cookie ou payload bruto.
@@ -399,10 +409,11 @@ Os commits serão realizados pelo programador, nunca pela IA.
 1. Neon será o banco compartilhado de desenvolvimento, com dados fictícios de
    baixa sensibilidade. O legado pode ser descartado na primeira troca de
    schema; migrations seguintes devem preservar os dados existentes.
-2. A exclusão solicitada remove o veículo e seus identificadores, inclusive a
-   placa, mesmo se for o último da conta. Testes e telemetria permanecem com
-   snapshot do modelo, local informado do teste, quantidade de piezos e
-   condições experimentais, sem identificadores específicos do veículo.
+2. A exclusão solicitada remove o vínculo da conta atual, mesmo se for seu
+   último veículo. Se houver outras contas vinculadas, o veículo e a placa
+   permanecem para elas. Após o último vínculo, o veículo e seus identificadores
+   são removidos. Testes e telemetria permanecem com snapshot do modelo, local
+   informado, quantidade de piezos e condições experimentais, sem placa.
 3. Email sem distinção de caixa usará `citext`.
 4. Papéis globais usam associação relacional; `USER` e `ADMIN` podem coexistir
    no mesmo usuário. `TECHNICIAN` não integra o escopo atual.
@@ -415,8 +426,9 @@ Os commits serão realizados pelo programador, nunca pela IA.
 9. Peso do veículo no teste deve ser informado ou medido no momento; o modelo
    isolado não determina o peso real com carga e ocupantes.
 
-Ainda é necessário concluir os contratos da Fase 1, detalhar o fluxo de
-exclusão com preservação de histórico e ensaiar a primeira migration antes de
+Os contratos da Fase 1 estão concluídos. Ainda é necessário detalhar o fluxo
+transacional de desvinculação e preservação de histórico e ensaiar a primeira
+migration antes de
 qualquer aplicação no Neon. As decisões de firmware sobre amostragem e energia
 acumulada não bloqueiam o schema inicial quando representadas de forma
 compatível com lotes.

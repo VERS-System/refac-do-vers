@@ -119,9 +119,11 @@ antes da implementação do módulo de autenticação.
 | `createdAt` | `DateTime @default(now())` | Sim | Auditoria. |
 | `updatedAt` | `DateTime @updatedAt` | Sim | Auditoria. |
 
-Ao excluir o veículo, remover placa e demais identificadores específicos. Os
-testes anteriores permanecem vinculados a snapshots sem placa. O usuário pode
-ficar sem veículo cadastrado.
+Ao excluir pela conta atual, remover seu vínculo. Se outras contas ainda
+estiverem vinculadas, preservar o veículo e seus identificadores para elas.
+Após o último vínculo ativo, remover placa e demais identificadores
+específicos. Os testes anteriores permanecem com snapshots sem placa. O usuário
+pode ficar sem veículo cadastrado.
 
 ### `UserVehicle`
 
@@ -439,8 +441,9 @@ Decidido em 22/09/2026: Neon compartilhado de desenvolvimento com dados
 fictícios; primeira troca pode descartar o legado, migrations posteriores
 preservam dados; `citext` para email; papéis `USER` e `ADMIN` em associação;
 `AuthIdentity` em espera; um ESP32 ativo por veículo; MQTT em lotes; exclusão
-do veículo remove identificadores sem apagar histórico; sem limpeza periódica
-automática. O detalhe da operação de exclusão e dos snapshots será concluído
+desvincula a conta e só remove os identificadores do veículo após o último
+vínculo, sem apagar histórico; sem limpeza periódica automática. O detalhe da
+operação de exclusão e dos snapshots será concluído
 antes da migration. As perguntas abaixo não devem ser interpretadas como
 aprovação para persistir dados ainda sem fonte ou necessidade definida.
 

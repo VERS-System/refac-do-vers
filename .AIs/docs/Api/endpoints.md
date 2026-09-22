@@ -131,7 +131,7 @@ objeto solicitado.
 | `POST` | `/vehicles` | Cadastra um veículo e cria vínculo `OWNER`. |
 | `GET` | `/vehicles/{vehicleId}` | Consulta um veículo autorizado. |
 | `PATCH` | `/vehicles/{vehicleId}` | Atualiza dados permitidos ou troca o principal. |
-| `DELETE` | `/vehicles/{vehicleId}` | Exclui o veículo, inclusive o último, preservando testes e telemetria. |
+| `DELETE` | `/vehicles/{vehicleId}` | Desvincula da conta; remove o veículo físico após o último vínculo, preservando testes. |
 
 ### Cadastro
 
@@ -163,17 +163,20 @@ alteráveis por este endpoint.
 
 ### Exclusão
 
-- o último veículo da conta pode ser excluído; a conta fica sem veículo principal;
-- um veículo não principal pode ser excluído;
+- o último veículo da conta pode ser desvinculado; a conta fica sem veículo principal;
+- um veículo não principal pode ser desvinculado;
 - ao excluir o principal com apenas um veículo restante, o restante é promovido
   automaticamente;
 - ao excluir o principal com dois ou mais candidatos restantes, o cliente deve
   informar `replacementVehicleId` na query string;
-- exclusão e promoção são atômicas;
+- desvinculação, eventual promoção e remoção física são atômicas;
 - o substituto deve pertencer ao mesmo usuário e não pode ser o veículo excluído;
-- placa e demais identificadores específicos são removidos; testes e telemetria
-  permanecem com snapshot de modelo, local informado, piezos e condições do
-  experimento, sem placa.
+- se houver outras contas vinculadas, `Vehicle`, placa e instalação permanecem
+  disponíveis a elas;
+- após o último vínculo ativo, o registro do veículo, placa e demais
+  identificadores específicos são removidos; testes e telemetria permanecem
+  com snapshot de modelo, local informado, piezos e condições do experimento,
+  sem placa.
 
 ## Instalações e configurações
 

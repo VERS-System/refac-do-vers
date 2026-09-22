@@ -10,10 +10,13 @@ estado legado do Neon.
 ## Fonte detalhada
 
 O plano técnico completo é
-[backend-schema-phase-2.md](../backend-schema-phase-2.md). As decisões de
-modelagem foram registradas em 22/09/2026. A implementação ainda depende dos
-contratos restantes da Fase 01; nenhuma alteração em `schema.prisma` ou no
-Neon foi realizada por este registro.
+[backend-schema-phase-2.md](../backend-schema-phase-2.md). O
+[baseline local do lote 1](../backend-schema-phase-2-lot1-baseline.md) foi
+registrado em 22/09/2026, após a conclusão dos contratos da Fase 01. Nenhuma
+alteração em `schema.prisma` ou no Neon foi realizada por esse inventário.
+
+O [plano executável completo](../backend-schema-phase-2-execution-roadmap.md)
+divide a Fase 02 em 12 lotes, com implementação e validação de cada entrega.
 
 ## Etapa A — Inventário e decisões
 

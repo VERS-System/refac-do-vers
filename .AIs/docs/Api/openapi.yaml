@@ -220,10 +220,12 @@ paths:
           $ref: '#/components/responses/NotFoundError'
     delete:
       tags: [Vehicles]
-      summary: Exclui veículo e preserva o histórico experimental
+      summary: Desvincula veículo da conta e preserva o histórico experimental
       description: >-
-        O último veículo pode ser excluído. Placa e identificadores específicos
-        são removidos; testes e telemetria permanecem com snapshot sem placa.
+        O último veículo da conta pode ser desvinculado. Outras contas
+        vinculadas mantêm o veículo e seus identificadores. Após o último
+        vínculo ativo, o registro do veículo e a placa são removidos;
+        testes e telemetria permanecem com snapshot sem placa.
         replacementVehicleId é exigido ao excluir o principal quando houver
         dois ou mais candidatos restantes. Com um único candidato, a promoção
         é automática.
@@ -238,7 +240,7 @@ paths:
             format: uuid
       responses:
         '204':
-          description: Veículo excluído e substituto promovido quando aplicável; histórico preservado.
+          description: Vínculo removido; veículo físico removido apenas após o último vínculo; histórico preservado.
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':

@@ -2,6 +2,10 @@
 
 # Roadmap de Backend e MQTT — VERS
 
+> A execução detalhada de cada fase está separada no
+> [Roadmap executável do backend](backend-roadmap/README.md). Este documento
+> permanece como fonte estratégica de escopo, arquitetura e marcos.
+
 ## 1. Objetivo
 
 Este documento é a fonte de verdade para o desenvolvimento do backend e da

@@ -10,7 +10,8 @@ antes de qualquer aplicação ao Neon. Este documento detalha **apenas a Fase
 02** do [roadmap do backend](backend-roadmap/README.md); controllers, regras de
 API e ingestão funcional pertencem às fases seguintes.
 
-**Estado em 22/09/2026:** lote 1 (baseline local) concluído. `schema.prisma`
+**Estado em 22/09/2026:** lotes 1 (baseline local) e 2 (infraestrutura de testes)
+concluídos. `schema.prisma`
 ainda tem sete modelos experimentais, e não há migration versionada. Nenhuma
 alteração de banco foi executada. O [plano técnico](backend-schema-phase-2.md)
 e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
@@ -38,7 +39,7 @@ e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 | Lote | Estado | Implementação e entrega revisável | Validação principal |
 | --- | --- | --- | --- |
 | 01 — Baseline local | Concluído | Inventário dos sete models legados, ausência de migrations, contratos F01 e decisões do banco. | `prisma validate` local com URL fictícia; sem conexão. |
-| 02 — Infraestrutura de testes | Próximo | Preparar PostgreSQL descartável, helpers de teste e cenários que falham para identidade, vínculos, histórico, MQTT e deleções. Separar testes unitários de integração. | Falha inicial demonstrada contra o schema legado; `test:unit` continua passando no que já existe. |
+| 02 — Infraestrutura de testes | Concluído | PostgreSQL descartável em Compose separado, URL sintética obrigatória e suíte Jest de integração independente dos testes unitários. O teste de conexão foi escrito antes da configuração e falhou inicialmente pela ausência do script. Os cenários de domínio serão escritos antes de cada lote de implementação correspondente. | `test:db`: 1 teste; `test:unit`: 23 testes; lint e build passaram. Nenhum schema ou dado remoto alterado. |
 | 03 — Identidade e sessões | Planejado | `User`, enum `UserStatus`, `UserRoleAssignment` com enum `USER`/`ADMIN` e `RefreshSession`. Email em `citext` e colunas apenas para hashes de senha e refresh token; sem `Role` ou `AuthIdentity` separadas. A geração dos hashes fica para a Fase 04. | Email case-insensitive único; papéis coexistem; token puro não é coluna; sessão pode ser revogada. |
 | 04 — Veículos e vínculos | Planejado | `Vehicle`, `UserVehicle`, papel no vínculo e principal por conta. Desvincular só a conta atual; apagar o veículo após o último vínculo. Planejar FKs do histórico e índice único parcial do principal. | Concorrência não cria dois principais nem apaga veículo ainda compartilhado; último vínculo pode sair sem apagar testes. |
 | 05 — Instalações e configurações | Planejado | `VersInstallation`, `Device` e `Configuration` versionada e imutável. Um ESP32 ativo por veículo; substituir dispositivo sem apagar histórico. | Unicidade de `deviceUid`, versão por instalação e limite de dispositivo ativo. |

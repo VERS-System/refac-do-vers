@@ -9,9 +9,9 @@ controllers e MQTT.
 
 ## Estado
 
-Em andamento. Envelopes, autenticação, perfil e veículos estão concluídos. O
-plano e as decisões desse recorte estão em
-[backend-api-contracts-phase-1.md](../backend-api-contracts-phase-1.md).
+Concluída em 22/09/2026. Os planos e decisões estão em
+[backend-api-contracts-phase-1.md](../backend-api-contracts-phase-1.md) e
+[backend-api-contracts-phase-1-completion.md](../backend-api-contracts-phase-1-completion.md).
 
 ## Etapa A — Fundação compartilhada — concluída
 
@@ -52,12 +52,15 @@ documentação humana e OpenAPI concluídos em 22/09/2026. Instantes de início 
 fim são atribuídos pelo servidor; transições inválidas ou concorrentes usam
 `TEST_STATE_CONFLICT`.
 
-## Etapa E — Telemetria, resumos e suporte
+## Etapa E — Telemetria, resumos e suporte — concluída
 
-- contratos paginados de telemetria;
-- séries e resumos com unidade explícita;
-- qualidade de dados e comparação entre testes;
-- criação e acompanhamento de solicitações de revisão.
+- contratos paginados de telemetria — concluídos;
+- séries e resumos com unidade explícita — concluídos;
+- qualidade de dados e comparação entre testes — concluídas;
+- criação e acompanhamento de solicitações de revisão — concluídos.
+
+Os lotes 4 e 5 passaram em `test:unit`, lint e build do pacote compartilhado.
+O OpenAPI 3.1 final contém 23 rotas e 185 referências internas válidas.
 
 ## Validação
 
@@ -70,3 +73,8 @@ fim são atribuídos pelo servidor; transições inválidas ou concorrentes usam
 
 Clientes conseguem implementar todos os fluxos previstos usando contratos e
 fixtures, sem depender do banco ou do MQTT.
+
+Validação final: `test:unit`, lint e build aprovados em `@vers/shared-types` e
+`@vers/backend`; backend com 7 suítes e 23 testes aprovados. O catálogo de
+erros em TypeScript coincide com o OpenAPI. A documentação foi movida para
+`.AIs/docs/Api/`. Nenhum controller, schema Prisma ou banco foi alterado.

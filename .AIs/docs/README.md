@@ -12,6 +12,8 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [02 — Arquitetura](02_arquitetura-do-sistema.md)                  | Componentes físicos, fluxo de energia, telemetria e fronteiras técnicas. |
 | [03 — Dados e indicadores](03_dados-e-indicadores.md)             | Informações de testes, métricas e modelo conceitual de armazenamento.    |
 | [04 — Infraestrutura](04-infraestrutura.md)                       | Docker, variáveis de ambiente, core backend e fluxo de dados.           |
+| [Contratos REST](Api/endpoints.md)                                 | Rotas, regras de acesso, estados e erros da API.                        |
+| [OpenAPI 3.1](Api/openapi.yaml)                                     | Especificação dos contratos REST.                                       |
 | [Roadmap MQTT/ESP32](plans/mqtt-esp-roadmap/README.md)            | Firmware, sensores, contrato MQTT, conectividade e testes do ESP32.     |
 | [Roadmap do front desktop](plans/desktop-roadmap/README.md)       | Telas, navegação, estados visuais e entrega do dashboard Electron.      |
 | [Roadmap do core](plans/core-roadmap.md)                          | Fases, dependências, critérios de aceite e ordem de implementação.      |

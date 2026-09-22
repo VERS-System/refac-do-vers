@@ -40,8 +40,8 @@ fixtures tipadas enquanto a persistência ainda não existe.
 - `packages/shared-types/test/contracts.type-test.ts`;
 - `packages/shared-types/tsconfig.test.json`;
 - `packages/shared-types/package.json`;
-- `docs/api/endpoints.md`;
-- `docs/api/openapi.yaml`;
+- `.AIs/docs/Api/endpoints.md`;
+- `.AIs/docs/Api/openapi.yaml`;
 - `.AIs/docs/contexts/Context_21_09_2026.md`.
 
 ## Sequência TDD
@@ -88,8 +88,8 @@ separados conceitualmente, validar cada um e informar os arquivos correspondente
 
 ### Commit 6 — Documentação dos endpoints
 
-- preencher `docs/api/endpoints.md`;
-- adicionar a especificação `docs/api/openapi.yaml`;
+- preencher `.AIs/docs/Api/endpoints.md`;
+- adicionar a especificação `.AIs/docs/Api/openapi.yaml`;
 - conferir manualmente a equivalência entre documentação e tipos.
 
 ### Commit 7 — Registro e validação da entrega

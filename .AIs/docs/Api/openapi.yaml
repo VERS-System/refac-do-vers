@@ -4,7 +4,7 @@ info:
   title: VERS API
   version: 0.1.0
   description: >-
-    Contratos de autenticação, perfil, veículos, instalações, configurações e testes. Tokens JWT trafegam
+    Contratos de autenticação, perfil, veículos, instalações, testes, dados e suporte. Tokens JWT trafegam
     somente em cookies HttpOnly e nunca são retornados no JSON.
 servers:
   - url: https://api.example.vers/api/v1
@@ -15,6 +15,8 @@ tags:
   - name: Vehicles
   - name: Installations
   - name: Tests
+  - name: Data
+  - name: Support
 paths:
   /auth/register:
     post:
@@ -480,6 +482,173 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '409':
           $ref: '#/components/responses/ConflictError'
+  /tests/{testId}/telemetry:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    get:
+      tags: [Data]
+      summary: Lista amostras de telemetria validada do teste
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/CapturedFrom'
+        - $ref: '#/components/parameters/CapturedTo'
+        - $ref: '#/components/parameters/TelemetryQualityFilter'
+      responses:
+        '200':
+          description: Amostras paginadas por capturedAt crescente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /installations/{installationId}/energy-summaries:
+    parameters:
+      - $ref: '#/components/parameters/InstallationId'
+    get:
+      tags: [Data]
+      summary: Lista resumos de energia da instalação
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/SummaryPeriodFilter'
+        - $ref: '#/components/parameters/PeriodFrom'
+        - $ref: '#/components/parameters/PeriodTo'
+      responses:
+        '200':
+          description: Resumos paginados por periodStart crescente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnergySummaryListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /tests/{testId}/energy-summaries:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    get:
+      tags: [Data]
+      summary: Lista resumos de energia do teste histórico
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/SummaryPeriodFilter'
+        - $ref: '#/components/parameters/PeriodFrom'
+        - $ref: '#/components/parameters/PeriodTo'
+      responses:
+        '200':
+          description: Resumos paginados por periodStart crescente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnergySummaryListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /test-comparisons:
+    get:
+      tags: [Data]
+      summary: Compara resumos TEST de dois a cinco testes autorizados
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ComparisonTestIds'
+      responses:
+        '200':
+          description: Comparação na ordem dos IDs informados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestComparisonResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /support-requests:
+    get:
+      tags: [Support]
+      summary: Lista solicitações de revisão do usuário
+      description: Ordenação por createdAt decrescente, com id como desempate.
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/SupportStatusFilter'
+      responses:
+        '200':
+          description: Solicitações paginadas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportRequestListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    post:
+      tags: [Support]
+      summary: Abre solicitação de revisão
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSupportRequest'
+      responses:
+        '201':
+          description: Solicitação aberta em OPEN.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportRequestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /support-requests/{supportRequestId}:
+    parameters:
+      - $ref: '#/components/parameters/SupportRequestId'
+    get:
+      tags: [Support]
+      summary: Consulta solicitação de revisão própria
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Solicitação encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 components:
   securitySchemes:
     accessCookie:
@@ -581,6 +750,74 @@ components:
       schema:
         type: string
         format: date-time
+    CapturedFrom:
+      name: capturedFrom
+      in: query
+      description: Início inclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    CapturedTo:
+      name: capturedTo
+      in: query
+      description: Fim exclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    TelemetryQualityFilter:
+      name: quality
+      in: query
+      schema:
+        type: string
+        enum: [VALID, PARTIAL, SUSPECT, INVALID]
+    SummaryPeriodFilter:
+      name: periodType
+      in: query
+      schema:
+        type: string
+        enum: [TEST, HOUR, DAY, MONTH]
+    PeriodFrom:
+      name: periodFrom
+      in: query
+      description: Início inclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    PeriodTo:
+      name: periodTo
+      in: query
+      description: Fim exclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    ComparisonTestIds:
+      name: testIds
+      in: query
+      required: true
+      style: form
+      explode: true
+      description: Entre dois e cinco UUIDs distintos, repetidos na query string.
+      schema:
+        type: array
+        minItems: 2
+        maxItems: 5
+        uniqueItems: true
+        items:
+          type: string
+          format: uuid
+    SupportRequestId:
+      name: supportRequestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SupportStatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [OPEN, IN_REVIEW, SCHEDULED, RESOLVED, CANCELLED]
   responses:
     Authenticated:
       description: Sessão iniciada; tokens disponíveis somente nos cookies.
@@ -975,6 +1212,162 @@ components:
         updatedAt:
           type: string
           format: date-time
+    TelemetrySample:
+      type: object
+      additionalProperties: false
+      required: [id, testId, capturedAt, voltageV, currentA, powerW, devicePowerW, accumulatedEnergyWh, accelerationXMs2, accelerationYMs2, accelerationZMs2, vibrationRmsMs2, temperatureC, activePiezoCount, quality]
+      properties:
+        id:
+          type: string
+          format: uuid
+        testId:
+          type: [string, 'null']
+          format: uuid
+        capturedAt:
+          type: string
+          format: date-time
+        voltageV:
+          type: [number, 'null']
+        currentA:
+          type: [number, 'null']
+        powerW:
+          type: [number, 'null']
+        devicePowerW:
+          type: [number, 'null']
+        accumulatedEnergyWh:
+          type: [number, 'null']
+        accelerationXMs2:
+          type: [number, 'null']
+        accelerationYMs2:
+          type: [number, 'null']
+        accelerationZMs2:
+          type: [number, 'null']
+        vibrationRmsMs2:
+          type: [number, 'null']
+        temperatureC:
+          type: [number, 'null']
+        activePiezoCount:
+          type: [integer, 'null']
+          minimum: 0
+        quality:
+          type: string
+          enum: [VALID, PARTIAL, SUSPECT, INVALID]
+    EnergySummary:
+      type: object
+      additionalProperties: false
+      required: [id, installationId, testId, periodType, periodStart, periodEnd, recoveredEnergyWh, vehicleEnergyUsedWh, averagePowerW, peakPowerW, moneySaved, currencyCode, energyTariffPerKwh, sampleCount, quality, calculatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        installationId:
+          type: [string, 'null']
+          format: uuid
+        testId:
+          type: [string, 'null']
+          format: uuid
+        periodType:
+          type: string
+          enum: [TEST, HOUR, DAY, MONTH]
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
+        recoveredEnergyWh:
+          type: number
+          minimum: 0
+        vehicleEnergyUsedWh:
+          type: [number, 'null']
+          minimum: 0
+        averagePowerW:
+          type: [number, 'null']
+        peakPowerW:
+          type: [number, 'null']
+        moneySaved:
+          type: [string, 'null']
+          description: Decimal serializado como string.
+        currencyCode:
+          type: [string, 'null']
+          minLength: 3
+          maxLength: 3
+        energyTariffPerKwh:
+          type: [string, 'null']
+          description: Decimal serializado como string.
+        sampleCount:
+          type: integer
+          minimum: 0
+        quality:
+          type: string
+          enum: [GOOD, PARTIAL, INVALID]
+        calculatedAt:
+          type: string
+          format: date-time
+    TestComparisonItem:
+      type: object
+      additionalProperties: false
+      required: [testId, summary]
+      properties:
+        testId:
+          type: string
+          format: uuid
+        summary:
+          oneOf:
+            - $ref: '#/components/schemas/EnergySummary'
+            - type: 'null'
+    TestComparison:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 2
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/TestComparisonItem'
+    CreateSupportRequest:
+      type: object
+      additionalProperties: false
+      required: [vehicleId, reason]
+      properties:
+        vehicleId:
+          type: string
+          format: uuid
+        installationId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Motivo sem documentos pessoais, placa ou segredos.
+    SupportRequest:
+      type: object
+      additionalProperties: false
+      required: [id, vehicleId, installationId, reason, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        vehicleId:
+          type: [string, 'null']
+          format: uuid
+        installationId:
+          type: [string, 'null']
+          format: uuid
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [OPEN, IN_REVIEW, SCHEDULED, RESOLVED, CANCELLED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     PaginationMeta:
       type: object
       required: [page, pageSize, totalItems, totalPages]
@@ -1016,6 +1409,7 @@ components:
                 - CONFIGURATION_NOT_FOUND
                 - INSTALLATION_NOT_FOUND
                 - INSTALLATION_STATE_CONFLICT
+                - SUPPORT_REQUEST_NOT_FOUND
                 - TEST_NOT_FOUND
                 - TEST_STATE_CONFLICT
                 - USER_NOT_FOUND
@@ -1129,6 +1523,58 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TestRecord'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    TelemetryListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TelemetrySample'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    EnergySummaryListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnergySummary'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    TestComparisonResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/TestComparison'
+        requestId:
+          type: string
+    SupportRequestResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/SupportRequest'
+        requestId:
+          type: string
+    SupportRequestListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportRequest'
         meta:
           $ref: '#/components/schemas/PaginationMeta'
         requestId:

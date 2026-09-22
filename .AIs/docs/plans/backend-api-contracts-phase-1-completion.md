@@ -2,6 +2,10 @@
 
 # Conclusão da Fase 01 — contratos REST
 
+**Estado:** cinco lotes concluídos em 22/09/2026. Tipos, fixtures, documentação
+humana e OpenAPI estão prontos para revisão do programador em pequenos commits.
+Nenhum commit foi criado pela IA.
+
 ## Objetivo
 
 Fechar os contratos públicos necessários antes do schema Prisma: instalações,

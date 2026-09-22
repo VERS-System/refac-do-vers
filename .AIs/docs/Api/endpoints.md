@@ -265,6 +265,77 @@ O intervalo deve ter início anterior ao fim. Resultados são ordenados por
 `createdAt` decrescente, com `id` como desempate. Filtros inválidos retornam
 `VALIDATION_ERROR` (`400`).
 
+## Telemetria, resumos e comparação
+
+Estas rotas de consulta exigem access cookie e seguem as mesmas regras de acesso
+dos testes e instalações. Um teste histórico permanece consultável por seu
+criador depois da exclusão do veículo. Ausência ou falta de acesso retorna
+`404`, sem confirmar a existência de dados de outra conta.
+
+| Método | Rota | Resultado |
+| --- | --- | --- |
+| `GET` | `/tests/{testId}/telemetry?page=1&pageSize=20&capturedFrom={utc}&capturedTo={utc}&quality=VALID` | Amostras validadas do teste, paginadas. |
+| `GET` | `/installations/{installationId}/energy-summaries?page=1&pageSize=20&periodType=DAY&periodFrom={utc}&periodTo={utc}` | Série de resumos da instalação. |
+| `GET` | `/tests/{testId}/energy-summaries?page=1&pageSize=20&periodType=TEST&periodFrom={utc}&periodTo={utc}` | Resumos do teste, inclusive histórico preservado. |
+| `GET` | `/test-comparisons?testIds={id1}&testIds={id2}` | Compara os resumos `TEST` dos testes autorizados. |
+
+`TelemetrySample` contém `capturedAt`, qualidade e medições normalizadas com
+unidades explícitas: `voltageV`, `currentA`, `powerW`, `devicePowerW`,
+`accumulatedEnergyWh`, aceleração por eixo em `Ms2`, `vibrationRmsMs2`,
+`temperatureC` e `activePiezoCount`. Medição ausente é `null`, nunca zero
+inventado. Qualidade usa `VALID`, `PARTIAL`, `SUSPECT` ou `INVALID`.
+`powerW` é calculada no backend; `devicePowerW` preserva o valor reportado pelo
+ESP32 para comparação, sem substituir o cálculo do backend.
+
+`EnergySummary` contém período `TEST`, `HOUR`, `DAY` ou `MONTH`, intervalo
+`[periodStart, periodEnd)`, `recoveredEnergyWh`, potência média e pico,
+`sampleCount`, qualidade (`GOOD`, `PARTIAL` ou `INVALID`) e `calculatedAt`.
+`vehicleEnergyUsedWh` permanece `null` sem fonte confiável. `moneySaved` e
+`energyTariffPerKwh` são decimais serializados como strings e permanecem
+`null` sem tarifa e premissas documentadas. A ausência de dados não produz
+resumo artificial.
+
+Na comparação, `testIds` é repetido de 2 a 5 vezes na query string, sem IDs
+duplicados. O resultado contém `items` na mesma ordem, cada um com `testId` e
+`summary` `TEST` ou `null` quando o teste autorizado não possui resumo válido.
+Se algum teste for inacessível, a operação inteira retorna `404`. Resumos
+inválidos não entram como energia recuperada válida.
+
+Os intervalos UTC são inclusivos no início e exclusivos no fim; início deve
+ser anterior ao fim. Amostras são ordenadas por `capturedAt` e resumos por
+`periodStart`, ambos em ordem crescente com `id` como desempate. Filtros,
+intervalos ou lista de IDs inválidos retornam `VALIDATION_ERROR` (`400`).
+
+## Solicitações de revisão
+
+O usuário autenticado pode abrir e acompanhar solicitações próprias de revisão
+do sistema VERS. As rotas exigem access cookie. Não há contrato público para
+alterar o estado da solicitação neste lote.
+
+| Método | Rota | Resultado |
+| --- | --- | --- |
+| `GET` | `/support-requests?page=1&pageSize=20&status=OPEN` | Lista paginada das solicitações do usuário. |
+| `POST` | `/support-requests` | Abre solicitação em `OPEN`. |
+| `GET` | `/support-requests/{supportRequestId}` | Consulta solicitação própria. |
+
+O cadastro exige `vehicleId` e `reason`; `installationId` é opcional, mas,
+quando informado, deve pertencer ao veículo e estar acessível ao usuário.
+O servidor define o solicitante, `status`, `createdAt` e `updatedAt`. O motivo
+tem até 1000 caracteres e não deve conter CPF, placa, documentos, tokens ou
+segredos. O contrato não aceita upload ou campos de documentos pessoais.
+
+`SupportRequest` retorna `id`, `vehicleId`, `installationId`, `reason`,
+`status`, `createdAt` e `updatedAt`. As referências ao veículo e à instalação
+podem se tornar `null` após a exclusão do veículo. Os estados de leitura são
+`OPEN`, `IN_REVIEW`, `SCHEDULED`, `RESOLVED` e `CANCELLED`. A lista é ordenada
+por `createdAt` decrescente, com `id` como desempate. A forma de transição
+entre estados depende da operação de suporte a ser contratada futuramente.
+
+Solicitação inexistente ou de outra conta retorna `SUPPORT_REQUEST_NOT_FOUND`
+(`404`). Veículo ou instalação inacessível também retorna `404`, sem revelar a
+existência de recursos de outra conta. Motivo ou filtro inválido retorna
+`VALIDATION_ERROR` (`400`).
+
 ## Códigos iniciais de erro
 
 | Código | Uso |
@@ -277,6 +348,7 @@ O intervalo deve ter início anterior ao fim. Resultados são ordenados por
 | `CONFIGURATION_NOT_FOUND` | Configuração inexistente ou inacessível dentro da instalação. |
 | `INSTALLATION_NOT_FOUND` | Instalação inexistente ou não acessível ao usuário. |
 | `INSTALLATION_STATE_CONFLICT` | Transição futura incompatível com o estado atual da instalação. |
+| `SUPPORT_REQUEST_NOT_FOUND` | Solicitação de revisão inexistente ou não acessível ao usuário. |
 | `TEST_NOT_FOUND` | Teste inexistente ou não acessível ao usuário. |
 | `TEST_STATE_CONFLICT` | Transição solicitada incompatível ou concorrente com o estado atual. |
 | `USER_NOT_FOUND` | Perfil autenticado indisponível. |

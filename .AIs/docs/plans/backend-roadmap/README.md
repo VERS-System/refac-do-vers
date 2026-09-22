@@ -11,7 +11,7 @@ arquitetura; estes documentos definem como executar cada fase.
 | Fase | Documento | Estado | Dependência principal |
 | --- | --- | --- | --- |
 | 00 | [Baseline](00-baseline.md) | Concluída | — |
-| 01 | [Contratos da API](01-contratos-api.md) | Em andamento | Fase 00 |
+| 01 | [Contratos da API](01-contratos-api.md) | Concluída | Fase 00 |
 | 02 | [Schema e migrations](02-schema-migrations.md) | Planejada | Fase 01 |
 | 03 | [APIs e rotas](03-apis-rotas.md) | Planejada | Fase 02 |
 | 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Planejada | Fase 03 |

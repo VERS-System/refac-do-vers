@@ -7,6 +7,8 @@
 - [Arquitetura do sistema](docs/02_arquitetura-do-sistema.md)
 - [Dados e indicadores](docs/03_dados-e-indicadores.md)
 - [Infraestrutura (Docker, envs, backend)](docs/04-infraestrutura.md)
+- [Contratos REST](docs/Api/endpoints.md)
+- [OpenAPI 3.1](docs/Api/openapi.yaml)
 - [Schema do banco (plano)](docs/plans/schema-core.md)
 - [Roadmap de implementação do core](docs/plans/core-roadmap.md)
 - [Roadmap de Backend e MQTT](docs/plans/backend-mqtt-roadmap.md)

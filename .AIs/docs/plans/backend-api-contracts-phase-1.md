@@ -117,7 +117,8 @@ separados conceitualmente, validar cada um e informar os arquivos correspondente
   `UserVehicle` com FKs para usuário e veículo e relacionamento `OWNER`;
 - o primeiro veículo da conta é principal; promover outro remove o principal
   anterior atomicamente;
-- o último veículo da conta não pode ser excluído;
+- o último veículo da conta pode ser excluído; testes e telemetria permanecem
+  com snapshot sem placa ou outro identificador específico;
 - ao excluir o principal, o único veículo restante é promovido automaticamente;
   com múltiplos candidatos, o usuário informa o `replacementVehicleId`;
 - clientes dependem dos contratos compartilhados, não dos tipos gerados pelo

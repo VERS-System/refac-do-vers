@@ -9,7 +9,7 @@ export * from './vehicles';
 export interface User {
   id: string;
   email: string;
-  role: 'user' | 'admin' | 'technician';
+  role: 'user' | 'admin';
   createdAt: string;
 }
 

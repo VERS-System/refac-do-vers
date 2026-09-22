@@ -1,0 +1,5 @@
+papeis: ent ele deve ser uma associacao, nao e necessario essa segunda role no momento mas sim o admin pode tambem ser simultaneamente um usario
+amostra: a ideia e que ele salve por periodos de tempo e nao segundos entao acredito que seja por lote
+exlcusao: nao, isso nao interfere em seu historico e testes, a ideia eq as condicoes e coisas como modelos e afins sejam salvas mas nn a placa ou qlqr outra caracteristica especifica
+retencao: nao entendi que prazos seriam essses, poderia descorrer melhor?
+dados antigos:pode apaga fi, mas caso haja outra migration durante o desenvolvimento manter o banco existente

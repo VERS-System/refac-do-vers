@@ -8,10 +8,10 @@ Este documento define a proposta de variáveis, entidades e relacionamentos
 necessários para sustentar as features conhecidas do aplicativo mobile e a
 telemetria enviada pelo ESP32 via MQTT.
 
-**Status:** proposta para revisão. Ainda não representa uma migration aplicada.
-Após aprovação das decisões abertas, esta especificação deve orientar os testes
-do acesso a dados, a alteração de `schema.prisma` e a primeira migration
-versionada do core.
+**Status:** proposta em revisão, atualizada com decisões de 22/09/2026. Ainda
+não representa uma migration aplicada. O plano da Fase 2 prevalece em caso de
+divergência; esta especificação deve orientar testes, `schema.prisma` e a
+primeira migration versionada após concluir os contratos da Fase 1.
 
 ## 2. Regras de modelagem
 
@@ -27,8 +27,9 @@ versionada do core.
 - Potência é derivada de tensão e corrente no backend. O valor informado pelo
   dispositivo pode ser preservado separadamente para diagnóstico.
 - Dados agregados não são misturados com a entidade do teste.
-- Payload bruto MQTT é preservado para auditoria, mas não substitui a telemetria
-  validada.
+- Payload MQTT é preservado para auditoria, mas não substitui a telemetria
+  validada; tópico e payload não devem conter placa ou outro identificador
+  específico do veículo.
 - CPF e documento do veículo não devem ser armazenados em texto puro. Se a
   persistência for necessária, deve existir criptografia, mascaramento e
   política de retenção antes da implementação.
@@ -38,13 +39,13 @@ versionada do core.
 ```text
 User ──< UserVehicle >── Vehicle ──< VersInstallation >── Device
   │                           │              │               │
-  ├──< AuthIdentity           │              ├── Configuration
+  ├──< AuthIdentity (adiada)  │              ├── Configuration
   ├──< RefreshSession         │              └──< Test
   ├──< AiConversation         │                     ├──< TelemetrySample
   └──< SupportRequest         │                     └──< EnergySummary
                               └──────────────────────────< SupportRequest
 
-Device ──< MqttMessage ──0..1── TelemetrySample
+Device ──< MqttMessage ──< TelemetrySample
 ```
 
 ## 4. Identidade e autenticação mobile
@@ -64,11 +65,15 @@ Device ──< MqttMessage ──0..1── TelemetrySample
 | `updatedAt` | `DateTime @updatedAt` | Sim | Auditoria. |
 
 O perfil administrativo deve vir de papéis/permissões, não de um booleano
-`isAdmin` isolado.
+`isAdmin` isolado. Uma associação de papéis permite `USER` e `ADMIN` no mesmo
+usuário. `TECHNICIAN` não entra no escopo atual. Email usa `citext` para
+unicidade sem distinção de caixa.
 
 ### `AuthIdentity`
 
-Permite login local e Google sem duplicar usuários.
+Modelo reservado para eventual login Google sem duplicar usuários. Sua criação
+fica em espera até decisão específica; a tabela abaixo não integra a primeira
+migration por antecipação.
 
 | Campo Prisma | Tipo | Obrigatório | Finalidade |
 | --- | --- | --- | --- |
@@ -113,6 +118,10 @@ antes da implementação do módulo de autenticação.
 | `modelYear` | `Int?` | Não | Ano do modelo, se disponível. |
 | `createdAt` | `DateTime @default(now())` | Sim | Auditoria. |
 | `updatedAt` | `DateTime @updatedAt` | Sim | Auditoria. |
+
+Ao excluir o veículo, remover placa e demais identificadores específicos. Os
+testes anteriores permanecem vinculados a snapshots sem placa. O usuário pode
+ficar sem veículo cadastrado.
 
 ### `UserVehicle`
 
@@ -164,6 +173,8 @@ Identifica o ESP32 que publica no broker.
 | `updatedAt` | `DateTime @updatedAt` | Sim | Auditoria. |
 
 Credenciais do broker não pertencem a esta tabela em texto puro.
+Um veículo pode ter no máximo um ESP32 ativo; substituições preservam o
+histórico sem deixar dois dispositivos ativos simultaneamente.
 
 ### `Configuration`
 
@@ -214,6 +225,12 @@ Restrições: `@@unique([installationId, version])` e
 `duration`, potência, corrente, energia e bateria não ficam em `Test`: duração é
 derivada dos instantes, medições ficam em `TelemetrySample` e agregados ficam em
 `EnergySummary`.
+O teste deve manter snapshot do modelo do veículo, local informado onde foi
+realizado, quantidade de piezos e condições experimentais. O peso no momento do
+teste é informado ou medido, pois o modelo não determina carga e ocupantes.
+Esse snapshot não contém placa nem outro identificador específico do veículo.
+Os campos e FKs da tabela acima serão ajustados antes da migration para
+preservar o histórico quando o veículo for excluído.
 
 ### `EnergySummary`
 
@@ -267,14 +284,19 @@ vers/v1/devices/{deviceUid}/status
 vers/v1/devices/{deviceUid}/events
 ```
 
-- `telemetry`: amostras periódicas; QoS 0 ou 1 conforme o lote e a capacidade do
-  protótipo.
+- `telemetry`: lote de amostras coletadas durante um período; QoS 0 ou 1
+  conforme a capacidade do protótipo.
 - `status`: conexão, firmware e saúde; QoS 1 e mensagem retida quando adequado.
 - `events`: início/fim de teste e falhas importantes; QoS 1.
 
 O `deviceUid` do tópico deve coincidir com o payload e com um dispositivo ativo.
 
 ### Payload de telemetria v1
+
+O exemplo abaixo é um rascunho legado de amostra única. Deve ser substituído
+por envelope com lista de amostras e instantes ou posições individuais antes
+da implementação do ESP32. Frequência e tamanho do lote serão definidos nessa
+etapa; nenhuma relação 1:1 deve ser implementada a partir deste exemplo.
 
 ```json
 {
@@ -343,7 +365,7 @@ Restrições e índices:
 | Campo Prisma | Tipo | Obrigatório | Finalidade |
 | --- | --- | --- | --- |
 | `id` | `String @id @default(uuid())` | Sim | Amostra. |
-| `mqttMessageId` | `String @unique` | Sim | Rastreabilidade 1:1 com a mensagem v1. |
+| `mqttMessageId` | `String` | Sim | Origem da amostra; várias amostras podem compartilhar a mensagem. |
 | `deviceId` | `String` | Sim | Dispositivo de origem. |
 | `testId` | `String?` | Não | Teste ativo; pode ser nulo em calibração/idle. |
 | `capturedAt` | `DateTime` | Sim | Momento da amostra. |
@@ -367,16 +389,18 @@ Restrições e índices:
 
 - `@@index([testId, capturedAt])`;
 - `@@index([deviceId, capturedAt])`.
+- índice ou unicidade por mensagem e posição/instante da amostra, a detalhar
+  no contrato de lote.
 
-Dados inválidos permanecem no payload bruto, mas não entram silenciosamente nas
-agregações. A política de retenção/particionamento será definida com dados reais
-de frequência e duração dos testes.
+Dados inválidos permanecem no payload recebido, mas não entram silenciosamente
+nas agregações. Não haverá limpeza periódica automática no MVP. Particionamento
+será avaliado com dados reais de frequência e duração dos testes.
 
 ## 8. Mapeamento feature → fonte de dados
 
 | Feature mobile | Fonte principal | Campos/resultado |
 | --- | --- | --- |
-| Cadastro/login | `User`, `AuthIdentity`, `RefreshSession` | email, senha hash, provedor, sessão |
+| Cadastro/login | `User`, `RefreshSession` | email, senha hash, sessão; `AuthIdentity` aguarda decisão sobre Google |
 | Perfil/admin | `User` + papéis | nome, avatar, permissões |
 | Informações do carro | `Vehicle`, `UserVehicle` | placa, marca, modelo, vínculo |
 | Cadastro de carro | fluxo de verificação + `Vehicle` | documento/CPF transitórios, placa persistida |
@@ -409,21 +433,33 @@ serão fechados com o contrato do ai-service na Fase 8. Até lá, o modelo legad
 | `EnergySummary.energyPerHour` JSON | substituir por linhas com período `HOUR` |
 | `MqttMessage.processed` boolean | substituir por status de processamento |
 
-## 10. Decisões abertas antes da migration
+## 10. Decisões de modelagem e pendências do firmware
+
+Decidido em 22/09/2026: Neon compartilhado de desenvolvimento com dados
+fictícios; primeira troca pode descartar o legado, migrations posteriores
+preservam dados; `citext` para email; papéis `USER` e `ADMIN` em associação;
+`AuthIdentity` em espera; um ESP32 ativo por veículo; MQTT em lotes; exclusão
+do veículo remove identificadores sem apagar histórico; sem limpeza periódica
+automática. O detalhe da operação de exclusão e dos snapshots será concluído
+antes da migration. As perguntas abaixo não devem ser interpretadas como
+aprovação para persistir dados ainda sem fonte ou necessidade definida.
 
 1. O valor “Battery Used” vem de qual sensor ou integração? Sem uma fonte
    confiável, ele deve permanecer ausente em vez de estimado.
 2. O campo “documento do carro” representa CRLV, RENAVAM ou upload de arquivo?
 3. O CPF será apenas enviado a um serviço de verificação ou precisa ser
    persistido? A recomendação é não persistir sem necessidade jurídica clara.
-4. Uma instalação pode possuir mais de um ESP32 ativo simultaneamente?
-5. A energia acumulada enviada pelo ESP32 reinicia ao ligar, ao iniciar um teste
+4. A energia acumulada enviada pelo ESP32 reinicia ao ligar, ao iniciar um teste
    ou nunca? Essa regra altera o cálculo de deltas.
-6. Qual frequência de amostragem e tamanho de lote serão usados no protótipo?
-7. `temperatureC` mede o circuito, o ambiente ou outro ponto físico?
-8. A contagem de piezos ativos é configurada pelo operador ou detectada pelo
+5. Qual frequência de amostragem e tamanho de lote serão usados no protótipo?
+6. `temperatureC` mede o circuito, o ambiente ou outro ponto físico?
+7. A contagem de piezos ativos é configurada pelo operador ou detectada pelo
    hardware?
-9. O dashboard precisa persistir toda vibração bruta ou apenas RMS/janelas?
+8. O dashboard precisa persistir toda vibração bruta ou apenas RMS/janelas?
+
+As perguntas 4 a 8 serão respondidas no desenvolvimento do ESP32. As
+perguntas 1 a 3 dependem de fonte ou fluxo específico e não bloqueiam o schema
+inicial: os respectivos valores podem permanecer nulos ou fora da persistência.
 
 ## 11. Próximo passo técnico
 

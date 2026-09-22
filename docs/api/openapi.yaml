@@ -216,11 +216,13 @@ paths:
           $ref: '#/components/responses/NotFoundError'
     delete:
       tags: [Vehicles]
-      summary: Exclui veículo preservando um principal quando necessário
+      summary: Exclui veículo e preserva o histórico experimental
       description: >-
-        O último veículo não pode ser excluído. replacementVehicleId é exigido
-        ao excluir o principal quando houver dois ou mais candidatos restantes.
-        Com um único candidato restante, a promoção é automática.
+        O último veículo pode ser excluído. Placa e identificadores específicos
+        são removidos; testes e telemetria permanecem com snapshot sem placa.
+        replacementVehicleId é exigido ao excluir o principal quando houver
+        dois ou mais candidatos restantes. Com um único candidato, a promoção
+        é automática.
       security:
         - accessCookie: []
       parameters:
@@ -232,7 +234,7 @@ paths:
             format: uuid
       responses:
         '204':
-          description: Veículo excluído e substituto promovido quando aplicável.
+          description: Veículo excluído e substituto promovido quando aplicável; histórico preservado.
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -420,7 +422,7 @@ components:
           type: array
           items:
             type: string
-            enum: [USER, ADMIN, TECHNICIAN]
+            enum: [USER, ADMIN]
         status:
           type: string
           enum: [ACTIVE, BLOCKED, PENDING_VERIFICATION]

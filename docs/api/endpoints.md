@@ -115,8 +115,10 @@ Payload de atualização:
 }
 ```
 
-`USER` é o papel global padrão da conta. `OWNER`, `DRIVER` e `ADMIN` descrevem
-o vínculo com um veículo específico e não substituem os papéis globais.
+`USER` é o papel global padrão da conta. `USER` e `ADMIN` podem coexistir no
+mesmo perfil. `OWNER`, `DRIVER` e `ADMIN` descrevem o vínculo com um veículo
+específico e não substituem os papéis globais. `TECHNICIAN` não integra o
+contrato inicial.
 
 ## Veículos
 
@@ -129,7 +131,7 @@ objeto solicitado.
 | `POST` | `/vehicles` | Cadastra um veículo e cria vínculo `OWNER`. |
 | `GET` | `/vehicles/{vehicleId}` | Consulta um veículo autorizado. |
 | `PATCH` | `/vehicles/{vehicleId}` | Atualiza dados permitidos ou troca o principal. |
-| `DELETE` | `/vehicles/{vehicleId}` | Exclui quando existe substituto elegível. |
+| `DELETE` | `/vehicles/{vehicleId}` | Exclui o veículo, inclusive o último, preservando testes e telemetria. |
 
 ### Cadastro
 
@@ -161,14 +163,17 @@ alteráveis por este endpoint.
 
 ### Exclusão
 
-- o último veículo da conta não pode ser excluído;
-- um veículo não principal pode ser excluído quando outro veículo existe;
+- o último veículo da conta pode ser excluído; a conta fica sem veículo principal;
+- um veículo não principal pode ser excluído;
 - ao excluir o principal com apenas um veículo restante, o restante é promovido
   automaticamente;
 - ao excluir o principal com dois ou mais candidatos restantes, o cliente deve
   informar `replacementVehicleId` na query string;
 - exclusão e promoção são atômicas;
-- o substituto deve pertencer ao mesmo usuário e não pode ser o veículo excluído.
+- o substituto deve pertencer ao mesmo usuário e não pode ser o veículo excluído;
+- placa e demais identificadores específicos são removidos; testes e telemetria
+  permanecem com snapshot de modelo, local informado, piezos e condições do
+  experimento, sem placa.
 
 ## Códigos iniciais de erro
 

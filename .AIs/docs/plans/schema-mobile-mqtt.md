@@ -41,8 +41,7 @@ User ──< UserVehicle >── Vehicle ──< VersInstallation >── Device
   ├──< AuthIdentity           │              ├── Configuration
   ├──< RefreshSession         │              └──< Test
   ├──< AiConversation         │                     ├──< TelemetrySample
-  └──< SupportRequest         │                     ├──< DiagnosticSnapshot
-                              │                     └──< EnergySummary
+  └──< SupportRequest         │                     └──< EnergySummary
                               └──────────────────────────< SupportRequest
 
 Device ──< MqttMessage ──0..1── TelemetrySample
@@ -87,13 +86,19 @@ Restrição: `@@unique([provider, providerSubject])`.
 | --- | --- | --- | --- |
 | `id` | `String @id @default(uuid())` | Sim | Sessão autenticada. |
 | `userId` | `String` | Sim | Usuário. |
-| `tokenHash` | `String @unique` | Sim | Hash do refresh token; nunca o token puro. |
+| `tokenHash` | `String @unique` | Sim | Hash do refresh token usado para rotação/revogação; nunca o token puro. |
 | `deviceLabel` | `String?` | Não | Identificação amigável do aparelho. |
 | `expiresAt` | `DateTime` | Sim | Expiração. |
 | `revokedAt` | `DateTime?` | Não | Revogação/rotação. |
 | `createdAt` | `DateTime @default(now())` | Sim | Auditoria. |
 
 Índice: `@@index([userId, expiresAt])`.
+
+O token bruto não é persistido nem retornado em JSON. Access e refresh tokens
+trafegam exclusivamente em cookies `HttpOnly`; somente o hash necessário para
+controlar a sessão revogável fica no banco. Em produção, os cookies usam
+`Secure` sobre HTTPS. Proteção CSRF e a política `SameSite` devem ser definidas
+antes da implementação do módulo de autenticação.
 
 ## 5. Veículo e instalação VERS
 
@@ -239,21 +244,6 @@ Restrição: `@@unique([installationId, testId, periodType, periodStart])`.
 O gráfico por hora deve consultar linhas `HOUR`, não um objeto JSON
 `energyPerHour`. Isso permite filtragem, recomputação e índices adequados.
 
-### `DiagnosticSnapshot`
-
-| Campo Prisma | Tipo | Obrigatório | Finalidade |
-| --- | --- | --- | --- |
-| `id` | `String @id @default(uuid())` | Sim | Diagnóstico. |
-| `installationId` | `String` | Sim | Instalação avaliada. |
-| `testId` | `String?` | Não | Teste relacionado. |
-| `status` | `DiagnosticStatus` | Sim | `HEALTHY`, `WARNING`, `CRITICAL` ou `UNKNOWN`. |
-| `summary` | `String` | Sim | Texto curto exibido no mobile. |
-| `details` | `Json?` | Não | Evidências estruturadas. |
-| `source` | `DiagnosticSource` | Sim | `RULE`, `OPERATOR` ou `AI`. |
-| `createdAt` | `DateTime @default(now())` | Sim | Momento do diagnóstico. |
-
-Índice: `@@index([installationId, createdAt])`.
-
 ### `SupportRequest`
 
 | Campo Prisma | Tipo | Obrigatório | Finalidade |
@@ -396,7 +386,6 @@ de frequência e duração dos testes.
 | Today/gráfico horário | `EnergySummary(HOUR)` | série ordenada por `periodStart` |
 | Calendário | `EnergySummary(DAY)` | dias com dados e energia recuperada |
 | Money economy | `EnergySummary` | energia, tarifa, moeda e valor calculado |
-| Diagnóstico | `DiagnosticSnapshot` | estado, resumo, fonte e evidências |
 | Revisão do sistema | `SupportRequest` | motivo, status e instalação |
 | Telemetria atual | `TelemetrySample` | última leitura válida por instalação |
 
@@ -445,4 +434,3 @@ Após responder às decisões que afetam cardinalidade e significado dos dados:
 3. gerar e revisar a migration sem aplicá-la automaticamente ao Neon;
 4. definir DTOs em `packages/shared-types` para REST e MQTT;
 5. executar `test:unit`, validação Prisma, lint e build.
-

@@ -1,3 +1,11 @@
+// Ponto de entrada público dos contratos compartilhados da plataforma VERS.
+
+export * from './api';
+export * from './auth';
+export * from './fixtures';
+export * from './users';
+export * from './vehicles';
+
 export interface User {
   id: string;
   email: string;

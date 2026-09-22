@@ -2,6 +2,10 @@
 
 # Roadmap de implementação do core — VERS
 
+> Para desenvolvimento do backend, ingestão MQTT, tratamento de dados e APIs,
+> a fonte de verdade detalhada é o
+> [Roadmap de Backend e MQTT](backend-mqtt-roadmap.md).
+
 ## 1. Objetivo
 
 Este documento é a fonte de verdade para a evolução do core do VERS. Ele organiza
@@ -59,7 +63,7 @@ ESP32
             └─ eventos ao vivo → Redis Pub/Sub → WebSocket → dashboard
 
 mobile / web / dashboard
-  └─ REST + JWT → backend
+  └─ REST + cookies JWT HttpOnly sobre HTTPS → backend
                      └─ REST interno sob demanda → ai-service/OpenAI
 ```
 
@@ -105,7 +109,8 @@ baseline documentado.
 
 - revisar `Configuration`, `Test`, `Telemetry`, `EnergySummary`, `MqttMessage`,
   `AiInteraction` e `AiPrediction`;
-- modelar usuários, papéis, sessões/refresh tokens, veículos e dispositivos;
+- modelar usuários, papéis e sessões revogáveis com hash de refresh token,
+  veículos e dispositivos;
 - remover ou definir campos redundantes e separar medições de agregados;
 - converter estados finitos em enums e definir nulabilidade, precisão e unidades;
 - definir índices, unicidade, relacionamentos, deleções e retenção de telemetria;
@@ -125,7 +130,8 @@ dados aprovados e dicionário de dados atualizado.
 - integrar ao `AppModule` apenas módulos já cobertos por testes;
 - padronizar validação, respostas, paginação e tratamento de erros;
 - configurar logging estruturado, correlação de requisições e auditoria;
-- validar CORS, Helmet, rate limit e configuração por ambiente;
+- validar CORS com credenciais e allowlist, proteção CSRF, Helmet, rate limit e
+  configuração por ambiente;
 - criar health checks de aplicação, banco e Redis;
 - definir versionamento e prefixo da API.
 
@@ -139,13 +145,16 @@ e erros seguem contrato único.
 **Entregas:**
 
 - cadastro, login e hash de senha;
-- access token e rotação/revogação de refresh token;
+- access token curto e refresh token rotativo/revogável exclusivamente em
+  cookies `HttpOnly`, sem exposição em JSON ou ao JavaScript;
+- HTTPS e cookies `Secure` em produção, com política `SameSite` definida antes
+  da implementação;
 - Passport JWT, guards e decorators de usuário atual;
 - papéis e permissões de usuário e administrador;
 - recuperação de senha e login social somente após contrato específico;
 - autenticação separada e mínima para dispositivos MQTT;
-- testes contra enumeração de usuários, escalada de privilégio e reutilização de
-  refresh token.
+- testes contra enumeração de usuários, escalada de privilégio, CSRF,
+  reutilização de refresh token e exposição de tokens ao JavaScript.
 
 **Critério de saída:** fluxos principais e casos de abuso cobertos por testes;
 mobile consegue autenticar sem dados simulados.
@@ -161,7 +170,7 @@ mobile consegue autenticar sem dados simulados.
 3. ciclo de vida de testes experimentais;
 4. consulta paginada de telemetria;
 5. resumos energéticos e indicadores;
-6. diagnóstico, relatórios e exportações.
+6. relatórios e exportações.
 
 **Entregas:** DTOs validados, services, controllers, autorização por recurso,
 paginação, filtros e documentação em `docs/api/endpoints.md`.
@@ -239,7 +248,7 @@ nenhuma chave ou dado sensível exposto aos clientes.
 **Objetivo:** substituir dados simulados por contratos estáveis.
 
 **Ordem recomendada:** autenticação mobile, Home/energia, perfil/veículo,
-diagnóstico/Viber, dashboard REST/tempo real e web.
+Viber, dashboard REST/tempo real e web.
 
 **Critério de saída:** fluxos críticos têm estados de carregamento, vazio, erro,
 expiração de sessão e reconexão testados.
@@ -302,4 +311,3 @@ A próxima atividade é a **Fase 0 — Baseline e capacidade de validação**. A
 concluí-la, a equipe deve produzir uma auditoria objetiva do backend e abrir a
 Fase 1 com uma proposta detalhada de alteração do schema, antes de criar a
 migration.
-

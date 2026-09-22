@@ -13,7 +13,11 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [03 — Dados e indicadores](03_dados-e-indicadores.md)             | Informações de testes, métricas e modelo conceitual de armazenamento.    |
 | [04 — Infraestrutura](04-infraestrutura.md)                       | Docker, variáveis de ambiente, core backend e fluxo de dados.           |
 | [Roadmap do core](plans/core-roadmap.md)                          | Fases, dependências, critérios de aceite e ordem de implementação.      |
+| [Roadmap de Backend e MQTT](plans/backend-mqtt-roadmap.md)        | Fonte de verdade para ingestão, tratamento, APIs e segurança do backend. |
+| [Baseline do backend](plans/backend-baseline-03-09-2026.md)       | Estado verificado antes da implementação das APIs.                       |
 | [Schema v2 — Mobile e MQTT](plans/schema-mobile-mqtt.md)          | Variáveis, entidades, payload e decisões abertas do novo schema.       |
+| [Fase 2 — Schema e migration](plans/backend-schema-phase-2.md)    | Plano seguro do banco, reconciliação, testes e pequenos commits.       |
+| [Roadmap executável do backend](plans/backend-roadmap/README.md)  | Fases detalhadas do backend, dependências, etapas e critérios de saída. |
 
 ## Organização
 

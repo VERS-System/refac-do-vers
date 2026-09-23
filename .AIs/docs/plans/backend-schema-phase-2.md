@@ -267,17 +267,22 @@ cálculo para permitir recomputação auditável.
 
 `vehicleEnergyUsedWh` e economia permanecem nulos sem fonte e premissas
 confiáveis. Valores financeiros usam `Decimal` com moeda e tarifa registradas.
+`calculationVersion` identifica a fórmula aplicada; índices parciais impedem
+duplicar o mesmo período enquanto a instalação ou o teste estiver vinculado.
 
 ### `SupportRequest`
 
 Vincula solicitante, veículo e instalação opcional. O motivo é texto livre
 limitado e não deve ser usado para coletar documentos pessoais.
+A validação do conteúdo do motivo pertence ao service antes da persistência.
 
 ### `AuditEvent`
 
 Registra ator, ação, tipo e ID do recurso, resultado, request ID e timestamps.
 Não registra senha, token, cookie, payload MQTT completo, documento ou cópia do
-objeto alterado. Metadados seguem allowlist.
+objeto alterado. Não há coluna de metadados livres no MVP. A exclusão de usuário
+esvazia seu ID auditado; a exclusão de veículo esvazia IDs auditados dele e de
+suas instalações e dispositivos.
 
 ## 13. Exclusões e retenção
 
@@ -288,9 +293,9 @@ Estratégia decidida para o desenvolvimento:
 | Sessão expirada/revogada | sem limpeza periódica automática | expiração e revogação continuam valendo para autenticação |
 | Vínculo usuário–veículo | remover na exclusão solicitada | outras contas vinculadas mantêm acesso ao veículo |
 | Veículo sem vínculos ativos | remover placa e dados identificadores | testes usam snapshots sem placa; nenhuma cascata apaga telemetria |
-| Configuração usada | `Restrict` | snapshot experimental imutável |
+| Configuração usada | remover com instalação excluída | teste preserva o snapshot e a FK passa a `null` |
 | Teste e telemetria | sem limpeza periódica automática | preservar integridade científica |
-| MQTT bruto | sem limpeza periódica automática | não incluir identificadores do veículo no payload |
+| MQTT bruto | sem limpeza periódica automática; apagar antes da exclusão final do veículo | testes e amostras normalizadas permanecem |
 | Auditoria | sem limpeza periódica automática | não incluir placa nem outros identificadores do veículo |
 | Backups | sem limpeza periódica automática definida no produto | operação do provedor e restauração serão verificadas antes da migration |
 

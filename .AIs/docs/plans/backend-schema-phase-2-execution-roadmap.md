@@ -10,9 +10,8 @@ antes de qualquer aplicação ao Neon. Este documento detalha **apenas a Fase
 02** do [roadmap do backend](backend-roadmap/README.md); controllers, regras de
 API e ingestão funcional pertencem às fases seguintes.
 
-**Estado em 22/09/2026:** lotes 1 a 7 concluídos. `schema.prisma` ainda mantém
-modelos legados de resumos e IA; já contém identidade, veículos, instalações,
-testes, MQTT e telemetria remodelados. Ainda não há migration
+**Estado em 23/09/2026:** lotes 1 a 8 concluídos. `schema.prisma` ainda mantém
+modelos legados de IA; os demais domínios do banco já foram remodelados. Ainda não há migration
 versionada nem alteração no Neon. O [plano técnico](backend-schema-phase-2.md)
 e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 
@@ -45,7 +44,7 @@ e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 | 05 — Instalações e configurações | Concluído no schema | `VersInstallation`, `Device` e `Configuration` versionada. FK composta impede associar ESP32 a outro veículo; índice parcial limita a um dispositivo não revogado por veículo, inclusive em `OFFLINE`/`FAULT`; trigger torna configuração imutável. | `test:db`: 11 testes; `test:unit`: 23; Prisma, lint e build passaram em banco vazio. A substituição funcional fica para o serviço. |
 | 06 — Testes e snapshots | Concluído no schema | `Test` com enums de estado, terreno e resultado, condições medidas e snapshot imutável sem placa. FKs opcionais preservam o teste após exclusão de veículo, instalação, configuração e conta; `createdById` fica nulo após exclusão da conta. Trigger diferida valida compatibilidade das referências. Transições de estado ficam para o service. | `test:db`: 14 testes, inclusive exclusão e incompatibilidade; `test:unit`: 23; Prisma, lint e build passaram. |
 | 07 — MQTT e telemetria | Concluído no schema | `MqttMessage` bruto e `TelemetrySample` em relação 1:N, com posição/instante no lote, qualidade, unidades, unicidade e índices. Na exclusão final, a transação deve apagar bruto antes do veículo; FKs restritivas exigem essa ordem e as amostras permanecem. | `test:db`: 17 testes, inclusive deduplicação e exclusão ordenada; `test:unit`: 23; Prisma, lint e build passaram. |
-| 08 — Resumos, suporte e auditoria | Planejado | `EnergySummary` por períodos, valores monetários `Decimal`, `SupportRequest` e `AuditEvent` mínimo. Campos sem fonte confiável ficam nulos. | Precisão decimal, resumos sem duplicidade, nenhuma placa/token/payload completo na auditoria. |
+| 08 — Resumos, suporte e auditoria | Concluído no schema | `EnergySummary` por períodos, dinheiro em `Decimal`, `SupportRequest` e `AuditEvent` sem payload/metadados livres. Índices parciais evitam duplicatas; triggers apagam IDs de recursos físicos excluídos da auditoria. Validação do texto livre do suporte pertence ao service. | `test:db`: 20 testes, incluindo precisão, unicidade e exclusão; `test:unit`: 23; Prisma, lint e build passaram. |
 | 09 — SQL da primeira migration | Planejado | Gerar migration versionada, revisar `citext`, índices parciais, FKs, locks e remoção do legado. Verificar consumidores dos models de IA legados antes de retirá-los. **Gerar SQL sem aplicá-lo ao Neon.** | Revisão do SQL e `prisma validate`/client; nenhum comando remoto. |
 | 10 — Ensaio isolado | Planejado | Aplicar a migration em PostgreSQL descartável vazio e em cópia sintética representativa do legado; testar constraints, consultas e rollback operacional. | Testes de integração, `test:unit`, lint e build; resultados e limitações registrados. |
 | 11 — Preparação do Neon | Planejado | Inventariar estrutura/índices/volumes do Neon em acesso autorizado, combinar janela sem gravações, preparar backup e ensaiar restauração. Ajustar SQL se houver divergências. | Checklist de contagens, backup restaurável e plano de retorno revisado. Nenhuma aplicação ainda. |
@@ -62,7 +61,8 @@ Para repetir os testes de integração locais, executar
 banco sintético apenas o delta gerado entre ele e `schema.prisma`. Essa operação
 não produz migration versionada e usa URL fixa em `127.0.0.1:55432/vers_test`.
 O SQL complementar em `services/backend/prisma/manual-constraints/vehicles.sql`
-e nos arquivos `installations.sql`, `tests.sql` e `telemetry.sql` do mesmo diretório é aplicado
+e nos arquivos `installations.sql`, `tests.sql`, `telemetry.sql` e
+`summaries-support.sql` do mesmo diretório é aplicado
 somente nesse ensaio local e deve ser incorporado e revisado na
 primeira migration do lote 9.
 

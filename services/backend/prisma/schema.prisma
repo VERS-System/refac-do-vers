@@ -128,6 +128,44 @@ enum TelemetryQuality {
   @@map("telemetry_quality")
 }
 
+// Define a janela coberta por um resumo energético.
+enum SummaryPeriod {
+  TEST
+  HOUR
+  DAY
+  MONTH
+
+  @@map("summary_period")
+}
+
+// Classifica a qualidade dos dados usados em um resumo.
+enum SummaryQuality {
+  GOOD
+  PARTIAL
+  INVALID
+
+  @@map("summary_quality")
+}
+
+// Define o acompanhamento de uma solicitação de revisão.
+enum SupportStatus {
+  OPEN
+  IN_REVIEW
+  SCHEDULED
+  RESOLVED
+  CANCELLED
+
+  @@map("support_status")
+}
+
+// Registra o resultado mínimo de uma ação auditada.
+enum AuditResult {
+  SUCCESS
+  FAILURE
+
+  @@map("audit_result")
+}
+
 // Guarda a identidade local sem persistir senha ou token em texto puro.
 model User {
   id              String           @id @default(uuid()) @db.Uuid
@@ -143,6 +181,8 @@ model User {
   refreshSessions RefreshSession[]
   vehicles        UserVehicle[]
   testsCreated    Test[]
+  supportRequests SupportRequest[]
+  auditEvents     AuditEvent[]
 
   @@map("users")
 }
@@ -190,6 +230,7 @@ model Vehicle {
   users        UserVehicle[]
   installations VersInstallation[]
   tests         Test[]
+  supportRequests SupportRequest[]
 
   @@map("vehicles")
 }
@@ -225,6 +266,8 @@ model VersInstallation {
   configurations Configuration[]
   tests          Test[]
   samples        TelemetrySample[]
+  energySummaries EnergySummary[]
+  supportRequests SupportRequest[]
 
   @@unique([id, vehicleId])
   @@index([vehicleId, status])
@@ -305,6 +348,7 @@ model Test {
   createdBy                    User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
   messages                     MqttMessage[]
   samples                      TelemetrySample[]
+  energySummaries              EnergySummary[]
   predictions                  AiPrediction[]
 
   @@index([installationId, status, startedAt])
@@ -349,19 +393,68 @@ model TelemetrySample {
 }
 
 // ────────────────────────────────────────────
-// EnergySummary — resumos diários/mensais para dashboard
+// EnergySummary — períodos de energia calculados sem perda de precisão monetária
 // ────────────────────────────────────────────
 model EnergySummary {
-  id              String   @id @default(uuid())
-  date            DateTime
-  period          String   // daily | monthly
-  batteryRecovered Float?  @map("battery_recovered")
-  batteryUsed     Float?   @map("battery_used")
-  energyPerHour   Json?    @map("energy_per_hour")
-  moneyEconomy    Float?   @map("money_economy")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id                  String            @id @default(uuid()) @db.Uuid
+  installationId      String?           @map("installation_id") @db.Uuid
+  testId              String?           @map("test_id") @db.Uuid
+  periodType          SummaryPeriod     @map("period_type")
+  periodStart         DateTime          @map("period_start")
+  periodEnd           DateTime          @map("period_end")
+  recoveredEnergyWh   Float             @map("recovered_energy_wh")
+  vehicleEnergyUsedWh Float?            @map("vehicle_energy_used_wh")
+  averagePowerW       Float?            @map("average_power_w")
+  peakPowerW          Float?            @map("peak_power_w")
+  moneySaved          Decimal?          @map("money_saved") @db.Decimal(18, 6)
+  currencyCode        String?           @map("currency_code") @db.VarChar(3)
+  energyTariffPerKwh  Decimal?          @map("energy_tariff_per_kwh") @db.Decimal(18, 8)
+  sampleCount         Int               @map("sample_count")
+  quality             SummaryQuality
+  calculationVersion  Int               @map("calculation_version")
+  calculatedAt        DateTime          @map("calculated_at")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  installation        VersInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
+  test                Test?             @relation(fields: [testId], references: [id], onDelete: SetNull)
 
+  @@index([installationId, periodType, periodStart])
+  @@index([testId, periodType, periodStart])
   @@map("energy_summaries")
+}
+
+// SupportRequest — pedido de revisão sem cópias de dados do veículo.
+model SupportRequest {
+  id             String            @id @default(uuid()) @db.Uuid
+  requesterId    String?           @map("requester_id") @db.Uuid
+  vehicleId      String?           @map("vehicle_id") @db.Uuid
+  installationId String?           @map("installation_id") @db.Uuid
+  reason         String            @db.VarChar(1000)
+  status         SupportStatus     @default(OPEN)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  requester      User?             @relation(fields: [requesterId], references: [id], onDelete: SetNull)
+  vehicle        Vehicle?          @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  installation   VersInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
+
+  @@index([requesterId, status, createdAt])
+  @@map("support_requests")
+}
+
+// AuditEvent — trilha mínima sem coluna para payload, token ou metadados livres.
+model AuditEvent {
+  id           String      @id @default(uuid()) @db.Uuid
+  actorId      String?     @map("actor_id") @db.Uuid
+  action       String      @db.VarChar(80)
+  resourceType String      @map("resource_type") @db.VarChar(40)
+  resourceId   String?     @map("resource_id") @db.Uuid
+  result       AuditResult
+  requestId    String?     @map("request_id") @db.VarChar(100)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  actor        User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([resourceType, resourceId])
+  @@map("audit_events")
 }
 
 // ────────────────────────────────────────────

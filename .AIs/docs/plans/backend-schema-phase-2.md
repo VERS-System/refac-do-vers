@@ -221,6 +221,7 @@ Regras:
 - `vehicleWeightKg` representa o peso no teste, informado ou medido; não pode
   ser deduzido apenas do modelo, pois carga e ocupantes variam;
 - exclusões de usuário, veículo ou instalação não apagam o teste;
+- ao excluir a conta criadora, `createdById` passa a `null`, sem remover o teste;
 - texto livre possui limite e não deve receber documentos ou segredos.
 
 ## 11. MQTT e telemetria

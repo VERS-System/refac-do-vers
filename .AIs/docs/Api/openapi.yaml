@@ -1177,7 +1177,7 @@ components:
           type: [string, 'null']
           format: uuid
         createdById:
-          type: string
+          type: [string, 'null']
           format: uuid
         name:
           type: string

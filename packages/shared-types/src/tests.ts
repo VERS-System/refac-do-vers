@@ -15,7 +15,7 @@ export interface TestRecord {
   id: string;
   installationId: string | null;
   configurationId: string | null;
-  createdById: string;
+  createdById: string | null;
   name: string;
   status: TestStatus;
   terrain: TerrainType;

@@ -78,6 +78,37 @@ enum StorageType {
   @@map("storage_type")
 }
 
+// Define os estados persistidos de um teste experimental.
+enum TestStatus {
+  PLANNED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@map("test_status")
+}
+
+// Classifica o terreno informado para o ensaio.
+enum TerrainType {
+  HIGHWAY
+  CITY
+  OFFROAD
+  MIXED
+  OTHER
+
+  @@map("terrain_type")
+}
+
+// Classifica o resultado informado ao concluir um teste.
+enum TestOutcome {
+  SATISFACTORY
+  UNSATISFACTORY
+  INCONCLUSIVE
+
+  @@map("test_outcome")
+}
+
 // Guarda a identidade local sem persistir senha ou token em texto puro.
 model User {
   id              String           @id @default(uuid()) @db.Uuid
@@ -92,6 +123,7 @@ model User {
   roles           UserRoleAssignment[]
   refreshSessions RefreshSession[]
   vehicles        UserVehicle[]
+  testsCreated    Test[]
 
   @@map("users")
 }
@@ -138,6 +170,7 @@ model Vehicle {
   updatedAt    DateTime      @updatedAt @map("updated_at")
   users        UserVehicle[]
   installations VersInstallation[]
+  tests         Test[]
 
   @@map("vehicles")
 }
@@ -171,6 +204,7 @@ model VersInstallation {
   vehicle        Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   devices        Device[]
   configurations Configuration[]
+  tests          Test[]
 
   @@unique([id, vehicleId])
   @@index([vehicleId, status])
@@ -218,35 +252,40 @@ model Configuration {
 }
 
 // ────────────────────────────────────────────
-// Test — execução experimental
+// Test — execução experimental com contexto histórico sem identificadores da placa
 // ────────────────────────────────────────────
 model Test {
-  id               String    @id @default(uuid())
-  name             String
-  configurationId  String    @map("configuration_id") @db.Uuid
-  satisfatory      Boolean   @default(false)
-  terrain          String    // highway | city | offroad | mixed | other
-  rpm              Float?
-  watts            Float?
-  amp              Float?
-  current          Float?
-  batteryUsed      Float?    @map("battery_used")
-  batteryGenerated Float?    @map("battery_generated")
-  numPiezos        Int       @map("num_piezos")
-  startTime        DateTime? @map("start_time")
-  endTime          DateTime? @map("end_time")
-  duration         Int?      // segundos
-  weight           Float?
-  avgSpeed         Float?    @map("avg_speed")
-  incline          Float?
-  notes            String?
-  status           String    @default("planned") // planned | running | completed | failed
-  createdAt        DateTime  @default(now()) @map("created_at")
+  id                           String            @id @default(uuid()) @db.Uuid
+  vehicleId                    String?           @map("vehicle_id") @db.Uuid
+  installationId               String?           @map("installation_id") @db.Uuid
+  configurationId              String?           @map("configuration_id") @db.Uuid
+  createdById                  String?           @map("created_by_id") @db.Uuid
+  name                         String            @db.VarChar(120)
+  status                       TestStatus        @default(PLANNED)
+  terrain                      TerrainType
+  snapshotVehicleModel         String?           @map("snapshot_vehicle_model")
+  snapshotTestLocation         String            @map("snapshot_test_location") @db.VarChar(160)
+  snapshotActivePiezoCount     Int               @map("snapshot_active_piezo_count")
+  snapshotConfigurationVersion Int               @map("snapshot_configuration_version")
+  startedAt                    DateTime?         @map("started_at")
+  endedAt                      DateTime?         @map("ended_at")
+  vehicleWeightKg              Float?            @map("vehicle_weight_kg")
+  averageEngineRpm             Float?            @map("average_engine_rpm")
+  averageSpeedKph              Float?            @map("average_speed_kph")
+  inclineDegrees               Float?            @map("incline_degrees")
+  outcome                      TestOutcome?
+  notes                        String?           @db.VarChar(1000)
+  createdAt                    DateTime          @default(now()) @map("created_at")
+  updatedAt                    DateTime          @updatedAt @map("updated_at")
+  vehicle                      Vehicle?          @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  installation                 VersInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
+  configuration                Configuration?    @relation(fields: [configurationId], references: [id], onDelete: SetNull)
+  createdBy                    User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  telemetry                    Telemetry[]
+  predictions                  AiPrediction[]
 
-  configuration Configuration @relation(fields: [configurationId], references: [id])
-  telemetry     Telemetry[]
-  predictions   AiPrediction[]
-
+  @@index([installationId, status, startedAt])
+  @@index([createdById, createdAt])
   @@map("tests")
 }
 
@@ -255,7 +294,7 @@ model Test {
 // ────────────────────────────────────────────
 model Telemetry {
   id                String   @id @default(uuid())
-  testId            String   @map("test_id")
+  testId            String   @map("test_id") @db.Uuid
   timestamp         DateTime
   voltage           Float?
   current           Float?
@@ -323,7 +362,7 @@ model AiInteraction {
 // ────────────────────────────────────────────
 model AiPrediction {
   id              String   @id @default(uuid())
-  testId          String   @map("test_id")
+  testId          String   @map("test_id") @db.Uuid
   predictionType  String   @map("prediction_type") // anomaly | trend | forecast
   predictionData  Json     @map("prediction_data")
   createdAt       DateTime @default(now()) @map("created_at")

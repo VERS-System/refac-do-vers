@@ -238,6 +238,7 @@ configuração precisa pertencer à instalação, que deve estar ativa. O servid
 atribui `createdById`, `status`, `createdAt` e o snapshot da montagem: modelo
 do veículo, local informado, quantidade de piezos e versão da configuração.
 Placa, CPF, documentos e identificadores específicos não entram no snapshot.
+Se a conta criadora for excluída, `createdById` passa a `null` e o teste permanece.
 
 `TestRecord` contém contexto, estado, snapshot, referências opcionais à
 instalação e configuração, horários, peso no teste, RPM e velocidade médios,

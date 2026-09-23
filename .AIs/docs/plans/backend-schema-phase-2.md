@@ -325,23 +325,27 @@ quando necessário, de avaliação jurídica.
 
 ### Etapa B — Primeira migration
 
-- criar o schema novo e sua migration versionada em banco isolado;
-- revisar explicitamente a remoção do legado autorizada somente para a
-  primeira troca, sem presumir que o Neon já esteja vazio;
+- gerar o SQL versionado sem aplicá-lo no lote 9; ensaiá-lo em banco isolado no
+  lote 10;
+- a primeira migration remove explicitamente as sete tabelas experimentais
+  conhecidas, sem `CASCADE`, conforme autorização de descarte do legado; qualquer
+  divergência no Neon exige revisão antes da aplicação;
 - validar a extensão `citext`, constraints e índices antes de aplicar;
 - migrations posteriores usam evolução preservadora de dados.
 
 ### Etapa C — Validação e cutover
 
 - validar contagens, FKs, duplicidades, nulos e amostras sintéticas;
-- aplicar constraints depois do backfill;
+- na primeira troca, as constraints entram no mesmo SQL transacional após a
+  recriação das tabelas; não há backfill do legado descartado;
 - trocar leituras/escritas de forma observável;
 - manter rollback operacional antes de remover estruturas antigas.
 
 ### Etapa D — Contract posterior
 
-Remoções e renames destrutivos pertencem a uma migration posterior, após
-confirmação de que nenhum consumidor ou dado depende da estrutura antiga.
+Depois da primeira troca autorizada, remoções e renames destrutivos pertencem
+a migrations posteriores somente após confirmação de que nenhum consumidor ou
+dado depende da estrutura antiga. Essas migrations devem preservar os dados.
 
 ## 15. Testes obrigatórios
 

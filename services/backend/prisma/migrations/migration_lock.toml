@@ -1,0 +1,2 @@
+# Identifica PostgreSQL como único provedor das migrations Prisma do backend.
+provider = "postgresql"

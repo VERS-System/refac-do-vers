@@ -1,7 +1,6 @@
 // Prisma schema do VERS
 //
-// Define as entidades do sistema: testes, configurações, telemetria,
-// mensagens MQTT, interações com IA e previsões.
+// Define as entidades de identidade, veículos, testes, telemetria e suporte.
 
 generator client {
   provider = "prisma-client-js"
@@ -349,7 +348,6 @@ model Test {
   messages                     MqttMessage[]
   samples                      TelemetrySample[]
   energySummaries              EnergySummary[]
-  predictions                  AiPrediction[]
 
   @@index([installationId, status, startedAt])
   @@index([createdById, createdAt])
@@ -486,33 +484,4 @@ model MqttMessage {
   @@index([deviceId, capturedAt])
   @@index([status, receivedAt])
   @@map("mqtt_messages")
-}
-
-// ────────────────────────────────────────────
-// AiInteraction — histórico do chat Viber
-// ────────────────────────────────────────────
-model AiInteraction {
-  id        String   @id @default(uuid())
-  sessionId String   @map("session_id")
-  question  String
-  answer    String
-  context   Json?
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("ai_interactions")
-}
-
-// ────────────────────────────────────────────
-// AiPrediction — previsões geradas pela IA
-// ────────────────────────────────────────────
-model AiPrediction {
-  id              String   @id @default(uuid())
-  testId          String   @map("test_id") @db.Uuid
-  predictionType  String   @map("prediction_type") // anomaly | trend | forecast
-  predictionData  Json     @map("prediction_data")
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  test Test @relation(fields: [testId], references: [id])
-
-  @@map("ai_predictions")
 }

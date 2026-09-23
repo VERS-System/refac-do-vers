@@ -10,9 +10,10 @@ antes de qualquer aplicação ao Neon. Este documento detalha **apenas a Fase
 02** do [roadmap do backend](backend-roadmap/README.md); controllers, regras de
 API e ingestão funcional pertencem às fases seguintes.
 
-**Estado em 23/09/2026:** lotes 1 a 8 concluídos. `schema.prisma` ainda mantém
-modelos legados de IA; os demais domínios do banco já foram remodelados. Ainda não há migration
-versionada nem alteração no Neon. O [plano técnico](backend-schema-phase-2.md)
+**Estado em 23/09/2026:** lotes 1 a 9 concluídos. `schema.prisma` contém o novo
+modelo dos domínios aprovados, sem os modelos experimentais de IA. A primeira
+migration está versionada, ainda sem aplicação; não houve alteração no Neon. O
+[plano técnico](backend-schema-phase-2.md)
 e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 
 ## Regras para todos os lotes
@@ -45,7 +46,7 @@ e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 | 06 — Testes e snapshots | Concluído no schema | `Test` com enums de estado, terreno e resultado, condições medidas e snapshot imutável sem placa. FKs opcionais preservam o teste após exclusão de veículo, instalação, configuração e conta; `createdById` fica nulo após exclusão da conta. Trigger diferida valida compatibilidade das referências. Transições de estado ficam para o service. | `test:db`: 14 testes, inclusive exclusão e incompatibilidade; `test:unit`: 23; Prisma, lint e build passaram. |
 | 07 — MQTT e telemetria | Concluído no schema | `MqttMessage` bruto e `TelemetrySample` em relação 1:N, com posição/instante no lote, qualidade, unidades, unicidade e índices. Na exclusão final, a transação deve apagar bruto antes do veículo; FKs restritivas exigem essa ordem e as amostras permanecem. | `test:db`: 17 testes, inclusive deduplicação e exclusão ordenada; `test:unit`: 23; Prisma, lint e build passaram. |
 | 08 — Resumos, suporte e auditoria | Concluído no schema | `EnergySummary` por períodos, dinheiro em `Decimal`, `SupportRequest` e `AuditEvent` sem payload/metadados livres. Índices parciais evitam duplicatas; triggers apagam IDs de recursos físicos excluídos da auditoria. Validação do texto livre do suporte pertence ao service. | `test:db`: 20 testes, incluindo precisão, unicidade e exclusão; `test:unit`: 23; Prisma, lint e build passaram. |
-| 09 — SQL da primeira migration | Planejado | Gerar migration versionada, revisar `citext`, índices parciais, FKs, locks e remoção do legado. Verificar consumidores dos models de IA legados antes de retirá-los. **Gerar SQL sem aplicá-lo ao Neon.** | Revisão do SQL e `prisma validate`/client; nenhum comando remoto. |
+| 09 — SQL da primeira migration | Concluído, sem aplicar | SQL inicial transacional, `citext`, 14 tabelas, 16 enums, 24 FKs e constraints complementares. Sete tabelas legadas são removidas explicitamente, sem `CASCADE`; modelos de IA experimentais saíram após busca de consumidores. [Revisão](backend-schema-phase-2-lot9-sql-review.md). | Revisão estática do SQL; `prisma validate`, client, `test:unit` (23), lint e build passaram; nenhum banco alterado. |
 | 10 — Ensaio isolado | Planejado | Aplicar a migration em PostgreSQL descartável vazio e em cópia sintética representativa do legado; testar constraints, consultas e rollback operacional. | Testes de integração, `test:unit`, lint e build; resultados e limitações registrados. |
 | 11 — Preparação do Neon | Planejado | Inventariar estrutura/índices/volumes do Neon em acesso autorizado, combinar janela sem gravações, preparar backup e ensaiar restauração. Ajustar SQL se houver divergências. | Checklist de contagens, backup restaurável e plano de retorno revisado. Nenhuma aplicação ainda. |
 | 12 — Aplicação remota e documentação | Planejado, separada | Após autorização específica, aplicar a primeira migration no Neon compartilhado, verificar contagens/constraints/client e registrar a versão. Atualizar dicionário de dados, runbook e contexto. | Leitura de volta do estado aplicado, smoke test, `test:unit`, lint e build. |

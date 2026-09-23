@@ -38,6 +38,46 @@ enum VehicleRelationship {
   @@map("vehicle_relationship")
 }
 
+// Define os estados públicos da instalação física VERS.
+enum InstallationStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+  FAULT
+
+  @@map("installation_status")
+}
+
+// Define os estados públicos de um ESP32 associado a uma instalação.
+enum DeviceStatus {
+  PROVISIONING
+  ONLINE
+  OFFLINE
+  REVOKED
+  FAULT
+
+  @@map("device_status")
+}
+
+// Descreve a ligação elétrica dos piezoelétricos no snapshot da montagem.
+enum PiezoAssociation {
+  SERIES
+  PARALLEL
+  MIXED
+
+  @@map("piezo_association")
+}
+
+// Descreve o armazenamento de energia usado pela montagem.
+enum StorageType {
+  BATTERY
+  SUPERCAPACITOR
+  CAPACITOR
+  NONE
+
+  @@map("storage_type")
+}
+
 // Guarda a identidade local sem persistir senha ou token em texto puro.
 model User {
   id              String           @id @default(uuid()) @db.Uuid
@@ -97,6 +137,7 @@ model Vehicle {
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
   users        UserVehicle[]
+  installations VersInstallation[]
 
   @@map("vehicles")
 }
@@ -117,21 +158,62 @@ model UserVehicle {
   @@map("user_vehicles")
 }
 
+// Liga uma montagem VERS ao veículo até a exclusão física deste registro.
+model VersInstallation {
+  id             String             @id @default(uuid()) @db.Uuid
+  vehicleId      String             @map("vehicle_id") @db.Uuid
+  systemModel    String             @map("system_model")
+  serialNumber   String?            @unique @map("serial_number")
+  status         InstallationStatus @default(INACTIVE)
+  installedAt    DateTime?          @map("installed_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  vehicle        Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  devices        Device[]
+  configurations Configuration[]
+
+  @@unique([id, vehicleId])
+  @@index([vehicleId, status])
+  @@map("vers_installations")
+}
+
+// Identifica o ESP32 sem persistir credenciais MQTT em texto puro.
+model Device {
+  id              String           @id @default(uuid()) @db.Uuid
+  installationId  String           @map("installation_id") @db.Uuid
+  vehicleId       String           @map("vehicle_id") @db.Uuid
+  deviceUid       String           @unique @map("device_uid")
+  name            String?
+  firmwareVersion String?          @map("firmware_version")
+  status          DeviceStatus     @default(PROVISIONING)
+  lastSeenAt      DateTime?        @map("last_seen_at")
+  revokedAt       DateTime?        @map("revoked_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  installation    VersInstallation @relation(fields: [installationId, vehicleId], references: [id, vehicleId], onDelete: Cascade)
+
+  @@index([installationId, vehicleId])
+  @@map("devices")
+}
+
 // ────────────────────────────────────────────
-// Configuration — montagem física usada nos testes
+// Configuration — versão imutável da montagem usada nos testes
 // ────────────────────────────────────────────
 model Configuration {
-  id                String   @id @default(uuid())
+  id                String           @id @default(uuid()) @db.Uuid
+  installationId    String           @map("installation_id") @db.Uuid
   name              String
-  piezoAssociation  String   @map("piezo_association") // series | parallel
-  installationPoint String   @map("installation_point")
-  storageType       String   @map("storage_type")
-  firmwareVersion   String   @map("firmware_version")
-  description       String?
-  createdAt         DateTime @default(now()) @map("created_at")
+  version           Int
+  activePiezoCount  Int              @map("active_piezo_count")
+  piezoAssociation  PiezoAssociation @map("piezo_association")
+  installationPoint String           @map("installation_point")
+  storageType       StorageType      @map("storage_type")
+  notes             String?
+  createdAt         DateTime         @default(now()) @map("created_at")
+  installation      VersInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  tests             Test[]
 
-  tests Test[]
-
+  @@unique([installationId, version])
   @@map("configurations")
 }
 
@@ -141,7 +223,7 @@ model Configuration {
 model Test {
   id               String    @id @default(uuid())
   name             String
-  configurationId  String    @map("configuration_id")
+  configurationId  String    @map("configuration_id") @db.Uuid
   satisfatory      Boolean   @default(false)
   terrain          String    // highway | city | offroad | mixed | other
   rpm              Float?

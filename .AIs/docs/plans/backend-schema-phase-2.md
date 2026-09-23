@@ -190,6 +190,11 @@ identificadores sem apagar o snapshot da montagem usado pelos testes.
 Identifica o ESP32 por `deviceUid` único. Credenciais MQTT não ficam em texto
 puro nessa tabela. Revogação não apaga mensagens históricas.
 
+Para a unicidade por veículo, um dispositivo ainda não revogado ocupa a vaga
+mesmo em `OFFLINE` ou `FAULT`. A revogação registra `revokedAt` junto com o
+estado `REVOKED`; só então outro ESP32 pode ocupar a vaga. A FK composta de
+`Device` liga `installationId` e `vehicleId` à mesma instalação.
+
 ### `Configuration`
 
 É um snapshot imutável da montagem. Usa versão crescente por instalação e

@@ -40,6 +40,10 @@ ORDER BY c.relname;
 
 -- Mostra tipos, extensões, índices e constraints existentes.
 SELECT extname, extversion FROM pg_extension ORDER BY extname;
+SELECT table_name, ordinal_position, column_name, data_type, udt_name,
+       is_nullable, column_default
+FROM information_schema.columns
+WHERE table_schema = 'public' ORDER BY table_name, ordinal_position;
 SELECT t.typname FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
 WHERE n.nspname = 'public' AND t.typtype = 'e' ORDER BY t.typname;
 SELECT tablename, indexname, indexdef FROM pg_indexes
@@ -67,6 +71,24 @@ WHERE n.nspname = 'public' ORDER BY routine_name, arguments;
 SELECT schemaname, tablename, policyname FROM pg_policies
 WHERE schemaname = 'public' ORDER BY tablename, policyname;
 SELECT pubname FROM pg_publication ORDER BY pubname;
+SELECT pubname, schemaname, tablename FROM pg_publication_tables
+WHERE schemaname = 'public' ORDER BY pubname, tablename;
+
+-- Lista objetos com dependência normal das sete tabelas legadas.
+WITH legacy AS (
+  SELECT c.oid, c.relname FROM pg_class c
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public' AND c.relname IN (
+    'telemetries', 'ai_predictions', 'tests', 'configurations',
+    'energy_summaries', 'mqtt_messages', 'ai_interactions'
+  )
+)
+SELECT legacy.relname AS legacy_table,
+       pg_describe_object(d.classid, d.objid, d.objsubid) AS dependent_object,
+       d.deptype AS dependency_type
+FROM pg_depend d JOIN legacy ON legacy.oid = d.refobjid
+WHERE d.deptype = 'n'
+ORDER BY legacy_table, dependent_object;
 
 -- Confere a tabela de controle do Prisma sem selecionar seus registros.
 SELECT to_regclass('public._prisma_migrations') AS prisma_migrations_table;
@@ -80,7 +102,14 @@ SELECT has_database_privilege(current_user, current_database(), 'CREATE')
 
 Se `_prisma_migrations` existir, consultar apenas `migration_name`,
 `finished_at` e `rolled_back_at` para verificar se houve aplicação anterior;
-não executar essa consulta se a tabela não existir. Comparar os resultados com
+não executar essa consulta se a tabela não existir. A consulta opcional é:
+
+```sql
+SELECT migration_name, finished_at, rolled_back_at
+FROM public._prisma_migrations ORDER BY started_at;
+```
+
+Comparar os resultados com
 as sete tabelas legadas que o SQL remove e com os 16 nomes de enums que cria.
 Confirmar também dependências externas sobre as tabelas legadas. Qualquer objeto inesperado
 interrompe a preparação para revisão do SQL; não usar `CASCADE` para contorná-lo.

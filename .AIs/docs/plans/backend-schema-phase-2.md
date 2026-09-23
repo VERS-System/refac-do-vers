@@ -241,6 +241,12 @@ Restrições mínimas:
 - payload imutável após recepção;
 - rejeição mantém rastreabilidade sem produzir telemetria válida.
 
+Ao remover o último vínculo de um veículo, a transação de exclusão apaga antes
+as mensagens MQTT brutas dos seus dispositivos, pois tópico/payload podem conter
+`deviceUid`. A FK restritiva impede apagar o veículo antes dessa etapa. Amostras
+normalizadas e testes permanecem; FKs para mensagem, dispositivo e instalação
+passam a `null`. A revogação do ESP32, sem exclusão do veículo, não apaga o bruto.
+
 ### `TelemetrySample`
 
 Armazena somente dados normalizados e classificados. Uma mensagem MQTT de

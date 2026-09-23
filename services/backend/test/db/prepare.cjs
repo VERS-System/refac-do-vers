@@ -49,6 +49,10 @@ function prepareDatabase() {
     ['db', 'execute', '--url', databaseUrl, '--stdin'],
     readFileSync('prisma/manual-constraints/tests.sql', 'utf8'),
   );
+  runPrisma(
+    ['db', 'execute', '--url', databaseUrl, '--stdin'],
+    readFileSync('prisma/manual-constraints/telemetry.sql', 'utf8'),
+  );
 }
 
 prepareDatabase();

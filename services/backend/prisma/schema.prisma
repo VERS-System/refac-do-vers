@@ -109,6 +109,25 @@ enum TestOutcome {
   @@map("test_outcome")
 }
 
+// Classifica o processamento do envelope MQTT recebido.
+enum MqttProcessingStatus {
+  RECEIVED
+  PROCESSED
+  REJECTED
+
+  @@map("mqtt_processing_status")
+}
+
+// Classifica a confiabilidade de uma amostra normalizada.
+enum TelemetryQuality {
+  VALID
+  PARTIAL
+  SUSPECT
+  INVALID
+
+  @@map("telemetry_quality")
+}
+
 // Guarda a identidade local sem persistir senha ou token em texto puro.
 model User {
   id              String           @id @default(uuid()) @db.Uuid
@@ -205,6 +224,7 @@ model VersInstallation {
   devices        Device[]
   configurations Configuration[]
   tests          Test[]
+  samples        TelemetrySample[]
 
   @@unique([id, vehicleId])
   @@index([vehicleId, status])
@@ -225,6 +245,8 @@ model Device {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   installation    VersInstallation @relation(fields: [installationId, vehicleId], references: [id, vehicleId], onDelete: Cascade)
+  messages        MqttMessage[]
+  samples         TelemetrySample[]
 
   @@index([installationId, vehicleId])
   @@map("devices")
@@ -281,7 +303,8 @@ model Test {
   installation                 VersInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
   configuration                Configuration?    @relation(fields: [configurationId], references: [id], onDelete: SetNull)
   createdBy                    User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  telemetry                    Telemetry[]
+  messages                     MqttMessage[]
+  samples                      TelemetrySample[]
   predictions                  AiPrediction[]
 
   @@index([installationId, status, startedAt])
@@ -290,27 +313,39 @@ model Test {
 }
 
 // ────────────────────────────────────────────
-// Telemetry — leituras individuais dos sensores
+// TelemetrySample — leituras normalizadas com posição dentro da mensagem
 // ────────────────────────────────────────────
-model Telemetry {
-  id                String   @id @default(uuid())
-  testId            String   @map("test_id") @db.Uuid
-  timestamp         DateTime
-  voltage           Float?
-  current           Float?
-  power             Float?
-  energyAccumulated Float?   @map("energy_accumulated")
-  accelerationX     Float?   @map("acceleration_x")
-  accelerationY     Float?   @map("acceleration_y")
-  accelerationZ     Float?   @map("acceleration_z")
-  temperature       Float?
-  sensorStatus      String?  @map("sensor_status")
-  quality           String?
-  createdAt         DateTime @default(now()) @map("created_at")
+model TelemetrySample {
+  id                  String           @id @default(uuid()) @db.Uuid
+  messageId           String?          @map("message_id") @db.Uuid
+  sampleIndex         Int              @map("sample_index")
+  testId              String?          @map("test_id") @db.Uuid
+  deviceId            String?          @map("device_id") @db.Uuid
+  installationId      String?          @map("installation_id") @db.Uuid
+  capturedAt          DateTime         @map("captured_at")
+  voltageV            Float?           @map("voltage_v")
+  currentA            Float?           @map("current_a")
+  powerW              Float?           @map("power_w")
+  devicePowerW        Float?           @map("device_power_w")
+  accumulatedEnergyWh Float?           @map("accumulated_energy_wh")
+  accelerationXMs2    Float?           @map("acceleration_x_ms2")
+  accelerationYMs2    Float?           @map("acceleration_y_ms2")
+  accelerationZMs2    Float?           @map("acceleration_z_ms2")
+  vibrationRmsMs2     Float?           @map("vibration_rms_ms2")
+  temperatureC        Float?           @map("temperature_c")
+  activePiezoCount    Int?             @map("active_piezo_count")
+  quality             TelemetryQuality
+  createdAt           DateTime         @default(now()) @map("created_at")
+  message             MqttMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  test                Test?            @relation(fields: [testId], references: [id], onDelete: SetNull)
+  device              Device?          @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  installation        VersInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
 
-  test Test @relation(fields: [testId], references: [id])
-
-  @@map("telemetries")
+  @@unique([messageId, sampleIndex])
+  @@index([testId, capturedAt])
+  @@index([deviceId, capturedAt])
+  @@index([installationId, capturedAt])
+  @@map("telemetry_samples")
 }
 
 // ────────────────────────────────────────────
@@ -330,16 +365,33 @@ model EnergySummary {
 }
 
 // ────────────────────────────────────────────
-// MqttMessage — dados brutos recebidos via MQTT
+// MqttMessage — envelope bruto recebido via MQTT
 // ────────────────────────────────────────────
 model MqttMessage {
-  id        String   @id @default(uuid())
-  topic     String
-  payload   Json
-  timestamp DateTime
-  processed Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String               @id @default(uuid()) @db.Uuid
+  messageId       String               @unique @map("message_id")
+  deviceId        String?              @map("device_id") @db.Uuid
+  testId          String?              @map("test_id") @db.Uuid
+  schemaVersion   Int                  @map("schema_version")
+  topic           String
+  payload         Json
+  sequence        BigInt
+  qos             Int
+  retained        Boolean
+  capturedAt      DateTime             @map("captured_at")
+  receivedAt      DateTime             @default(now()) @map("received_at")
+  processedAt     DateTime?            @map("processed_at")
+  status          MqttProcessingStatus @default(RECEIVED)
+  rejectionReason String?              @map("rejection_reason") @db.VarChar(200)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  device          Device?              @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  test            Test?                @relation(fields: [testId], references: [id], onDelete: SetNull)
+  samples         TelemetrySample[]
 
+  @@unique([deviceId, sequence])
+  @@index([deviceId, capturedAt])
+  @@index([status, receivedAt])
   @@map("mqtt_messages")
 }
 

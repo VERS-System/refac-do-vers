@@ -10,9 +10,9 @@ antes de qualquer aplicação ao Neon. Este documento detalha **apenas a Fase
 02** do [roadmap do backend](backend-roadmap/README.md); controllers, regras de
 API e ingestão funcional pertencem às fases seguintes.
 
-**Estado em 22/09/2026:** lotes 1 a 6 concluídos. `schema.prisma` ainda mantém
-modelos legados de telemetria, resumos, MQTT e IA; já contém identidade, veículos,
-instalações e testes remodelados. Ainda não há migration
+**Estado em 22/09/2026:** lotes 1 a 7 concluídos. `schema.prisma` ainda mantém
+modelos legados de resumos e IA; já contém identidade, veículos, instalações,
+testes, MQTT e telemetria remodelados. Ainda não há migration
 versionada nem alteração no Neon. O [plano técnico](backend-schema-phase-2.md)
 e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 
@@ -44,7 +44,7 @@ e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 | 04 — Veículos e vínculos | Concluído no schema | `Vehicle`, `UserVehicle` e enum `OWNER`/`DRIVER`/`ADMIN`; placa `citext` única e imutável por trigger; FKs restritivas e índice parcial de um principal por conta em SQL complementar. A transação de desvinculação, promoção do principal e remoção após o último vínculo fica para o serviço de veículos; FKs do histórico entram no lote 6. | `test:db` verifica compartilhamento, concorrência do principal, placa e proteção contra exclusão direta; `test:unit`, Prisma, lint e build passaram. |
 | 05 — Instalações e configurações | Concluído no schema | `VersInstallation`, `Device` e `Configuration` versionada. FK composta impede associar ESP32 a outro veículo; índice parcial limita a um dispositivo não revogado por veículo, inclusive em `OFFLINE`/`FAULT`; trigger torna configuração imutável. | `test:db`: 11 testes; `test:unit`: 23; Prisma, lint e build passaram em banco vazio. A substituição funcional fica para o serviço. |
 | 06 — Testes e snapshots | Concluído no schema | `Test` com enums de estado, terreno e resultado, condições medidas e snapshot imutável sem placa. FKs opcionais preservam o teste após exclusão de veículo, instalação, configuração e conta; `createdById` fica nulo após exclusão da conta. Trigger diferida valida compatibilidade das referências. Transições de estado ficam para o service. | `test:db`: 14 testes, inclusive exclusão e incompatibilidade; `test:unit`: 23; Prisma, lint e build passaram. |
-| 07 — MQTT e telemetria | Planejado | `MqttMessage` bruto e `TelemetrySample` normalizada em relação 1:N, com ordem/instante no lote, qualidade, unidades, unicidade e índices. | Duplicata não duplica amostras; uma mensagem pode gerar várias; dados inválidos não viram zeros. |
+| 07 — MQTT e telemetria | Concluído no schema | `MqttMessage` bruto e `TelemetrySample` em relação 1:N, com posição/instante no lote, qualidade, unidades, unicidade e índices. Na exclusão final, a transação deve apagar bruto antes do veículo; FKs restritivas exigem essa ordem e as amostras permanecem. | `test:db`: 17 testes, inclusive deduplicação e exclusão ordenada; `test:unit`: 23; Prisma, lint e build passaram. |
 | 08 — Resumos, suporte e auditoria | Planejado | `EnergySummary` por períodos, valores monetários `Decimal`, `SupportRequest` e `AuditEvent` mínimo. Campos sem fonte confiável ficam nulos. | Precisão decimal, resumos sem duplicidade, nenhuma placa/token/payload completo na auditoria. |
 | 09 — SQL da primeira migration | Planejado | Gerar migration versionada, revisar `citext`, índices parciais, FKs, locks e remoção do legado. Verificar consumidores dos models de IA legados antes de retirá-los. **Gerar SQL sem aplicá-lo ao Neon.** | Revisão do SQL e `prisma validate`/client; nenhum comando remoto. |
 | 10 — Ensaio isolado | Planejado | Aplicar a migration em PostgreSQL descartável vazio e em cópia sintética representativa do legado; testar constraints, consultas e rollback operacional. | Testes de integração, `test:unit`, lint e build; resultados e limitações registrados. |
@@ -62,7 +62,7 @@ Para repetir os testes de integração locais, executar
 banco sintético apenas o delta gerado entre ele e `schema.prisma`. Essa operação
 não produz migration versionada e usa URL fixa em `127.0.0.1:55432/vers_test`.
 O SQL complementar em `services/backend/prisma/manual-constraints/vehicles.sql`
-e nos arquivos `installations.sql` e `tests.sql` do mesmo diretório é aplicado
+e nos arquivos `installations.sql`, `tests.sql` e `telemetry.sql` do mesmo diretório é aplicado
 somente nesse ensaio local e deve ser incorporado e revisado na
 primeira migration do lote 9.
 
@@ -74,6 +74,8 @@ primeira migration do lote 9.
 - Testes e telemetria sobrevivem à remoção física; o histórico usa snapshot
   sem placa nem identificadores específicos. Peso do teste é informado ou
   medido no momento, e o local é informado pelo operador.
+- O bruto MQTT ligado ao ESP32 é apagado antes da exclusão física do veículo;
+  as amostras normalizadas persistem sem referências ao dispositivo removido.
 - Email usa `citext`; `ADMIN` e `USER` são papéis associados e simultâneos.
   `TECHNICIAN`, login Google e `AuthIdentity` ficam fora deste MVP.
 - Mensagem MQTT contém lote de amostras. Frequência e tamanho serão decididos

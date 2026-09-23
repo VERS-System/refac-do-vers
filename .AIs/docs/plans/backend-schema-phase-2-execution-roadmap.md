@@ -25,7 +25,8 @@ e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
   Não usar testes que apenas procuram texto no `schema.prisma`.
 - Ao final de cada lote de código, executar `test:unit` do backend. Rodar
   `prisma validate`, geração do client, lint e build quando o lote afetar o
-  schema; usar testes de integração em PostgreSQL isolado para constraints.
+  schema; os testes de integração já executados nos lotes de modelagem
+  continuam como evidência das constraints, sem novo ensaio local da migration.
 - Nunca ler `.env`. Fixtures são sintéticas. Prisma é dono das migrations;
   nenhum ORM paralelo altera o banco.
 - Desenvolvimento e validação local não autorizam `db push`, reset, migration,
@@ -47,14 +48,13 @@ e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 | 07 — MQTT e telemetria | Concluído no schema | `MqttMessage` bruto e `TelemetrySample` em relação 1:N, com posição/instante no lote, qualidade, unidades, unicidade e índices. Na exclusão final, a transação deve apagar bruto antes do veículo; FKs restritivas exigem essa ordem e as amostras permanecem. | `test:db`: 17 testes, inclusive deduplicação e exclusão ordenada; `test:unit`: 23; Prisma, lint e build passaram. |
 | 08 — Resumos, suporte e auditoria | Concluído no schema | `EnergySummary` por períodos, dinheiro em `Decimal`, `SupportRequest` e `AuditEvent` sem payload/metadados livres. Índices parciais evitam duplicatas; triggers apagam IDs de recursos físicos excluídos da auditoria. Validação do texto livre do suporte pertence ao service. | `test:db`: 20 testes, incluindo precisão, unicidade e exclusão; `test:unit`: 23; Prisma, lint e build passaram. |
 | 09 — SQL da primeira migration | Concluído, sem aplicar | SQL inicial transacional, `citext`, 14 tabelas, 16 enums, 24 FKs e constraints complementares. Sete tabelas legadas são removidas explicitamente, sem `CASCADE`; modelos de IA experimentais saíram após busca de consumidores. [Revisão](backend-schema-phase-2-lot9-sql-review.md). | Revisão estática do SQL; `prisma validate`, client, `test:unit` (23), lint e build passaram; nenhum banco alterado. |
-| 10 — Ensaio isolado | Planejado | Aplicar a migration em PostgreSQL descartável vazio e em cópia sintética representativa do legado; testar constraints, consultas e rollback operacional. | Testes de integração, `test:unit`, lint e build; resultados e limitações registrados. |
-| 11 — Preparação do Neon | Planejado | Inventariar estrutura/índices/volumes do Neon em acesso autorizado, combinar janela sem gravações, preparar backup e ensaiar restauração. Ajustar SQL se houver divergências. | Checklist de contagens, backup restaurável e plano de retorno revisado. Nenhuma aplicação ainda. |
-| 12 — Aplicação remota e documentação | Planejado, separada | Após autorização específica, aplicar a primeira migration no Neon compartilhado, verificar contagens/constraints/client e registrar a versão. Atualizar dicionário de dados, runbook e contexto. | Leitura de volta do estado aplicado, smoke test, `test:unit`, lint e build. |
+| 10 — Preparação do Neon | Em andamento, aguardando acesso ao inventário | [Roteiro de leitura e retorno](backend-schema-phase-2-lot10-neon-preparation.md) preparado com base no `.env.example`. Inventariar estrutura, índices, FKs, volumes e dependências do Neon; conferir permissões para `citext` e backup. Ajustar o SQL se houver divergências. Não aplicar a migration neste lote. | Inventário sem dados de registros, SQL compatível com o estado real e plano de retorno revisado. |
+| 11 — Aplicação remota e documentação | Planejado, separado | Após revisão do inventário e autorização específica para a aplicação, executar a primeira migration diretamente no Neon compartilhado, verificar constraints e registrar a versão. Atualizar dicionário de dados, runbook e contexto. | Leitura de volta do estado aplicado, smoke test, `test:unit`, lint e build. |
 
-Os lotes 02 a 10 produzem código e evidência revisáveis sem tocar no banco
-compartilhado. O lote 11 exige acesso remoto de leitura; o 12, escrita remota.
+Os lotes 02 a 09 produziram código e evidência sem tocar no banco
+compartilhado. O lote 10 exige acesso remoto de leitura; o 11, escrita remota.
 Se o estado real do Neon divergir do legado previsto, revisar o procedimento de
-troca antes do lote 12. Não executar `prisma db push` como atalho.
+troca antes do lote 11. Não executar `prisma db push` como atalho.
 
 Para repetir os testes de integração locais, executar
 `docker compose -f docker-compose.test-db.yml up -d --wait` e depois
@@ -63,9 +63,9 @@ banco sintético apenas o delta gerado entre ele e `schema.prisma`. Essa operaç
 não produz migration versionada e usa URL fixa em `127.0.0.1:55432/vers_test`.
 O SQL complementar em `services/backend/prisma/manual-constraints/vehicles.sql`
 e nos arquivos `installations.sql`, `tests.sql`, `telemetry.sql` e
-`summaries-support.sql` do mesmo diretório é aplicado
-somente nesse ensaio local e deve ser incorporado e revisado na
-primeira migration do lote 9.
+`summaries-support.sql` do mesmo diretório já foi incorporado à primeira
+migration no lote 9. A suíte local acima foi usada na modelagem e não será
+repetida para ensaiar a migration.
 
 ## Decisões do domínio já incorporadas
 
@@ -87,7 +87,7 @@ primeira migration do lote 9.
 ## Saída da Fase 02
 
 Schema Prisma revisado, migration legível e versionada, client gerado,
-invariantes cobertas por testes significativos, validação em banco isolado e
-procedimento do Neon documentado. A fase só será marcada como concluída após
+invariantes cobertas pelos testes já executados, inventário do Neon e
+procedimento de aplicação documentado. A fase só será marcada como concluída após
 aplicação remota autorizada e verificação, ou ficará explicitamente como
 "pronta para aplicação" se a equipe optar por adiar o Neon.

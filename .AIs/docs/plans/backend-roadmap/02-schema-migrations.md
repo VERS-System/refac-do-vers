@@ -16,7 +16,7 @@ registrado em 22/09/2026, após a conclusão dos contratos da Fase 01. Nenhuma
 alteração em `schema.prisma` ou no Neon foi realizada por esse inventário.
 
 O [plano executável completo](../backend-schema-phase-2-execution-roadmap.md)
-divide a Fase 02 em 12 lotes, com implementação e validação de cada entrega.
+divide a Fase 02 em 11 lotes, com implementação e validação de cada entrega.
 
 ## Etapa A — Inventário e decisões
 
@@ -52,15 +52,16 @@ divide a Fase 02 em 12 lotes, com implementação e validação de cada entrega.
 - gerar SQL sem aplicar ao Neon;
 - revisar remoção do legado autorizada para a primeira troca, `citext`, locks,
   constraints e índices parciais;
-- validar em PostgreSQL isolado vazio;
-- ensaiar contra estado representativo do legado fictício.
+- comparar com o inventário real do Neon antes da aplicação; o programador
+  dispensou um novo ensaio local da migration.
 
 ## Etapa E — Cutover e contract posterior
 
 - aplicar constraints depois de validar os dados;
 - trocar consumidores de forma observável;
-- remover estruturas antigas somente em migration posterior;
-- ensaiar rollback antes do deploy.
+- remover as sete tabelas legadas conhecidas na primeira migration, como
+  autorizado; migrations seguintes preservam os dados existentes;
+- preparar backup e procedimento de retorno antes da aplicação.
 
 ## Saída
 

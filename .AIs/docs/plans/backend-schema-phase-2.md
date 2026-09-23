@@ -325,8 +325,8 @@ quando necessário, de avaliação jurídica.
 
 ### Etapa B — Primeira migration
 
-- gerar o SQL versionado sem aplicá-lo no lote 9; ensaiá-lo em banco isolado no
-  lote 10;
+- gerar o SQL versionado sem aplicá-lo no lote 9; preparar sua aplicação
+  diretamente no Neon após inventário do estado remoto, sem novo ensaio local;
 - a primeira migration remove explicitamente as sete tabelas experimentais
   conhecidas, sem `CASCADE`, conforme autorização de descarte do legado; qualquer
   divergência no Neon exige revisão antes da aplicação;
@@ -350,9 +350,9 @@ dado depende da estrutura antiga. Essas migrations devem preservar os dados.
 ## 15. Testes obrigatórios
 
 - Prisma schema valida e client gera sem carregar `.env`;
-- migration aplica em PostgreSQL isolado vazio e em ensaio que represente o
-  estado legado a ser substituído;
-- rollback operacional é documentado e ensaiado;
+- o estado real do Neon é inventariado e comparado com as premissas do SQL
+  antes da aplicação;
+- rollback operacional e restauração são documentados antes da aplicação;
 - email e placa são únicos após normalização;
 - dois requests concorrentes não criam dois veículos principais;
 - troca e exclusão do principal são atômicas;
@@ -418,7 +418,7 @@ Os commits serão realizados pelo programador, nunca pela IA.
 
 - gerar SQL sem aplicar automaticamente ao Neon;
 - revisar manualmente SQL, locks, backfill e índices parciais;
-- validar em bancos isolados.
+- conferir o SQL com o inventário do Neon antes da aplicação remota.
 
 ### Commit 10 — Documentação e contexto
 
@@ -459,7 +459,8 @@ compatível com lotes.
 - decisões bloqueantes registradas e aprovadas;
 - schema revisado por domínio e coberto por testes;
 - migration versionada, legível e sem destruição antecipada;
-- validação aprovada em banco isolado vazio e estado legado sanitizado;
+- testes de constraints dos lotes de modelagem aprovados e inventário do Neon
+  compatível com a migration;
 - plano de backup, restauração, rollout e rollback documentado;
 - Prisma Client gerado e backend compilando;
 - nenhuma conexão ou aplicação ao Neon sem autorização explícita separada.

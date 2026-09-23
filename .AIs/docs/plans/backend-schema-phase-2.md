@@ -325,8 +325,9 @@ quando necessário, de avaliação jurídica.
 
 ### Etapa B — Primeira migration
 
-- gerar o SQL versionado sem aplicá-lo no lote 9; preparar sua aplicação
-  diretamente no Neon após inventário do estado remoto, sem novo ensaio local;
+- gerar o SQL versionado sem aplicá-lo no lote 9; ensaiá-lo em PostgreSQL
+  temporário no lote 10 e preparar a aplicação direta no Neon após inventário
+  do estado remoto;
 - a primeira migration remove explicitamente as sete tabelas experimentais
   conhecidas, sem `CASCADE`, conforme autorização de descarte do legado; qualquer
   divergência no Neon exige revisão antes da aplicação;

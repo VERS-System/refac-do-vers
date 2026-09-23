@@ -1,6 +1,6 @@
 <!-- Roteiro de inventário remoto e retorno para a primeira migration do VERS. -->
 
-# Fase 02 — lote 10: preparação do Neon
+# Fase 02 — lote 11: preparação do Neon
 
 ## Estado
 
@@ -102,6 +102,6 @@ interrompe a preparação para revisão do SQL; não usar `CASCADE` para contorn
 
 ## Critério para avançar
 
-O lote 10 só estará concluído com inventário remoto registrado sem dados
+O lote 11 só estará concluído com inventário remoto registrado sem dados
 sensíveis, dependências reconciliadas, permissões conferidas e plano de retorno
-revisado. A aplicação no Neon é o lote 11, separado.
+revisado. A aplicação no Neon é o lote 12, separado.

@@ -28,7 +28,7 @@ posteriores devem preservar o banco existente.
 Uma busca nos fontes do backend e do `ai-service` não encontrou consultas ou
 models SQLAlchemy consumidores das tabelas `ai_interactions` e
 `ai_predictions`. O `ai-service` atual expõe somente health. A ausência de
-consumidores no repositório não substitui o inventário do Neon no lote 10.
+consumidores no repositório não substitui o inventário do Neon no lote 11.
 
 ## Revisão e limites
 
@@ -38,10 +38,10 @@ consumidores no repositório não substitui o inventário do Neon no lote 10.
   cada índice parcial, `CHECK` e trigger encontra suas tabelas e colunas.
 - `citext` é criado antes das colunas `CITEXT`. A role do banco de destino precisa
   ter permissão para criar ou usar a extensão; isso será conferido no lote 11.
-- Por decisão posterior do programador, não haverá ensaio adicional da
-  migration em banco local. A comparação do SQL com o estado real do Neon e o
-  plano de retorno pertencem ao lote 10. Nenhuma conclusão de aplicabilidade
-  remota é feita neste lote.
+- O programador solicitou posteriormente o ensaio local, registrado no
+  [lote 10](backend-schema-phase-2-lot10-local-migration.md). A comparação do
+  SQL com o estado real do Neon e o plano de retorno pertencem ao lote 11.
+  Nenhuma conclusão de aplicabilidade remota é feita neste lote.
 - Antes de Neon: inventariar tabelas, índices, FKs, volumes e dependências
   externas; confirmar backup restaurável e janela sem gravações; revisar este SQL
   se o estado real divergir do baseline. Não usar `prisma db push`.

@@ -49,5 +49,6 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Contratos iniciais da Fase 1](../backend-api-contracts-phase-1.md)
 - [Plano seguro da Fase 2](../backend-schema-phase-2.md)
 - [Plano executável da Fase 2](../backend-schema-phase-2-execution-roadmap.md)
+- [Plano executável da Fase 3](../backend-phase-3-execution-roadmap.md)
 - [Schema v2 proposto](../schema-mobile-mqtt.md)
 - [Roadmap estratégico de Backend e MQTT](../backend-mqtt-roadmap.md)

@@ -81,13 +81,22 @@ services:
       dockerfile: docker/Dockerfile.mobile
     container_name: vers-mobile
     restart: unless-stopped
+    stdin_open: true
+    tty: true
     ports:
-      - "8080:8081"
+      - "8081:8081"
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
     environment:
       EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
       REACT_NATIVE_PACKAGER_HOSTNAME: ${EXPO_HOST:-localhost}
+      EXPO_TOKEN: ${EXPO_TOKEN:-}
     volumes:
       - ./services/mobile:/app/services/mobile
+      # Volume anônimo: preserva o node_modules instalado na imagem (pnpm),
+      # que o bind acima esconderia com o conteúdo do host.
+      - /app/services/mobile/node_modules
 
   ai-service:
     build:

@@ -15,7 +15,7 @@ describe('envValidationSchema', () => {
     expect(value).toMatchObject({
       NODE_ENV: 'development',
       PORT: 3000,
-      API_PREFIX: 'api',
+      API_PREFIX: 'api/v1',
       REDIS_HOST: 'localhost',
       REDIS_PORT: 6379,
       JWT_EXPIRATION: '7d',
@@ -31,7 +31,7 @@ describe('envValidationSchema', () => {
       ...requiredEnvironment,
       NODE_ENV: 'production',
       PORT: 8080,
-      API_PREFIX: 'v1',
+      API_PREFIX: 'api/v1',
       REDIS_PORT: 6380,
       JWT_EXPIRATION: '15m',
       CORS_ORIGINS: 'https://app.vers.dev',
@@ -43,7 +43,7 @@ describe('envValidationSchema', () => {
     expect(value).toMatchObject({
       NODE_ENV: 'production',
       PORT: 8080,
-      API_PREFIX: 'v1',
+      API_PREFIX: 'api/v1',
       REDIS_PORT: 6380,
       JWT_EXPIRATION: '15m',
       CORS_ORIGINS: 'https://app.vers.dev',

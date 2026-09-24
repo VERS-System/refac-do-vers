@@ -12,6 +12,18 @@
 - Respostas incluem `requestId` para correlação.
 - Nenhuma resposta contém senha, access token ou refresh token.
 
+## Health checks
+
+| Método | Rota | Acesso | Resultado |
+| --- | --- | --- | --- |
+| `GET` | `/health/live` | Público | Confirma que o processo HTTP está vivo, sem consultar banco, Redis ou serviços externos. |
+| `GET` | `/health/ready` | Público | Confirma que o processo está pronto para rotas que dependem do banco. |
+
+`ready` usa apenas o banco como dependência obrigatória nesta fase. Redis não é
+dependência do REST até decisão operacional posterior. Falhas de dependência
+retornam `SERVICE_UNAVAILABLE` sem expor URL, host, credenciais ou detalhes
+internos.
+
 ### Autenticação por cookies
 
 Access e refresh tokens são JWT próprios emitidos apenas por `Set-Cookie`.
@@ -350,8 +362,13 @@ existência de recursos de outra conta. Motivo ou filtro inválido retorna
 | `AUTH_SESSION_REVOKED` | Sessão já revogada. |
 | `AUTH_UNAUTHORIZED` | Recurso exige autenticação válida. |
 | `CONFIGURATION_NOT_FOUND` | Configuração inexistente ou inacessível dentro da instalação. |
+| `CONFLICT` | Conflito transversal sem código de domínio mais específico. |
 | `INSTALLATION_NOT_FOUND` | Instalação inexistente ou não acessível ao usuário. |
 | `INSTALLATION_STATE_CONFLICT` | Transição futura incompatível com o estado atual da instalação. |
+| `INTERNAL_SERVER_ERROR` | Falha inesperada sem detalhes internos na resposta. |
+| `RATE_LIMIT_EXCEEDED` | Limite de requisições excedido. |
+| `RESOURCE_NOT_FOUND` | Rota ou recurso transversal inexistente. |
+| `SERVICE_UNAVAILABLE` | Dependência obrigatória indisponível no readiness. |
 | `SUPPORT_REQUEST_NOT_FOUND` | Solicitação de revisão inexistente ou não acessível ao usuário. |
 | `TEST_NOT_FOUND` | Teste inexistente ou não acessível ao usuário. |
 | `TEST_STATE_CONFLICT` | Transição solicitada incompatível ou concorrente com o estado atual. |

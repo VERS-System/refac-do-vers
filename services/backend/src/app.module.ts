@@ -12,13 +12,15 @@ import { PrismaModule } from './prisma/prisma.module';
 import { authConfig } from './config/auth.config';
 import { envValidationSchema } from './config/env.config';
 import { createRateLimitConfig } from './config/rate-limit.config';
+import { AuditPolicyService } from './common/audit/audit-policy.service';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      envFilePath: '.env',
+      ignoreEnvFile: true,
       load: [authConfig],
       validationSchema: envValidationSchema,
       validationOptions: {
@@ -34,8 +36,10 @@ import { createRateLimitConfig } from './config/rate-limit.config';
         ),
     }),
     PrismaModule,
+    HealthModule,
   ],
   providers: [
+    AuditPolicyService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

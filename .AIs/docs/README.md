@@ -23,6 +23,8 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [Fase 2 — Schema e migration](plans/backend-schema-phase-2.md)    | Plano seguro do banco, reconciliação, testes e pequenos commits.       |
 | [Fase 2 — baseline local](plans/backend-schema-phase-2-lot1-baseline.md) | Inventário do schema versionado e próximos lotes revisáveis. |
 | [Fase 2 — plano executável](plans/backend-schema-phase-2-execution-roadmap.md) | Doze lotes de modelagem, migration e validação do banco. |
+| [Dicionário de dados](plans/backend-schema-phase-2-data-dictionary.md) | Tabelas, campos, unidades e restrições do schema inicial. |
+| [Runbook do banco](plans/backend-schema-phase-2-runbook.md) | Validação, aplicação e retorno de migrations. |
 | [Roadmap executável do backend](plans/backend-roadmap/README.md)  | Fases detalhadas do backend, dependências, etapas e critérios de saída. |
 | [Roadmap de telas do mobile](plans/mobile-roadmap/README.md)      | Tasks por tela, navegação, estados visuais e encaixe com o backend.     |
 

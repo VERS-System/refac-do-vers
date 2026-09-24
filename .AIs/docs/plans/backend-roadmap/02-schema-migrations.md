@@ -2,9 +2,10 @@
 
 # Fase 02 — Schema Prisma e migrations
 
-> **Estado em 24/09/2026:** a migration inicial
-> `20260923000100_initial_schema` foi aplicada ao Neon `neondb` e verificada.
-> O dicionário de dados e o runbook finais ainda serão consolidados.
+> **Estado em 24/09/2026:** fase concluída. A migration inicial
+> `20260923000100_initial_schema` foi aplicada ao Neon `neondb` e verificada;
+> o [dicionário de dados](../backend-schema-phase-2-data-dictionary.md) e o
+> [runbook](../backend-schema-phase-2-runbook.md) foram consolidados.
 
 ## Objetivo
 
@@ -69,5 +70,6 @@ divide a Fase 02 em 12 lotes, com implementação e validação de cada entrega.
 
 ## Saída
 
-Schema revisado, migration segura e Prisma Client gerado, sem aplicação remota
-automática.
+Schema revisado, migration versionada e aplicada após autorização específica,
+Prisma Client gerado, testes e documentação registrados. As APIs e regras de
+serviço pertencem às fases 03–06.

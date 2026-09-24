@@ -5,7 +5,9 @@
 > **Estado em 24/09/2026:** a primeira migration foi aplicada ao Neon `neondb`
 > após inventário confirmar o schema `public` vazio e autorização do programador.
 > A leitura de volta e `prisma migrate status` confirmaram a aplicação. As
-> instruções abaixo preservam o planejamento original da fase.
+> instruções abaixo preservam o planejamento original da fase. O
+> [dicionário de dados](backend-schema-phase-2-data-dictionary.md) e o
+> [runbook](backend-schema-phase-2-runbook.md) encerram a documentação do lote 12.
 
 ## 1. Objetivo e estado
 
@@ -13,9 +15,10 @@ Planejar a substituição controlada do schema experimental por um modelo
 relacional capaz de sustentar os contratos aprovados e as fases posteriores do
 backend. Prisma continuará como fonte de verdade do PostgreSQL/Neon.
 
-**Estado:** contratos da Fase 1 concluídos; baseline local da Fase 2 registrado
-em [backend-schema-phase-2-lot1-baseline.md](backend-schema-phase-2-lot1-baseline.md).
-Este documento não autoriza aplicação de migration nem acesso ao Neon.
+**Estado:** Fase 02 concluída. O baseline local está em
+[backend-schema-phase-2-lot1-baseline.md](backend-schema-phase-2-lot1-baseline.md)
+e a execução em [backend-schema-phase-2-execution-roadmap.md](backend-schema-phase-2-execution-roadmap.md).
+Este plano não autoriza novas migrations nem acesso ao Neon.
 
 ## 2. Risco principal da fase
 

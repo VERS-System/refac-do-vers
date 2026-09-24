@@ -2,6 +2,11 @@
 
 # Fase 2 — Schema Prisma e primeira migration versionada
 
+> **Estado em 24/09/2026:** a primeira migration foi aplicada ao Neon `neondb`
+> após inventário confirmar o schema `public` vazio e autorização do programador.
+> A leitura de volta e `prisma migrate status` confirmaram a aplicação. As
+> instruções abaixo preservam o planejamento original da fase.
+
 ## 1. Objetivo e estado
 
 Planejar a substituição controlada do schema experimental por um modelo

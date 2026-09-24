@@ -4,12 +4,23 @@
 
 ## Estado
 
+Em 24/09/2026, o programador autorizou a aplicação. A conexão PostgreSQL pela
+`DATABASE_URL` da raiz apontou para `neondb`, role `neondb_owner`, schema
+`public`. Antes da migration, não havia tabelas, enums, views ou histórico
+Prisma; apenas `plpgsql` estava instalado. A role tinha permissão de criação
+no banco e no schema. Não havia dados a preservar. O conector Neon continuou
+com erro de `project_id`, então a conexão direta foi utilizada sem expor a URL.
+
+Após esse inventário, `prisma migrate deploy` aplicou a migration versionada.
+A verificação posterior encontrou 14 tabelas de domínio, 16 enums, 45 índices,
+sete triggers e `citext`; `_prisma_migrations` registra a execução concluída.
+`prisma migrate status` informou que o banco está atualizado. Nenhum snapshot
+foi criado, pois o schema de destino estava vazio antes da aplicação.
+
 O SQL versionado está em
 `services/backend/prisma/migrations/20260923000100_initial_schema/migration.sql`.
-Este documento prepara sua comparação com o Neon compartilhado. **O inventário
-remoto ainda não foi executado**: não há acesso ao Neon disponibilizado nesta
-sessão. Não ler arquivos `.env`, copiar URLs com senha para logs ou executar
-`prisma db push`. Nenhuma migration será aplicada neste lote.
+Este documento registra o inventário e a aplicação ao Neon compartilhado.
+Não copiar URLs com senha para logs nem executar `prisma db push`.
 
 O formato de conexão está documentado em `services/backend/.env.example`:
 `DATABASE_URL=postgresql://user:password@ep-seu-projeto.us-east-2.aws.neon.tech/vers?sslmode=require`.
@@ -18,6 +29,13 @@ deve ser fornecido ao processo por um meio privado quando houver acesso, sem
 exibi-lo no terminal nem registrá-lo neste documento.
 
 ## Inventário somente de leitura
+
+Com as tabelas vazias, basta identificar banco e branch, tabelas, tipos, views,
+dependências, histórico de migrations e permissões para `citext`. Não é preciso
+estimar volumes nem fazer backup de registros legados. Se surgirem objetos além
+dos sete legados ou dependências externas, revisar o SQL antes da aplicação;
+não apagar o schema inteiro por aproximação. As consultas abaixo ficam
+disponíveis para inspeção completa se o estado divergir do informado.
 
 Executar as consultas abaixo no banco e branch exatos que receberão a migration.
 Registrar somente nomes, definições estruturais e tamanhos estimados; não

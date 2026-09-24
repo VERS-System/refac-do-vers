@@ -4,15 +4,21 @@
 
 ## Objetivo e estado
 
+**Execução em 24/09/2026:** o programador autorizou a aplicação remota. A URL
+da raiz foi usada sem expor credenciais; o destino retornou `neondb`, role
+`neondb_owner` e schema `public` vazio. A migration
+`20260923000100_initial_schema` foi aplicada com `prisma migrate deploy`.
+`prisma migrate status` confirmou que o banco está atualizado.
+
 Substituir o schema experimental por um modelo Prisma/PostgreSQL que sustente
 os contratos REST aprovados, com primeira migration versionada e validação
 antes de qualquer aplicação ao Neon. Este documento detalha **apenas a Fase
 02** do [roadmap do backend](backend-roadmap/README.md); controllers, regras de
 API e ingestão funcional pertencem às fases seguintes.
 
-**Estado em 23/09/2026:** lotes 1 a 10 concluídos. `schema.prisma` contém o novo
-modelo dos domínios aprovados, sem os modelos experimentais de IA. A primeira
-migration está versionada, ainda sem aplicação; não houve alteração no Neon. O
+**Estado em 24/09/2026:** lotes 1 a 11 concluídos e migration remota aplicada
+no lote 12. `schema.prisma` contém o novo modelo dos domínios aprovados, sem os
+modelos experimentais de IA. O
 [plano técnico](backend-schema-phase-2.md)
 e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 
@@ -49,8 +55,8 @@ e o [baseline](backend-schema-phase-2-lot1-baseline.md) são fontes de detalhe.
 | 08 — Resumos, suporte e auditoria | Concluído no schema | `EnergySummary` por períodos, dinheiro em `Decimal`, `SupportRequest` e `AuditEvent` sem payload/metadados livres. Índices parciais evitam duplicatas; triggers apagam IDs de recursos físicos excluídos da auditoria. Validação do texto livre do suporte pertence ao service. | `test:db`: 20 testes, incluindo precisão, unicidade e exclusão; `test:unit`: 23; Prisma, lint e build passaram. |
 | 09 — SQL da primeira migration | Concluído, sem aplicar | SQL inicial transacional, `citext`, 14 tabelas, 16 enums, 24 FKs e constraints complementares. Sete tabelas legadas são removidas explicitamente, sem `CASCADE`; modelos de IA experimentais saíram após busca de consumidores. [Revisão](backend-schema-phase-2-lot9-sql-review.md). | Revisão estática do SQL; `prisma validate`, client, `test:unit` (23), lint e build passaram; nenhum banco alterado. |
 | 10 — Aplicação local da migration | Concluído | [Ensaio](backend-schema-phase-2-lot10-local-migration.md) do SQL versionado em PostgreSQL 16 vazio e com sete tabelas legadas sintéticas. | Duas aplicações com `COMMIT`; 14 tabelas, 16 enums, `citext`, 45 índices e sete triggers; `test:unit` (23) passou. |
-| 11 — Preparação do Neon | Planejado, aguardando acesso ao inventário | [Roteiro de leitura e retorno](backend-schema-phase-2-lot11-neon-preparation.md) preparado com base no `.env.example`. Inventariar estrutura, índices, FKs, volumes e dependências do Neon; conferir permissões para `citext` e backup. Ajustar o SQL se houver divergências. Não aplicar a migration neste lote. | Inventário sem dados de registros, SQL compatível com o estado real e plano de retorno revisado. |
-| 12 — Aplicação remota e documentação | Planejado, separado | Após revisão do inventário e autorização específica para a aplicação, executar a primeira migration diretamente no Neon compartilhado, verificar constraints e registrar a versão. Atualizar dicionário de dados, runbook e contexto. | Leitura de volta do estado aplicado, smoke test, `test:unit`, lint e build. |
+| 11 — Preparação do Neon | Concluído | Inventário pela conexão PostgreSQL: `neondb`, `public` sem tabelas, enums ou views; sem histórico Prisma; `plpgsql` presente e permissões de criação confirmadas. Não havia dados a preservar. | Destino e compatibilidade estrutural confirmados sem consultar registros. |
+| 12 — Aplicação remota e documentação | Migration aplicada; documentação complementar pendente | `prisma migrate deploy` aplicou `20260923000100_initial_schema` ao Neon. Leitura de volta confirmou 14 tabelas de domínio, 16 enums, 45 índices, sete triggers, `citext` e histórico Prisma concluído. | `migrate status` atualizado; `test:unit` 23/23, lint e build passaram. Dicionário de dados e runbook completos ainda pendentes. |
 
 Os lotes 02 a 10 produziram código e evidência sem tocar no banco
 compartilhado. O lote 11 exige acesso remoto de leitura; o 12, escrita remota.

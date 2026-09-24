@@ -2,6 +2,10 @@
 
 # Fase 02 — Schema Prisma e migrations
 
+> **Estado em 24/09/2026:** a migration inicial
+> `20260923000100_initial_schema` foi aplicada ao Neon `neondb` e verificada.
+> O dicionário de dados e o runbook finais ainda serão consolidados.
+
 ## Objetivo
 
 Criar um modelo íntegro e uma primeira migration versionada sem destruir o

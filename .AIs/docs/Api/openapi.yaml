@@ -1,0 +1,1583 @@
+# Especificação OpenAPI dos contratos REST iniciais do VERS.
+openapi: 3.1.0
+info:
+  title: VERS API
+  version: 0.1.0
+  description: >-
+    Contratos de autenticação, perfil, veículos, instalações, testes, dados e suporte. Tokens JWT trafegam
+    somente em cookies HttpOnly e nunca são retornados no JSON.
+servers:
+  - url: https://api.example.vers/api/v1
+    description: Exemplo de produção; domínio definitivo pendente.
+tags:
+  - name: Auth
+  - name: Users
+  - name: Vehicles
+  - name: Installations
+  - name: Tests
+  - name: Data
+  - name: Support
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Cadastra usuário e inicia sessão
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/Authenticated'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Autentica usuário e inicia sessão
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/Authenticated'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotaciona a sessão usando somente o refresh cookie
+      security:
+        - refreshCookie: []
+      responses:
+        '204':
+          description: Cookies rotacionados; nenhum token é retornado no body.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/AuthenticationCookies'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoga a sessão atual e limpa os cookies
+      security:
+        - refreshCookie: []
+      responses:
+        '204':
+          description: Sessão revogada e cookies expirados.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/AuthenticationCookies'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /auth/logout-all:
+    post:
+      tags: [Auth]
+      summary: Revoga todas as sessões do usuário
+      security:
+        - accessCookie: []
+      responses:
+        '204':
+          description: Sessões revogadas e cookies atuais expirados.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/AuthenticationCookies'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Retorna o perfil autenticado
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Perfil encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    patch:
+      tags: [Users]
+      summary: Atualiza o perfil autenticado
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfileRequest'
+      responses:
+        '200':
+          description: Perfil atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /vehicles:
+    get:
+      tags: [Vehicles]
+      summary: Lista veículos vinculados ao usuário
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Lista paginada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    post:
+      tags: [Vehicles]
+      summary: Cadastra veículo e cria vínculo OWNER
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVehicleRequest'
+      responses:
+        '201':
+          description: Veículo cadastrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /vehicles/{vehicleId}:
+    parameters:
+      - $ref: '#/components/parameters/VehicleId'
+    get:
+      tags: [Vehicles]
+      summary: Consulta veículo autorizado
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Veículo encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    patch:
+      tags: [Vehicles]
+      summary: Atualiza veículo ou o torna principal
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVehicleRequest'
+      responses:
+        '200':
+          description: Veículo atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    delete:
+      tags: [Vehicles]
+      summary: Desvincula veículo da conta e preserva o histórico experimental
+      description: >-
+        O último veículo da conta pode ser desvinculado. Outras contas
+        vinculadas mantêm o veículo e seus identificadores. Após o último
+        vínculo ativo, o registro do veículo e a placa são removidos;
+        testes e telemetria permanecem com snapshot sem placa.
+        replacementVehicleId é exigido ao excluir o principal quando houver
+        dois ou mais candidatos restantes. Com um único candidato, a promoção
+        é automática.
+      security:
+        - accessCookie: []
+      parameters:
+        - name: replacementVehicleId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Vínculo removido; veículo físico removido apenas após o último vínculo; histórico preservado.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /installations:
+    get:
+      tags: [Installations]
+      summary: Lista instalações autorizadas
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/InstallationVehicleId'
+        - $ref: '#/components/parameters/InstallationStatusFilter'
+      responses:
+        '200':
+          description: Instalações autorizadas, paginadas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstallationListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /installations/{installationId}:
+    parameters:
+      - $ref: '#/components/parameters/InstallationId'
+    get:
+      tags: [Installations]
+      summary: Consulta instalação autorizada
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Instalação encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstallationResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /installations/{installationId}/configurations:
+    parameters:
+      - $ref: '#/components/parameters/InstallationId'
+    get:
+      tags: [Installations]
+      summary: Lista configurações versionadas da instalação
+      description: Ordenação por version decrescente, com id como desempate.
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Configurações paginadas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /installations/{installationId}/configurations/{configurationId}:
+    parameters:
+      - $ref: '#/components/parameters/InstallationId'
+      - $ref: '#/components/parameters/ConfigurationId'
+    get:
+      tags: [Installations]
+      summary: Consulta versão da configuração autorizada
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Configuração encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /tests:
+    get:
+      tags: [Tests]
+      summary: Lista testes experimentais autorizados
+      description: Ordenação por createdAt decrescente, com id como desempate.
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/TestInstallationId'
+        - $ref: '#/components/parameters/TestStatusFilter'
+        - $ref: '#/components/parameters/StartedFrom'
+        - $ref: '#/components/parameters/StartedTo'
+      responses:
+        '200':
+          description: Testes paginados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    post:
+      tags: [Tests]
+      summary: Cria teste planejado
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTestRequest'
+      responses:
+        '201':
+          description: Teste criado em PLANNED.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /tests/{testId}:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    get:
+      tags: [Tests]
+      summary: Consulta teste autorizado
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Teste encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /tests/{testId}/start:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    post:
+      tags: [Tests]
+      summary: Inicia teste planejado
+      description: Body vazio; startedAt é atribuído pelo servidor.
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Teste iniciado em RUNNING.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /tests/{testId}/finish:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    post:
+      tags: [Tests]
+      summary: Conclui ou falha teste em execução
+      description: endedAt é atribuído pelo servidor.
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinishTestRequest'
+      responses:
+        '200':
+          description: Teste finalizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /tests/{testId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    post:
+      tags: [Tests]
+      summary: Cancela teste planejado ou em execução
+      security:
+        - accessCookie: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelTestRequest'
+      responses:
+        '200':
+          description: Teste cancelado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /tests/{testId}/telemetry:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    get:
+      tags: [Data]
+      summary: Lista amostras de telemetria validada do teste
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/CapturedFrom'
+        - $ref: '#/components/parameters/CapturedTo'
+        - $ref: '#/components/parameters/TelemetryQualityFilter'
+      responses:
+        '200':
+          description: Amostras paginadas por capturedAt crescente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /installations/{installationId}/energy-summaries:
+    parameters:
+      - $ref: '#/components/parameters/InstallationId'
+    get:
+      tags: [Data]
+      summary: Lista resumos de energia da instalação
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/SummaryPeriodFilter'
+        - $ref: '#/components/parameters/PeriodFrom'
+        - $ref: '#/components/parameters/PeriodTo'
+      responses:
+        '200':
+          description: Resumos paginados por periodStart crescente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnergySummaryListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /tests/{testId}/energy-summaries:
+    parameters:
+      - $ref: '#/components/parameters/TestId'
+    get:
+      tags: [Data]
+      summary: Lista resumos de energia do teste histórico
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/SummaryPeriodFilter'
+        - $ref: '#/components/parameters/PeriodFrom'
+        - $ref: '#/components/parameters/PeriodTo'
+      responses:
+        '200':
+          description: Resumos paginados por periodStart crescente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnergySummaryListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /test-comparisons:
+    get:
+      tags: [Data]
+      summary: Compara resumos TEST de dois a cinco testes autorizados
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ComparisonTestIds'
+      responses:
+        '200':
+          description: Comparação na ordem dos IDs informados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestComparisonResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /support-requests:
+    get:
+      tags: [Support]
+      summary: Lista solicitações de revisão do usuário
+      description: Ordenação por createdAt decrescente, com id como desempate.
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/SupportStatusFilter'
+      responses:
+        '200':
+          description: Solicitações paginadas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportRequestListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    post:
+      tags: [Support]
+      summary: Abre solicitação de revisão
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSupportRequest'
+      responses:
+        '201':
+          description: Solicitação aberta em OPEN.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportRequestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /support-requests/{supportRequestId}:
+    parameters:
+      - $ref: '#/components/parameters/SupportRequestId'
+    get:
+      tags: [Support]
+      summary: Consulta solicitação de revisão própria
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Solicitação encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+components:
+  securitySchemes:
+    accessCookie:
+      type: apiKey
+      in: cookie
+      name: vers_access_token
+      description: JWT em cookie HttpOnly; Secure em produção.
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: vers_refresh_token
+      description: JWT rotativo em cookie HttpOnly; Secure em produção.
+  headers:
+    AuthenticationCookies:
+      description: >-
+        Cookies HttpOnly de autenticação emitidos, rotacionados ou expirados.
+        Nenhum token é exposto ao JavaScript.
+      schema:
+        type: string
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    VehicleId:
+      name: vehicleId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    InstallationId:
+      name: installationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ConfigurationId:
+      name: configurationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    InstallationVehicleId:
+      name: vehicleId
+      in: query
+      schema:
+        type: string
+        format: uuid
+    InstallationStatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [ACTIVE, MAINTENANCE, INACTIVE, FAULT]
+    TestId:
+      name: testId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TestInstallationId:
+      name: installationId
+      in: query
+      schema:
+        type: string
+        format: uuid
+    TestStatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [PLANNED, RUNNING, COMPLETED, FAILED, CANCELLED]
+    StartedFrom:
+      name: startedFrom
+      in: query
+      description: Início inclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    StartedTo:
+      name: startedTo
+      in: query
+      description: Fim exclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    CapturedFrom:
+      name: capturedFrom
+      in: query
+      description: Início inclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    CapturedTo:
+      name: capturedTo
+      in: query
+      description: Fim exclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    TelemetryQualityFilter:
+      name: quality
+      in: query
+      schema:
+        type: string
+        enum: [VALID, PARTIAL, SUSPECT, INVALID]
+    SummaryPeriodFilter:
+      name: periodType
+      in: query
+      schema:
+        type: string
+        enum: [TEST, HOUR, DAY, MONTH]
+    PeriodFrom:
+      name: periodFrom
+      in: query
+      description: Início inclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    PeriodTo:
+      name: periodTo
+      in: query
+      description: Fim exclusivo em UTC.
+      schema:
+        type: string
+        format: date-time
+    ComparisonTestIds:
+      name: testIds
+      in: query
+      required: true
+      style: form
+      explode: true
+      description: Entre dois e cinco UUIDs distintos, repetidos na query string.
+      schema:
+        type: array
+        minItems: 2
+        maxItems: 5
+        uniqueItems: true
+        items:
+          type: string
+          format: uuid
+    SupportRequestId:
+      name: supportRequestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SupportStatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [OPEN, IN_REVIEW, SCHEDULED, RESOLVED, CANCELLED]
+  responses:
+    Authenticated:
+      description: Sessão iniciada; tokens disponíveis somente nos cookies.
+      headers:
+        Set-Cookie:
+          $ref: '#/components/headers/AuthenticationCookies'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AuthResponseEnvelope'
+    ValidationError:
+      description: Entrada ou regra de negócio inválida.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    UnauthorizedError:
+      description: Sessão ausente, inválida, expirada ou revogada.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    ConflictError:
+      description: Recurso em conflito com estado ou unicidade.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    NotFoundError:
+      description: Recurso inexistente ou não acessível ao usuário.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+  schemas:
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          pattern: '^(?=.*[A-Z])(?=.*[^A-Za-z0-9])[^\s]+$'
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+    UpdateUserProfileRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        displayName:
+          type: [string, 'null']
+          maxLength: 120
+        avatarUrl:
+          type: [string, 'null']
+          format: uri
+    CreateVehicleRequest:
+      type: object
+      additionalProperties: false
+      required: [licensePlate]
+      properties:
+        licensePlate:
+          type: string
+          pattern: '^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$'
+          description: Placa brasileira normalizada, imutável após cadastro.
+        brand:
+          type: string
+          maxLength: 80
+        model:
+          type: string
+          maxLength: 120
+        modelYear:
+          type: integer
+          minimum: 1886
+          maximum: 2100
+    UpdateVehicleRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        brand:
+          type: [string, 'null']
+          maxLength: 80
+        model:
+          type: [string, 'null']
+          maxLength: 120
+        modelYear:
+          type: [integer, 'null']
+          minimum: 1886
+          maximum: 2100
+        isPrimary:
+          type: boolean
+          description: Somente true promove o veículo; false não remove o único principal.
+    UserProfile:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - email
+        - displayName
+        - avatarUrl
+        - roles
+        - status
+        - emailVerifiedAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: [string, 'null']
+        avatarUrl:
+          type: [string, 'null']
+          format: uri
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [USER, ADMIN]
+        status:
+          type: string
+          enum: [ACTIVE, BLOCKED, PENDING_VERIFICATION]
+        emailVerifiedAt:
+          type: [string, 'null']
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Vehicle:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - licensePlate
+        - brand
+        - model
+        - modelYear
+        - relationship
+        - isPrimary
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        licensePlate:
+          type: string
+        brand:
+          type: [string, 'null']
+        model:
+          type: [string, 'null']
+        modelYear:
+          type: [integer, 'null']
+        relationship:
+          type: string
+          enum: [OWNER, DRIVER, ADMIN]
+        isPrimary:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PublicDevice:
+      type: object
+      additionalProperties: false
+      required: [id, name, firmwareVersion, status, lastSeenAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: [string, 'null']
+        firmwareVersion:
+          type: [string, 'null']
+        status:
+          type: string
+          enum: [PROVISIONING, ONLINE, OFFLINE, REVOKED, FAULT]
+        lastSeenAt:
+          type: [string, 'null']
+          format: date-time
+    Installation:
+      type: object
+      additionalProperties: false
+      required: [id, vehicleId, systemModel, status, installedAt, activeDevice, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        vehicleId:
+          type: string
+          format: uuid
+        systemModel:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, MAINTENANCE, INACTIVE, FAULT]
+        installedAt:
+          type: [string, 'null']
+          format: date-time
+        activeDevice:
+          oneOf:
+            - $ref: '#/components/schemas/PublicDevice'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Configuration:
+      type: object
+      additionalProperties: false
+      required: [id, installationId, name, version, activePiezoCount, piezoAssociation, installationPoint, storageType, notes, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        installationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        activePiezoCount:
+          type: integer
+          minimum: 0
+        piezoAssociation:
+          type: string
+          enum: [SERIES, PARALLEL, MIXED]
+        installationPoint:
+          type: string
+        storageType:
+          type: string
+          enum: [BATTERY, SUPERCAPACITOR, CAPACITOR, NONE]
+        notes:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+    CreateTestRequest:
+      type: object
+      additionalProperties: false
+      required: [installationId, configurationId, name, terrain, testLocation]
+      properties:
+        installationId:
+          type: string
+          format: uuid
+        configurationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        terrain:
+          type: string
+          enum: [HIGHWAY, CITY, OFFROAD, MIXED, OTHER]
+        testLocation:
+          type: string
+          minLength: 1
+          maxLength: 160
+        vehicleWeightKg:
+          type: [number, 'null']
+          exclusiveMinimum: 0
+        notes:
+          type: [string, 'null']
+          maxLength: 1000
+    FinishTestRequest:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [COMPLETED, FAILED]
+        outcome:
+          type: [string, 'null']
+          enum: [SATISFACTORY, UNSATISFACTORY, INCONCLUSIVE, null]
+        averageEngineRpm:
+          type: [number, 'null']
+          minimum: 0
+        averageSpeedKph:
+          type: [number, 'null']
+          minimum: 0
+        inclineDegrees:
+          type: [number, 'null']
+        vehicleWeightKg:
+          type: [number, 'null']
+          exclusiveMinimum: 0
+        notes:
+          type: [string, 'null']
+          maxLength: 1000
+    CancelTestRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+    TestSnapshot:
+      type: object
+      additionalProperties: false
+      required: [vehicleModel, testLocation, activePiezoCount, configurationVersion]
+      properties:
+        vehicleModel:
+          type: [string, 'null']
+        testLocation:
+          type: string
+        activePiezoCount:
+          type: integer
+          minimum: 0
+        configurationVersion:
+          type: integer
+          minimum: 1
+    TestRecord:
+      type: object
+      additionalProperties: false
+      required: [id, installationId, configurationId, createdById, name, status, terrain, snapshot, startedAt, endedAt, vehicleWeightKg, averageEngineRpm, averageSpeedKph, inclineDegrees, outcome, notes, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        installationId:
+          type: [string, 'null']
+          format: uuid
+        configurationId:
+          type: [string, 'null']
+          format: uuid
+        createdById:
+          type: [string, 'null']
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [PLANNED, RUNNING, COMPLETED, FAILED, CANCELLED]
+        terrain:
+          type: string
+          enum: [HIGHWAY, CITY, OFFROAD, MIXED, OTHER]
+        snapshot:
+          $ref: '#/components/schemas/TestSnapshot'
+        startedAt:
+          type: [string, 'null']
+          format: date-time
+        endedAt:
+          type: [string, 'null']
+          format: date-time
+        vehicleWeightKg:
+          type: [number, 'null']
+        averageEngineRpm:
+          type: [number, 'null']
+        averageSpeedKph:
+          type: [number, 'null']
+        inclineDegrees:
+          type: [number, 'null']
+        outcome:
+          type: [string, 'null']
+          enum: [SATISFACTORY, UNSATISFACTORY, INCONCLUSIVE, null]
+        notes:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TelemetrySample:
+      type: object
+      additionalProperties: false
+      required: [id, testId, capturedAt, voltageV, currentA, powerW, devicePowerW, accumulatedEnergyWh, accelerationXMs2, accelerationYMs2, accelerationZMs2, vibrationRmsMs2, temperatureC, activePiezoCount, quality]
+      properties:
+        id:
+          type: string
+          format: uuid
+        testId:
+          type: [string, 'null']
+          format: uuid
+        capturedAt:
+          type: string
+          format: date-time
+        voltageV:
+          type: [number, 'null']
+        currentA:
+          type: [number, 'null']
+        powerW:
+          type: [number, 'null']
+        devicePowerW:
+          type: [number, 'null']
+        accumulatedEnergyWh:
+          type: [number, 'null']
+        accelerationXMs2:
+          type: [number, 'null']
+        accelerationYMs2:
+          type: [number, 'null']
+        accelerationZMs2:
+          type: [number, 'null']
+        vibrationRmsMs2:
+          type: [number, 'null']
+        temperatureC:
+          type: [number, 'null']
+        activePiezoCount:
+          type: [integer, 'null']
+          minimum: 0
+        quality:
+          type: string
+          enum: [VALID, PARTIAL, SUSPECT, INVALID]
+    EnergySummary:
+      type: object
+      additionalProperties: false
+      required: [id, installationId, testId, periodType, periodStart, periodEnd, recoveredEnergyWh, vehicleEnergyUsedWh, averagePowerW, peakPowerW, moneySaved, currencyCode, energyTariffPerKwh, sampleCount, quality, calculatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        installationId:
+          type: [string, 'null']
+          format: uuid
+        testId:
+          type: [string, 'null']
+          format: uuid
+        periodType:
+          type: string
+          enum: [TEST, HOUR, DAY, MONTH]
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
+        recoveredEnergyWh:
+          type: number
+          minimum: 0
+        vehicleEnergyUsedWh:
+          type: [number, 'null']
+          minimum: 0
+        averagePowerW:
+          type: [number, 'null']
+        peakPowerW:
+          type: [number, 'null']
+        moneySaved:
+          type: [string, 'null']
+          description: Decimal serializado como string.
+        currencyCode:
+          type: [string, 'null']
+          minLength: 3
+          maxLength: 3
+        energyTariffPerKwh:
+          type: [string, 'null']
+          description: Decimal serializado como string.
+        sampleCount:
+          type: integer
+          minimum: 0
+        quality:
+          type: string
+          enum: [GOOD, PARTIAL, INVALID]
+        calculatedAt:
+          type: string
+          format: date-time
+    TestComparisonItem:
+      type: object
+      additionalProperties: false
+      required: [testId, summary]
+      properties:
+        testId:
+          type: string
+          format: uuid
+        summary:
+          oneOf:
+            - $ref: '#/components/schemas/EnergySummary'
+            - type: 'null'
+    TestComparison:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 2
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/TestComparisonItem'
+    CreateSupportRequest:
+      type: object
+      additionalProperties: false
+      required: [vehicleId, reason]
+      properties:
+        vehicleId:
+          type: string
+          format: uuid
+        installationId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Motivo sem documentos pessoais, placa ou segredos.
+    SupportRequest:
+      type: object
+      additionalProperties: false
+      required: [id, vehicleId, installationId, reason, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        vehicleId:
+          type: [string, 'null']
+          format: uuid
+        installationId:
+          type: [string, 'null']
+          format: uuid
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [OPEN, IN_REVIEW, SCHEDULED, RESOLVED, CANCELLED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PaginationMeta:
+      type: object
+      required: [page, pageSize, totalItems, totalPages]
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+    ApiErrorDetail:
+      type: object
+      required: [message]
+      properties:
+        field:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+    ApiErrorResponse:
+      type: object
+      required: [error, requestId, timestamp]
+      properties:
+        error:
+          type: object
+          required: [code, message, details]
+          properties:
+            code:
+              type: string
+              enum:
+                - AUTH_EMAIL_ALREADY_REGISTERED
+                - AUTH_INVALID_CREDENTIALS
+                - AUTH_INVALID_REFRESH_TOKEN
+                - AUTH_SESSION_REVOKED
+                - AUTH_UNAUTHORIZED
+                - CONFIGURATION_NOT_FOUND
+                - INSTALLATION_NOT_FOUND
+                - INSTALLATION_STATE_CONFLICT
+                - SUPPORT_REQUEST_NOT_FOUND
+                - TEST_NOT_FOUND
+                - TEST_STATE_CONFLICT
+                - USER_NOT_FOUND
+                - VALIDATION_ERROR
+                - VEHICLE_LICENSE_PLATE_ALREADY_REGISTERED
+                - VEHICLE_NOT_FOUND
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        requestId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    AuthResponseEnvelope:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          type: object
+          required: [user]
+          properties:
+            user:
+              $ref: '#/components/schemas/UserProfile'
+        requestId:
+          type: string
+    UserProfileResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/UserProfile'
+        requestId:
+          type: string
+    VehicleResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/Vehicle'
+        requestId:
+          type: string
+    VehicleListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Vehicle'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    InstallationResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/Installation'
+        requestId:
+          type: string
+    InstallationListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Installation'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    ConfigurationResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/Configuration'
+        requestId:
+          type: string
+    ConfigurationListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Configuration'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    TestResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/TestRecord'
+        requestId:
+          type: string
+    TestListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestRecord'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    TelemetryListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TelemetrySample'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    EnergySummaryListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnergySummary'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string
+    TestComparisonResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/TestComparison'
+        requestId:
+          type: string
+    SupportRequestResponse:
+      type: object
+      required: [data, requestId]
+      properties:
+        data:
+          $ref: '#/components/schemas/SupportRequest'
+        requestId:
+          type: string
+    SupportRequestListResponse:
+      type: object
+      required: [data, meta, requestId]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportRequest'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        requestId:
+          type: string

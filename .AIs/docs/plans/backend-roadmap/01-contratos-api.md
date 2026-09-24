@@ -9,9 +9,9 @@ controllers e MQTT.
 
 ## Estado
 
-Em andamento. Envelopes, autenticação, perfil e veículos estão concluídos. O
-plano e as decisões desse recorte estão em
-[backend-api-contracts-phase-1.md](../backend-api-contracts-phase-1.md).
+Concluída em 22/09/2026. Os planos e decisões estão em
+[backend-api-contracts-phase-1.md](../backend-api-contracts-phase-1.md) e
+[backend-api-contracts-phase-1-completion.md](../backend-api-contracts-phase-1-completion.md).
 
 ## Etapa A — Fundação compartilhada — concluída
 
@@ -28,26 +28,39 @@ plano e as decisões desse recorte estão em
 - veículos, vínculo `OWNER` e regras de principal;
 - placa imutável e documentos pessoais fora do contrato.
 
-## Etapa C — Instalações e configurações
+## Etapa C — Instalações e configurações — concluída
 
 - listar e consultar instalações autorizadas;
 - listar configurações versionadas;
 - definir campos públicos de dispositivo sem credenciais;
 - definir erros de propriedade, estado e conflito.
 
-## Etapa D — Testes experimentais
+Contratos de leitura, fixtures, testes de compilação, documentação humana e
+OpenAPI concluídos em 22/09/2026. A ausência de acesso é apresentada como
+`404`; o conflito de estado está catalogado para futuras operações de escrita,
+pois as rotas deste lote são somente de leitura.
+
+## Etapa D — Testes experimentais — concluída
 
 - criar, iniciar, finalizar, cancelar e consultar testes;
 - definir transições de estado e conflitos concorrentes;
 - separar contexto do teste de medições e agregados;
 - definir filtros, paginação e intervalos.
 
-## Etapa E — Telemetria, resumos e suporte
+Contratos de ciclo de vida, snapshot histórico, fixtures, testes de compilação,
+documentação humana e OpenAPI concluídos em 22/09/2026. Instantes de início e
+fim são atribuídos pelo servidor; transições inválidas ou concorrentes usam
+`TEST_STATE_CONFLICT`.
 
-- contratos paginados de telemetria;
-- séries e resumos com unidade explícita;
-- qualidade de dados e comparação entre testes;
-- criação e acompanhamento de solicitações de revisão.
+## Etapa E — Telemetria, resumos e suporte — concluída
+
+- contratos paginados de telemetria — concluídos;
+- séries e resumos com unidade explícita — concluídos;
+- qualidade de dados e comparação entre testes — concluídas;
+- criação e acompanhamento de solicitações de revisão — concluídos.
+
+Os lotes 4 e 5 passaram em `test:unit`, lint e build do pacote compartilhado.
+O OpenAPI 3.1 final contém 23 rotas e 185 referências internas válidas.
 
 ## Validação
 
@@ -60,3 +73,8 @@ plano e as decisões desse recorte estão em
 
 Clientes conseguem implementar todos os fluxos previstos usando contratos e
 fixtures, sem depender do banco ou do MQTT.
+
+Validação final: `test:unit`, lint e build aprovados em `@vers/shared-types` e
+`@vers/backend`; backend com 7 suítes e 23 testes aprovados. O catálogo de
+erros em TypeScript coincide com o OpenAPI. A documentação foi movida para
+`.AIs/docs/Api/`. Nenhum controller, schema Prisma ou banco foi alterado.

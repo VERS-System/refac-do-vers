@@ -32,7 +32,7 @@ auditoria do código e dos testes já presentes.
   obrigatório `test:unit`.
 - Mobile possui telas iniciais com dados estáticos; dashboard e web possuem
   estruturas iniciais de integração.
-- `docs/arquitetura.md`, `docs/api/endpoints.md` e `docs/fluxo-mqtt.md` existem,
+- `docs/arquitetura.md`, `.AIs/docs/Api/endpoints.md` e `docs/fluxo-mqtt.md` existem,
   mas ainda não têm conteúdo.
 
 ## 3. Princípios e decisões fixadas
@@ -173,7 +173,7 @@ mobile consegue autenticar sem dados simulados.
 6. relatórios e exportações.
 
 **Entregas:** DTOs validados, services, controllers, autorização por recurso,
-paginação, filtros e documentação em `docs/api/endpoints.md`.
+paginação, filtros e documentação em `.AIs/docs/Api/endpoints.md`.
 
 **Critério de saída:** contratos REST testados e consumíveis sem conhecimento do
 schema interno.

@@ -2,15 +2,23 @@
 
 # Fase 2 — Schema Prisma e primeira migration versionada
 
+> **Estado em 24/09/2026:** a primeira migration foi aplicada ao Neon `neondb`
+> após inventário confirmar o schema `public` vazio e autorização do programador.
+> A leitura de volta e `prisma migrate status` confirmaram a aplicação. As
+> instruções abaixo preservam o planejamento original da fase. O
+> [dicionário de dados](backend-schema-phase-2-data-dictionary.md) e o
+> [runbook](backend-schema-phase-2-runbook.md) encerram a documentação do lote 12.
+
 ## 1. Objetivo e estado
 
 Planejar a substituição controlada do schema experimental por um modelo
 relacional capaz de sustentar os contratos aprovados e as fases posteriores do
 backend. Prisma continuará como fonte de verdade do PostgreSQL/Neon.
 
-**Estado:** plano para revisão. Nenhuma alteração em `schema.prisma`, migration
-ou banco está autorizada por este documento. Cada lote abaixo exige aprovação
-separada do programador.
+**Estado:** Fase 02 concluída. O baseline local está em
+[backend-schema-phase-2-lot1-baseline.md](backend-schema-phase-2-lot1-baseline.md)
+e a execução em [backend-schema-phase-2-execution-roadmap.md](backend-schema-phase-2-execution-roadmap.md).
+Este plano não autoriza novas migrations nem acesso ao Neon.
 
 ## 2. Risco principal da fase
 
@@ -67,10 +75,9 @@ podem ser inferidos pelo repositório. Portanto:
 ## 6. Modelo relacional proposto
 
 ```text
-User ──< UserRoleAssignment >── Role
+User ──< UserRoleAssignment (papel enum)
   │
   ├──< RefreshSession
-  ├──< AuthIdentity
   ├──< UserVehicle >── Vehicle ──< VersInstallation ──< Device
   │                           │              │
   │                           │              └──< Configuration
@@ -97,16 +104,19 @@ Campos mínimos: `id`, `email`, `passwordHash`, `displayName`, `avatarUrl`,
 
 Regras:
 
-- email normalizado antes da persistência e único sem distinção de caixa;
+- email normalizado antes da persistência e único sem distinção de caixa usando
+  a extensão PostgreSQL `citext`;
 - `passwordHash` nunca aparece em DTOs, logs ou auditoria;
 - exclusão de conta não pode apagar silenciosamente testes ou auditoria;
 - status usa enum, não texto livre.
 
 ### Papéis
 
-Papéis globais são `USER`, `ADMIN` e `TECHNICIAN`. A proposta preferencial é
-`Role` + `UserRoleAssignment`, pois o contrato permite múltiplos papéis. Isso
-evita array sem integridade relacional e permite auditoria de concessão.
+Papéis globais iniciais são `USER` e `ADMIN`. Usar associação relacional
+`UserRoleAssignment` para permitir os dois papéis ao mesmo usuário. `ADMIN` é
+um papel do usuário. `TECHNICIAN` não entra no escopo atual; só será criado se
+houver uma função operacional definida. O papel é enum na associação; não criar
+uma tabela `Role` separada neste MVP.
 
 `OWNER`, `DRIVER` e `ADMIN` em `UserVehicle` são relações com um veículo e não
 papéis globais.
@@ -127,9 +137,8 @@ Regras:
 ### `AuthIdentity`
 
 Reservada para provedores `LOCAL` e futuramente `GOOGLE`, com unicidade em
-`[provider, providerSubject]`. Login Google permanece fora do MVP e a tabela só
-deve entrar na migration se houver uso imediato ou justificativa de
-compatibilidade futura aprovada.
+`[provider, providerSubject]`. Login Google e a entrada de `AuthIdentity` na
+migration ficam em espera até decisão específica; não incluir por antecipação.
 
 ## 8. Veículos e vínculo com usuários
 
@@ -143,7 +152,14 @@ Regras:
 - placa normalizada, única e imutável após criação;
 - não armazenar CPF, CRLV, RENAVAM ou documento;
 - não colocar `userId` diretamente em `Vehicle`;
-- histórico impede exclusão física ingênua quando houver instalações ou testes.
+- a exclusão solicitada remove primeiro o vínculo da conta atual; se outras
+  contas ainda estiverem vinculadas, o veículo e seus identificadores
+  permanecem para elas;
+- após a remoção do último vínculo ativo, remover o veículo, a placa e demais
+  identificadores específicos, inclusive da instalação ativa; testes e
+  medições permanecem;
+- dados históricos necessários são copiados para um snapshot do teste antes da
+  exclusão, sem placa ou outro identificador específico.
 
 ### `UserVehicle`
 
@@ -156,8 +172,10 @@ Invariantes:
 - primeiro vínculo da conta recebe `isPrimary = true`;
 - no máximo um vínculo ativo principal por usuário;
 - troca do principal ocorre em transação;
-- último veículo ativo da conta não pode ser removido;
-- remoção do principal promove o único restante ou exige substituto escolhido;
+- o usuário pode remover seu último veículo ativo; testes anteriores permanecem;
+- remover o registro `Vehicle` somente quando não restar vínculo ativo com
+  nenhuma conta; contagem, desvinculação e remoção ocorrem em transação;
+- remoção do principal promove o único restante ou exige escolha entre vários;
 - substituto pertence ao mesmo usuário e não está removido.
 
 PostgreSQL pode garantir “um principal ativo por usuário” com índice único
@@ -170,13 +188,20 @@ SQL deverá ser revisada manualmente e conter um teste de concorrência.
 ### `VersInstallation`
 
 Vincula o sistema físico ao veículo e contém modelo, número de série, status e
-datas de instalação. A remoção do vínculo do usuário não apaga a instalação ou
-seu histórico.
+datas de instalação. Existe no máximo um ESP32 ativo por veículo. Desvincular
+uma conta não apaga a instalação usada pelas demais. A remoção física do
+veículo após o último vínculo encerra a instalação ativa e remove seus dados
+identificadores sem apagar o snapshot da montagem usado pelos testes.
 
 ### `Device`
 
 Identifica o ESP32 por `deviceUid` único. Credenciais MQTT não ficam em texto
 puro nessa tabela. Revogação não apaga mensagens históricas.
+
+Para a unicidade por veículo, um dispositivo ainda não revogado ocupa a vaga
+mesmo em `OFFLINE` ou `FAULT`. A revogação registra `revokedAt` junto com o
+estado `REVOKED`; só então outro ESP32 pode ocupar a vaga. A FK composta de
+`Device` liga `installationId` e `vehicleId` à mesma instalação.
 
 ### `Configuration`
 
@@ -198,16 +223,23 @@ Regras:
 - estados e transições usam enum e lógica transacional;
 - duração deriva de `startedAt` e `endedAt`;
 - veículo, instalação e configuração devem ser compatíveis;
+- o teste mantém snapshot do modelo do veículo, local informado onde ocorreu,
+  quantidade de piezos e condições experimentais; placa e identificadores
+  específicos não entram nesse snapshot;
+- `vehicleWeightKg` representa o peso no teste, informado ou medido; não pode
+  ser deduzido apenas do modelo, pois carga e ocupantes variam;
 - exclusões de usuário, veículo ou instalação não apagam o teste;
+- ao excluir a conta criadora, `createdById` passa a `null`, sem remover o teste;
 - texto livre possui limite e não deve receber documentos ou segredos.
 
 ## 11. MQTT e telemetria
 
 ### `MqttMessage`
 
-Preserva o payload bruto, identidade da mensagem, dispositivo, teste, versão do
-schema, tópico, sequência, QoS, retained, timestamps, status de processamento e
-motivo de rejeição.
+Preserva o payload recebido, identidade da mensagem, dispositivo, teste, versão
+do schema, tópico, sequência, QoS, retained, timestamps, status de processamento
+e motivo de rejeição. O contrato do ESP32 não deve enviar placa nem outro
+identificador específico do veículo no tópico ou payload.
 
 Restrições mínimas:
 
@@ -217,15 +249,21 @@ Restrições mínimas:
 - payload imutável após recepção;
 - rejeição mantém rastreabilidade sem produzir telemetria válida.
 
+Ao remover o último vínculo de um veículo, a transação de exclusão apaga antes
+as mensagens MQTT brutas dos seus dispositivos, pois tópico/payload podem conter
+`deviceUid`. A FK restritiva impede apagar o veículo antes dessa etapa. Amostras
+normalizadas e testes permanecem; FKs para mensagem, dispositivo e instalação
+passam a `null`. A revogação do ESP32, sem exclusão do veículo, não apaga o bruto.
+
 ### `TelemetrySample`
 
-Armazena somente dados normalizados e classificados. Usa nomes com unidades e
-referência única à mensagem de origem quando o envelope representar uma única
-amostra.
+Armazena somente dados normalizados e classificados. Uma mensagem MQTT de
+telemetria transporta um lote de amostras; a relação `MqttMessage` →
+`TelemetrySample` é 1:N, e cada amostra guarda sua posição ou instante no lote.
 
 Índices mínimos propostos: `[testId, capturedAt]` e
-`[deviceId, capturedAt]`. Particionamento, retenção e eventual relação 1:N entre
-mensagem e amostras dependem da frequência e do tamanho real dos lotes.
+`[deviceId, capturedAt]`. Frequência, duração do período e tamanho do lote serão
+definidos durante o desenvolvimento do ESP32, sem bloquear esta cardinalidade.
 
 ## 12. Resumos, suporte e auditoria
 
@@ -237,31 +275,43 @@ cálculo para permitir recomputação auditável.
 
 `vehicleEnergyUsedWh` e economia permanecem nulos sem fonte e premissas
 confiáveis. Valores financeiros usam `Decimal` com moeda e tarifa registradas.
+`calculationVersion` identifica a fórmula aplicada; índices parciais impedem
+duplicar o mesmo período enquanto a instalação ou o teste estiver vinculado.
 
 ### `SupportRequest`
 
 Vincula solicitante, veículo e instalação opcional. O motivo é texto livre
 limitado e não deve ser usado para coletar documentos pessoais.
+A validação do conteúdo do motivo pertence ao service antes da persistência.
 
 ### `AuditEvent`
 
 Registra ator, ação, tipo e ID do recurso, resultado, request ID e timestamps.
 Não registra senha, token, cookie, payload MQTT completo, documento ou cópia do
-objeto alterado. Metadados seguem allowlist.
+objeto alterado. Não há coluna de metadados livres no MVP. A exclusão de usuário
+esvazia seu ID auditado; a exclusão de veículo esvazia IDs auditados dele e de
+suas instalações e dispositivos.
 
 ## 13. Exclusões e retenção
 
-Estratégia inicial proposta:
+Estratégia decidida para o desenvolvimento:
 
 | Dado | Exclusão proposta | Observação |
 | --- | --- | --- |
-| Sessão expirada/revogada | física após janela operacional | preservar somente auditoria mínima |
-| Vínculo usuário–veículo | lógica ou remoção controlada | nunca quebrar testes/instalações |
-| Veículo com histórico | `Restrict` ou arquivamento | não apagar telemetria por cascata |
-| Configuração usada | `Restrict` | snapshot experimental imutável |
-| Teste e telemetria | retenção a definir | preservar integridade científica |
-| MQTT bruto | retenção a definir | volume e finalidade ainda desconhecidos |
-| Auditoria | retenção a definir | minimizar metadados e acesso |
+| Sessão expirada/revogada | sem limpeza periódica automática | expiração e revogação continuam valendo para autenticação |
+| Vínculo usuário–veículo | remover na exclusão solicitada | outras contas vinculadas mantêm acesso ao veículo |
+| Veículo sem vínculos ativos | remover placa e dados identificadores | testes usam snapshots sem placa; nenhuma cascata apaga telemetria |
+| Configuração usada | remover com instalação excluída | teste preserva o snapshot e a FK passa a `null` |
+| Teste e telemetria | sem limpeza periódica automática | preservar integridade científica |
+| MQTT bruto | sem limpeza periódica automática; apagar antes da exclusão final do veículo | testes e amostras normalizadas permanecem |
+| Auditoria | sem limpeza periódica automática | não incluir placa nem outros identificadores do veículo |
+| Backups | sem limpeza periódica automática definida no produto | operação do provedor e restauração serão verificadas antes da migration |
+
+Uma limpeza futura será decisão explícita da equipe, não rotina do MVP. A
+exclusão solicitada de veículo continua obrigatória; seu fluxo deve verificar
+payloads, auditoria e referências antes de afirmar que os identificadores foram
+removidos. Os campos e relacionamentos necessários para essa operação serão
+detalhados nos testes estruturais e na migration.
 
 Nenhuma política representa conformidade jurídica definitiva. Finalidade, base
 legal, retenção e atendimento a direitos dependem do responsável pelo projeto e,
@@ -271,46 +321,58 @@ quando necessário, de avaliação jurídica.
 
 ### Etapa A — Baseline sem mutação
 
-1. confirmar se o Neon contém dados que precisam ser preservados;
+1. confirmar o estado do Neon compartilhado de desenvolvimento, usado somente
+   com dados fictícios de baixa sensibilidade; a equipe autorizou descartar os
+   dados legados na primeira troca de schema;
 2. obter inventário autorizado de tabelas, colunas, constraints, índices e
    volumes sem expor registros pessoais;
 3. comparar banco, schema Prisma atual e modelo proposto;
-4. registrar divergências e classificar cada mudança como aditiva, backfill,
-   rename, conversão, constraint ou remoção;
+4. registrar divergências e o procedimento de recriação inicial; depois da
+   primeira troca, migrations devem preservar os dados existentes;
 5. criar plano de backup e restauração testada.
 
-### Etapa B — Migration expand
+### Etapa B — Primeira migration
 
-- criar tabelas e colunas novas sem remover as antigas;
-- criar enums e índices que não bloqueiem desnecessariamente;
-- popular somente dados que tenham mapeamento inequívoco;
-- manter código compatível durante a transição quando necessário.
+- gerar o SQL versionado sem aplicá-lo no lote 9; ensaiá-lo em PostgreSQL
+  temporário no lote 10 e preparar a aplicação direta no Neon após inventário
+  do estado remoto;
+- a primeira migration remove explicitamente as sete tabelas experimentais
+  conhecidas, sem `CASCADE`, conforme autorização de descarte do legado; qualquer
+  divergência no Neon exige revisão antes da aplicação;
+- validar a extensão `citext`, constraints e índices antes de aplicar;
+- migrations posteriores usam evolução preservadora de dados.
 
 ### Etapa C — Validação e cutover
 
 - validar contagens, FKs, duplicidades, nulos e amostras sintéticas;
-- aplicar constraints depois do backfill;
+- na primeira troca, as constraints entram no mesmo SQL transacional após a
+  recriação das tabelas; não há backfill do legado descartado;
 - trocar leituras/escritas de forma observável;
 - manter rollback operacional antes de remover estruturas antigas.
 
 ### Etapa D — Contract posterior
 
-Remoções e renames destrutivos pertencem a uma migration posterior, após
-confirmação de que nenhum consumidor ou dado depende da estrutura antiga.
+Depois da primeira troca autorizada, remoções e renames destrutivos pertencem
+a migrations posteriores somente após confirmação de que nenhum consumidor ou
+dado depende da estrutura antiga. Essas migrations devem preservar os dados.
 
 ## 15. Testes obrigatórios
 
 - Prisma schema valida e client gera sem carregar `.env`;
-- migration aplica em PostgreSQL isolado vazio e em cópia sanitizada do estado
-  legado;
-- rollback operacional é documentado e ensaiado;
+- o estado real do Neon é inventariado e comparado com as premissas do SQL
+  antes da aplicação;
+- rollback operacional e restauração são documentados antes da aplicação;
 - email e placa são únicos após normalização;
 - dois requests concorrentes não criam dois veículos principais;
 - troca e exclusão do principal são atômicas;
-- último vínculo de veículo não é removido;
+- último vínculo de veículo pode ser removido sem apagar testes;
 - usuário A não consulta ou altera vínculo do usuário B;
 - refresh token bruto não é persistido;
-- exclusões não removem testes, telemetria ou auditoria por cascata;
+- desvincular uma conta preserva o veículo para outras contas; a remoção do
+  último vínculo apaga seus identificadores e preserva testes e telemetria;
+  payload MQTT e auditoria não retêm placa;
+- duas desvinculações concorrentes não deixam veículo órfão nem apagam um
+  veículo ainda vinculado a outra conta;
 - duplicatas MQTT não duplicam telemetria ou energia;
 - consultas principais utilizam os índices planejados;
 - logs e erros não contêm email completo, placa, token, cookie ou payload bruto.
@@ -365,34 +427,49 @@ Os commits serão realizados pelo programador, nunca pela IA.
 
 - gerar SQL sem aplicar automaticamente ao Neon;
 - revisar manualmente SQL, locks, backfill e índices parciais;
-- validar em bancos isolados.
+- conferir o SQL com o inventário do Neon antes da aplicação remota.
 
 ### Commit 10 — Documentação e contexto
 
 - atualizar dicionário de dados, diagrama e runbook da migration;
 - registrar comandos, resultados, riscos e pendências.
 
-## 17. Decisões bloqueantes antes do Commit 2
+## 17. Decisões registradas em 22/09/2026
 
-1. O Neon contém dados reais ou experimentais que precisam ser preservados?
-2. “Excluir veículo” remove somente `UserVehicle` da conta ou pode apagar
-   fisicamente um `Vehicle` sem histórico?
-3. Email case-insensitive usará `citext` no PostgreSQL ou coluna normalizada
-   adicional com unicidade?
-4. Papéis globais serão tabelas relacionais ou enum em associação?
-5. `AuthIdentity` entra agora ou somente quando login Google for contratado?
-6. Uma instalação pode ter mais de um ESP32 ativo simultaneamente?
-7. Uma mensagem MQTT contém uma amostra ou um lote de amostras?
-8. Qual é a retenção de sessões, MQTT bruto, telemetria, auditoria e backups?
-9. Dados legados do schema atual têm mapeamento confiável para as novas
-   entidades ou podem ser arquivados separadamente?
+1. Neon será o banco compartilhado de desenvolvimento, com dados fictícios de
+   baixa sensibilidade. O legado pode ser descartado na primeira troca de
+   schema; migrations seguintes devem preservar os dados existentes.
+2. A exclusão solicitada remove o vínculo da conta atual, mesmo se for seu
+   último veículo. Se houver outras contas vinculadas, o veículo e a placa
+   permanecem para elas. Após o último vínculo, o veículo e seus identificadores
+   são removidos. Testes e telemetria permanecem com snapshot do modelo, local
+   informado, quantidade de piezos e condições experimentais, sem placa.
+3. Email sem distinção de caixa usará `citext`.
+4. Papéis globais usam associação relacional; `USER` e `ADMIN` podem coexistir
+   no mesmo usuário. `TECHNICIAN` não integra o escopo atual.
+5. `AuthIdentity` e login Google ficam em espera para discussão posterior.
+6. Um veículo possui no máximo um ESP32 ativo.
+7. Cada mensagem MQTT de telemetria transporta um lote de amostras. Frequência
+   e tamanho serão escolhidos no desenvolvimento do firmware ESP32.
+8. Não haverá limpeza periódica automática de sessões, MQTT bruto, telemetria,
+   auditoria ou backups no MVP. Remoções futuras serão decididas pela equipe.
+9. Peso do veículo no teste deve ser informado ou medido no momento; o modelo
+   isolado não determina o peso real com carga e ocupantes.
+
+Os contratos da Fase 1 estão concluídos. Ainda é necessário detalhar o fluxo
+transacional de desvinculação e preservação de histórico e ensaiar a primeira
+migration antes de
+qualquer aplicação no Neon. As decisões de firmware sobre amostragem e energia
+acumulada não bloqueiam o schema inicial quando representadas de forma
+compatível com lotes.
 
 ## 18. Critério de conclusão da Fase 2
 
 - decisões bloqueantes registradas e aprovadas;
 - schema revisado por domínio e coberto por testes;
 - migration versionada, legível e sem destruição antecipada;
-- validação aprovada em banco isolado vazio e estado legado sanitizado;
+- testes de constraints dos lotes de modelagem aprovados e inventário do Neon
+  compatível com a migration;
 - plano de backup, restauração, rollout e rollback documentado;
 - Prisma Client gerado e backend compilando;
 - nenhuma conexão ou aplicação ao Neon sem autorização explícita separada.

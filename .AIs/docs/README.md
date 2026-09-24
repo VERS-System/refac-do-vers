@@ -26,6 +26,8 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [Dicionário de dados](plans/backend-schema-phase-2-data-dictionary.md) | Tabelas, campos, unidades e restrições do schema inicial. |
 | [Runbook do banco](plans/backend-schema-phase-2-runbook.md) | Validação, aplicação e retorno de migrations. |
 | [Fase 3 — plano executável](plans/backend-phase-3-execution-roadmap.md) | Nove lotes da fundação REST, validação, observabilidade e saúde. |
+| [Plano da issue LUC-28](plans/LUC-28-backend-f03-fundacao-apis-rotas.md) | Escopo e execução do pull da fundação REST. |
+| [Revisão do pull da Fase 3](problems/backend-f03-review-24-09-2026.md) | Aderência aos lotes e problemas identificados. |
 | [Roadmap executável do backend](plans/backend-roadmap/README.md)  | Fases detalhadas do backend, dependências, etapas e critérios de saída. |
 | [Roadmap de telas do mobile](plans/mobile-roadmap/README.md)      | Tasks por tela, navegação, estados visuais e encaixe com o backend.     |
 

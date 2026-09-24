@@ -34,7 +34,7 @@ rate limit, politica minima de auditoria e health checks `live`/`ready`.
 - `services/backend/src/common/**`: DTOs, filtros, interceptors, request id,
   envelopes e auditoria minima.
 - `services/backend/src/modules/health/**`: health checks reais e testaveis.
-- `.agents/docs/contexts/Context_24_09_2026.md`: contexto final da sessao.
+- `.AIs/docs/contexts/Context_24_09_2026.md`: contexto final da sessao.
 
 ## Ordem de implementacao
 

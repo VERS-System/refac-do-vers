@@ -8,12 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthTextField } from '../components/AuthTextField';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { VersLogo } from '../components/VersLogo';
@@ -28,13 +28,15 @@ type LoginScreenProps = {
   onGoogleLogin?: () => void;
   onLogin?: (credentials: LoginCredentials) => void;
   onSignUp?: () => void;
+  /** Contador de focos da tela usado para disparar a animação da logo. */
+  animationRun?: number;
 };
 
 /**
  * Exibe as opções de acesso e mantém somente o estado local dos campos; as
  * integrações reais são delegadas por callbacks para não acoplar UI e API.
  */
-export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenProps) {
+export function LoginScreen({ onGoogleLogin, onLogin, onSignUp, animationRun }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -57,6 +59,10 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
+            <View style={styles.logoContainer}>
+              <VersLogo animation="login" animationRun={animationRun} size={98} />
+            </View>
+
             <Text accessibilityRole="header" style={styles.title}>
               Welcome back
             </Text>
@@ -114,10 +120,6 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
                 <Text style={styles.accountLink}>Sing up</Text>
               </Pressable>
             </View>
-
-            <View style={styles.logoContainer}>
-              <VersLogo size={98} />
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -140,7 +142,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     paddingBottom: 38,
-    paddingTop: 82,
+    paddingTop: 40,
+  },
+  logoContainer: {
+    marginBottom: 26,
   },
   title: {
     color: colors.primary,
@@ -203,8 +208,5 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 14,
     textDecorationLine: 'underline',
-  },
-  logoContainer: {
-    marginTop: 84,
   },
 });

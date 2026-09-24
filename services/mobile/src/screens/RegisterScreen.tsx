@@ -7,12 +7,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthTextField } from '../components/AuthTextField';
 import { PasswordRequirements, evaluatePassword } from '../components/PasswordRequirements';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -27,13 +27,15 @@ export type RegisterCredentials = {
 type RegisterScreenProps = {
   onLogin?: () => void;
   onRegister?: (credentials: RegisterCredentials) => void;
+  /** Contador de focos da tela usado para disparar a animação da logo. */
+  animationRun?: number;
 };
 
 /**
  * Mantém os dados locais, apresenta a validação em tempo real e só libera o
  * envio quando todos os critérios e a confirmação de senha estiverem válidos.
  */
-export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
+export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -69,7 +71,7 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
-            <VersLogo size={100} />
+            <VersLogo animation="register" animationRun={animationRun} size={100} />
 
             <Text accessibilityRole="header" style={styles.title}>
               Create account

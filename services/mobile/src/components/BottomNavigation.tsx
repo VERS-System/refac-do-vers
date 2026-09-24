@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     width: 46,
   },
   activeButton: {
-    backgroundColor: '#292819',
+    backgroundColor: colors.tabActive,
   },
   brandButton: {
     alignItems: 'center',

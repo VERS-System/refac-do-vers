@@ -1,6 +1,6 @@
 // Testes HTTP da fundacao REST versionada do backend.
 
-import { ConflictException, Controller, Get, HttpException, HttpStatus, INestApplication, Param, Query } from '@nestjs/common';
+import { ConflictException, Controller, Get, HttpException, HttpStatus, INestApplication, Logger, Param, Query } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { Server } from 'http';
@@ -219,6 +219,67 @@ describe('fundacao HTTP da aplicacao', () => {
       expect(body.requestId).toBe(`error-${status}`);
       expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
       expect(JSON.stringify(body)).not.toMatch(/senha-sintetica|sql-interno|detalhe interno|stack/);
+    }
+  });
+
+  it('correlaciona resposta e log de erros 400 e 500', async () => {
+    const errorLog = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+
+    try {
+      for (const [path, status] of [
+        ['pagination?page=0', 400],
+        ['failure', 500],
+      ] as const) {
+        const requestId = `logged-${status}`;
+        const response = await fetch(`${baseUrl}/api/v1/foundation-fixture/${path}`, {
+          headers: { 'x-request-id': requestId },
+        });
+        const body = (await response.json()) as { requestId: string };
+        const event = errorLog.mock.calls.map(([value]) => value).find(
+          (value) => typeof value === 'object' && value !== null &&
+            'requestId' in value && value.requestId === requestId,
+        );
+
+        expect(response.status).toBe(status);
+        expect(body.requestId).toBe(requestId);
+        expect(event).toMatchObject({
+          event: 'http_request_failed',
+          statusCode: status,
+          requestId,
+        });
+        expect(JSON.stringify(event)).not.toMatch(/senha-sintetica|sql-interno/);
+      }
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
+
+  it('isola requestIds de requisições concorrentes', async () => {
+    const requestIds = ['parallel-a', 'parallel-b', 'parallel-c'];
+    const successLog = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+
+    try {
+      const responses = await Promise.all(requestIds.map((requestId) =>
+        fetch(`${baseUrl}/api/v1/health/live`, {
+          headers: { 'x-request-id': requestId },
+        }),
+      ));
+
+      for (const [index, response] of responses.entries()) {
+        const requestId = requestIds[index];
+        const body = (await response.json()) as { requestId: string };
+        const events = successLog.mock.calls.map(([value]) => value).filter(
+          (value) => typeof value === 'object' && value !== null &&
+            'requestId' in value && value.requestId === requestId,
+        );
+
+        expect(response.headers.get('x-request-id')).toBe(requestId);
+        expect(body.requestId).toBe(requestId);
+        expect(events).toHaveLength(1);
+        expect(events[0]).toMatchObject({ statusCode: 200, requestId });
+      }
+    } finally {
+      successLog.mockRestore();
     }
   });
 });

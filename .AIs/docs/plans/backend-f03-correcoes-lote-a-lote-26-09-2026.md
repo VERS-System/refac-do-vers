@@ -31,6 +31,13 @@
 - Teste primeiro demonstrou que a lista podia devolver `requestId` divergente do header. `ResponseEnvelopeInterceptor` agora impõe o ID da requisição mesmo quando o controller entrega envelope público.
 - Jest local: 15 suítes/47 testes; ESLint e `nest build` passaram. Os logs de erros ainda registram status 200 (P2), reservado ao lote 05.
 
+## Lote 05 — fechado em 26/09/2026
+
+- Teste HTTP falhou primeiro: resposta 400 era registrada com status 200. `LoggingInterceptor` agora usa o status da `HttpException` ou 500 para falha inesperada.
+- Testes HTTP conferem status e `requestId` iguais em resposta e log para 400/500, ausência de mensagem interna no log e isolamento de resposta/log em três requisições concorrentes.
+- Política de entrada já implementada e mantida: `x-request-id` com 1–80 caracteres de `[A-Za-z0-9._:-]` é reutilizado; demais valores recebem UUID gerado pelo servidor. Corpo, query, cookies e autorização não entram no log estruturado.
+- Próximo lote: CORS, headers e throttling.
+
 ## Ordem de execução
 
 1. Lote 02: acrescentar teste de bootstrap com configuração inválida e conferir prefixo e middleware. Alterar código só se o teste demonstrar defeito.

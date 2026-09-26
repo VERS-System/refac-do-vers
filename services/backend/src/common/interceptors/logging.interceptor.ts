@@ -3,6 +3,8 @@
 import {
   CallHandler,
   ExecutionContext,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   LoggerService,
@@ -60,7 +62,9 @@ export class LoggingInterceptor implements NestInterceptor {
       }),
       catchError((error: unknown) => {
         const statusCode =
-          typeof response.statusCode === 'number' ? response.statusCode : 500;
+          error instanceof HttpException
+            ? error.getStatus()
+            : HttpStatus.INTERNAL_SERVER_ERROR;
 
         this.logger.error({
           event: 'http_request_failed',

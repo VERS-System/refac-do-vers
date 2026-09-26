@@ -10,7 +10,7 @@ negócio, segurança, persistência, cálculos e autorização pertencem ao back
 
 | Ordem | Task | Estado | Dependência visual |
 | --- | --- | --- | --- |
-| 00 | [Base visual e navegação](00-base-visual-navegacao.md) | Em andamento | — |
+| 00 | [Base visual e navegação](00-base-visual-navegacao.md) | Concluída | — |
 | 01 | [Splash](01-tela-splash.md) | Implementada | Task 00 |
 | 02 | [Login](02-tela-login.md) | Interface parcial | Tasks 00–01 |
 | 03 | [Cadastro](03-tela-cadastro.md) | Interface parcial | Task 02 |

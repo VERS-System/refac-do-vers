@@ -38,6 +38,13 @@
 - Política de entrada já implementada e mantida: `x-request-id` com 1–80 caracteres de `[A-Za-z0-9._:-]` é reutilizado; demais valores recebem UUID gerado pelo servidor. Corpo, query, cookies e autorização não entram no log estruturado.
 - Próximo lote: CORS, headers e throttling.
 
+## Lote 06 — fechado em 26/09/2026
+
+- Testes HTTP confirmam origem da allowlist com credenciais, ausência de `Access-Control-Allow-Origin` para origem negada, preflight com `x-request-id` e header Helmet `x-content-type-options: nosniff`.
+- O guard real retorna 429 no envelope público `RATE_LIMIT_EXCEEDED` com o mesmo `requestId` do header. Nenhuma alteração de produção foi necessária.
+- Limite padrão atual: 100 requisições por 60 segundos, configurável por `RATE_LIMIT_MAX_REQUESTS` e `RATE_LIMIT_TTL_SECONDS`. Os valores finais de produção seguem para decisão do programador.
+- Jest local: 15 suítes/52 testes; ESLint e `nest build` passaram. Próximo lote: auditoria mínima.
+
 ## Ordem de execução
 
 1. Lote 02: acrescentar teste de bootstrap com configuração inválida e conferir prefixo e middleware. Alterar código só se o teste demonstrar defeito.

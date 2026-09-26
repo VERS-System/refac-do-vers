@@ -16,6 +16,12 @@ import {
 /** Expõe DTOs comuns apenas no harness HTTP para verificar a validação global. */
 @Controller('foundation-fixture')
 class FoundationFixtureController {
+  /** Responde sem dependências para verificar o limite HTTP real. */
+  @Get('throttle')
+  throttle(): object {
+    return { ok: true };
+  }
+
   /** Devolve uma lista sintética no contrato público para verificar o envelope. */
   @Get('list')
   list(): object {
@@ -281,6 +287,64 @@ describe('fundacao HTTP da aplicacao', () => {
     } finally {
       successLog.mockRestore();
     }
+  });
+
+  it('permite origem configurada com credenciais e bloqueia CORS de outra origem', async () => {
+    const allowed = await fetch(`${baseUrl}/api/v1/health/live`, {
+      headers: { Origin: 'http://localhost:3001' },
+    });
+    expect(allowed.headers.get('access-control-allow-origin')).toBe('http://localhost:3001');
+    expect(allowed.headers.get('access-control-allow-credentials')).toBe('true');
+    expect(allowed.headers.get('access-control-expose-headers')).toContain('x-request-id');
+    expect(allowed.headers.get('x-content-type-options')).toBe('nosniff');
+
+    const denied = await fetch(`${baseUrl}/api/v1/health/live`, {
+      headers: { Origin: 'https://origem-negada.example' },
+    });
+    expect(denied.headers.get('access-control-allow-origin')).toBeNull();
+    expect(denied.headers.get('access-control-allow-credentials')).toBe('true');
+  });
+
+  it('responde preflight somente para origem permitida', async () => {
+    for (const [origin, expected] of [
+      ['http://localhost:3001', 'http://localhost:3001'],
+      ['https://origem-negada.example', null],
+    ] as const) {
+      const response = await fetch(`${baseUrl}/api/v1/health/live`, {
+        method: 'OPTIONS',
+        headers: {
+          Origin: origin,
+          'Access-Control-Request-Method': 'GET',
+          'Access-Control-Request-Headers': 'x-request-id',
+        },
+      });
+      expect(response.headers.get('access-control-allow-origin')).toBe(expected);
+      if (expected) {
+        expect(response.headers.get('access-control-allow-credentials')).toBe('true');
+        expect(response.headers.get('access-control-allow-headers')).toContain('x-request-id');
+      }
+    }
+  });
+
+  it('aplica throttling real com envelope público de 429', async () => {
+    let limited: Response | undefined;
+
+    for (let attempt = 0; attempt <= 100; attempt += 1) {
+      const response = await fetch(`${baseUrl}/api/v1/foundation-fixture/throttle`);
+      if (response.status === 429) {
+        limited = response;
+        break;
+      }
+      expect(response.status).toBe(200);
+    }
+
+    expect(limited?.status).toBe(429);
+    const body = (await limited?.json()) as {
+      error: { code: string };
+      requestId: string;
+    };
+    expect(body.error.code).toBe('RATE_LIMIT_EXCEEDED');
+    expect(body.requestId).toBe(limited?.headers.get('x-request-id'));
   });
 });
 

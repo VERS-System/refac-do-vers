@@ -7,8 +7,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { theme } from '../constants/theme';
+import { TAB_META, TAB_ORDER, type MainTab } from '../navigation/tabs';
 
-export type MainTab = 'home' | 'battery' | 'vers' | 'profile';
+/** Reexporta o tipo para telas que já importam da barra. */
+export type { MainTab };
 
 type BottomNavigationProps = {
   activeTab: MainTab;
@@ -46,8 +48,9 @@ function NavigationIcon({ activeTab, icon, label, onPress, tab }: NavigationIcon
 }
 
 /**
- * Organiza as quatro áreas do app, dando destaque central à marca conforme os
- * mockups e permitindo que cada tela controle a navegação externamente.
+ * Organiza as quatro áreas do app a partir do mapa central de abas, dando
+ * destaque central à marca conforme os mockups e permitindo que cada tela
+ * controle a navegação externamente.
  */
 export function BottomNavigation({ activeTab, onTabPress }: BottomNavigationProps) {
   /** Encaminha o toque no botão central da marca. */
@@ -57,42 +60,41 @@ export function BottomNavigation({ activeTab, onTabPress }: BottomNavigationProp
 
   return (
     <View style={styles.container}>
-      <NavigationIcon
-        activeTab={activeTab}
-        icon="home-outline"
-        label="Início"
-        onPress={onTabPress}
-        tab="home"
-      />
-      <NavigationIcon
-        activeTab={activeTab}
-        icon="battery-charging-outline"
-        label="Bateria"
-        onPress={onTabPress}
-        tab="battery"
-      />
-      <Pressable
-        accessibilityLabel="VERS"
-        accessibilityRole="button"
-        accessibilityState={{ selected: activeTab === 'vers' }}
-        onPress={handleVersPress}
-        style={styles.brandButton}
-      >
-        <Image
-          accessibilityLabel="Logotipo do VERS"
-          resizeMode="contain"
-          source={require('../assets/versAlt.png')}
-          style={styles.brandImage}
-          testID="vers-brand-image"
-        />
-      </Pressable>
-      <NavigationIcon
-        activeTab={activeTab}
-        icon="person-outline"
-        label="Perfil"
-        onPress={onTabPress}
-        tab="profile"
-      />
+      {TAB_ORDER.map((tab) => {
+        if (tab === 'vers') {
+          return (
+            <Pressable
+              accessibilityLabel={TAB_META.vers.label}
+              accessibilityRole="button"
+              accessibilityState={{ selected: activeTab === 'vers' }}
+              key="vers"
+              onPress={handleVersPress}
+              style={styles.brandButton}
+            >
+              <Image
+                accessibilityLabel="Logotipo do VERS"
+                resizeMode="contain"
+                source={require('../assets/versAlt.png')}
+                style={styles.brandImage}
+                testID="vers-brand-image"
+              />
+            </Pressable>
+          );
+        }
+
+        const meta = TAB_META[tab];
+
+        return (
+          <NavigationIcon
+            activeTab={activeTab}
+            icon={meta.icon!}
+            key={tab}
+            label={meta.label}
+            onPress={onTabPress}
+            tab={tab}
+          />
+        );
+      })}
     </View>
   );
 }

@@ -5,7 +5,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { BottomNavigation } from '../BottomNavigation';
-import { TAB_ORDER, type MainTab } from '../../navigation/tabs';
+import { TAB_META, TAB_ORDER, type MainTab } from '../../navigation/tabs';
 
 describe('BottomNavigation', () => {
   /** Encaminha a aba selecionada e informa semanticamente a aba ativa. */
@@ -63,5 +63,20 @@ describe('BottomNavigation', () => {
 
     expect(style.width).toBeLessThanOrEqual(30);
     expect(style.height).toBeLessThanOrEqual(30);
+  });
+
+  /** Marca o estado selecionado em todas as abas (Task 00 - Item 6c). */
+  it('informa a aba selecionada em cada estado', () => {
+    for (const activeTab of TAB_ORDER) {
+      const { getByRole, unmount } = render(<BottomNavigation activeTab={activeTab} />);
+
+      for (const tab of TAB_ORDER) {
+        expect(
+          getByRole('button', { name: TAB_META[tab].label }).props.accessibilityState,
+        ).toEqual({ selected: tab === activeTab });
+      }
+
+      unmount();
+    }
   });
 });

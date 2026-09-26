@@ -14,4 +14,11 @@ describe('SplashScreen', () => {
     expect(getByTestId('splash-logo-move')).toBeTruthy();
     expect(getByTestId('vers-logo')).toBeTruthy();
   });
+
+  /** Anuncia a marca para leitores de tela (Task 00 - Item 6c). */
+  it('anuncia a marca para leitores de tela', () => {
+    const { getByLabelText } = render(<SplashScreen />);
+
+    expect(getByLabelText('Logotipo do VERS')).toBeTruthy();
+  });
 });

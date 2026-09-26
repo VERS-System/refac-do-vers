@@ -94,4 +94,13 @@ describe('Feedback', () => {
 
     expect(getByText('Extra')).toBeTruthy();
   });
+
+  /** Anuncia erro e offline via live-region (Task 00 - Item 6c). */
+  it('expõe live-region nos estados de erro e offline', () => {
+    const error = render(<Feedback.Error message="Falha." testID="erro" />);
+    const offline = render(<Feedback.Offline testID="offline" />);
+
+    expect(error.getByTestId('erro').props.accessibilityLiveRegion).toBe('assertive');
+    expect(offline.getByTestId('offline').props.accessibilityLiveRegion).toBe('polite');
+  });
 });

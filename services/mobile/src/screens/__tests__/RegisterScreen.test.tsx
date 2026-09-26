@@ -143,4 +143,26 @@ describe('RegisterScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Sign up' }));
     expect(onRegister).toHaveBeenCalledTimes(1);
   });
+
+  /** Garante sucesso sem sessão antecipada e com retorno ao Login (03f). */
+  it('exibe sucesso e bloqueia reenvio', () => {
+    const onLogin = jest.fn();
+    const onRegister = jest.fn();
+    const { getByRole } = render(
+      <RegisterScreen onLogin={onLogin} onRegister={onRegister} status="success" />,
+    );
+
+    expect(
+      getByRole('alert', { name: 'Conta criada com sucesso. Volte ao Login para entrar.' }),
+    ).toBeTruthy();
+    expect(getByRole('button', { name: 'Sign up' }).props.accessibilityState).toEqual({
+      disabled: true,
+    });
+
+    fireEvent.press(getByRole('button', { name: 'Sign up' }));
+    expect(onRegister).not.toHaveBeenCalled();
+
+    fireEvent.press(getByRole('button', { name: 'Voltar para o Login' }));
+    expect(onLogin).toHaveBeenCalledTimes(1);
+  });
 });

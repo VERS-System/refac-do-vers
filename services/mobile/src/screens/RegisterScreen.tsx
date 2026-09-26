@@ -54,6 +54,7 @@ export function RegisterScreen({ onLogin, onRegister, status = 'idle', animation
   const isSending = status === 'sending';
   const isConflict = status === 'conflict';
   const isGenericError = status === 'genericError';
+  const isSuccess = status === 'success';
 
   const canSubmit = useMemo(() => {
     const requirements = evaluatePassword(password);
@@ -64,7 +65,7 @@ export function RegisterScreen({ onLogin, onRegister, status = 'idle', animation
 
   /** Envia as credenciais somente após a validação completa do formulário. */
   function handleRegister() {
-    if (!canSubmit || isSending) {
+    if (!canSubmit || isSending || isSuccess) {
       return;
     }
 
@@ -143,7 +144,7 @@ export function RegisterScreen({ onLogin, onRegister, status = 'idle', animation
               <View style={styles.signUpButton}>
                 <PrimaryButton
                   accessibilityLabel="Sign up"
-                  disabled={!canSubmit || isSending}
+                  disabled={!canSubmit || isSending || isSuccess}
                   label="SIGN UP"
                   onPress={handleRegister}
                 />
@@ -174,6 +175,16 @@ export function RegisterScreen({ onLogin, onRegister, status = 'idle', animation
                   testID="register-error"
                 >
                   Não foi possível criar a conta. Tente novamente.
+                </Text>
+              )}
+              {isSuccess && (
+                <Text
+                  accessibilityLabel="Conta criada com sucesso. Volte ao Login para entrar."
+                  accessibilityRole="alert"
+                  style={styles.successText}
+                  testID="register-success"
+                >
+                  Conta criada com sucesso. Volte ao Login para entrar.
                 </Text>
               )}
             </View>
@@ -223,6 +234,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: theme.colors.error,
+    fontSize: 13,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  successText: {
+    color: theme.colors.success,
     fontSize: 13,
     marginTop: 16,
     textAlign: 'center',

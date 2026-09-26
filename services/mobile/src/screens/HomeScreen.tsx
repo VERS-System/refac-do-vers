@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BatteryDonut } from '../components/BatteryDonut';
 import { BottomNavigation, MainTab } from '../components/BottomNavigation';
 import { EnergyBarChart } from '../components/EnergyBarChart';
+import { AppCard } from '../components/AppCard';
 import { theme } from '../constants/theme';
 
 const BATTERY_VALUES = [52, 48, 72, 57, 75, 50];
@@ -42,24 +43,20 @@ export function HomeScreen({ onOpenViber, onTabPress }: HomeScreenProps) {
         </Pressable>
 
         <View style={styles.topCards}>
-          <Pressable
-            accessibilityLabel="Abrir uso da bateria"
-            accessibilityRole="button"
-            style={[styles.card, styles.batteryCard]}
-          >
+          <AppCard accessibilityLabel="Abrir uso da bateria" style={styles.batteryCard}>
             <Text style={styles.cardTitle}>Battery usage</Text>
             <View style={styles.smallChart}>
               <EnergyBarChart height={73} values={BATTERY_VALUES} />
             </View>
-          </Pressable>
+          </AppCard>
         </View>
 
-        <View style={styles.economyCard}>
+        <AppCard style={styles.economyCard}>
           <Text style={styles.economyTitle}>Money economy</Text>
           <View style={styles.economyChart}>
             <EnergyBarChart height={76} values={ECONOMY_VALUES} />
           </View>
-        </View>
+        </AppCard>
 
         <View style={styles.donutSection}>
           <Text style={styles.recoveredLabel}>Battery Recovered</Text>
@@ -106,15 +103,9 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     width: '100%',
   },
-  card: {
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 164,
-    overflow: 'hidden',
-  },
   batteryCard: {
     flex: 1,
+    height: 164,
     paddingHorizontal: 14,
     paddingTop: 8,
   },
@@ -128,13 +119,9 @@ const styles = StyleSheet.create({
     paddingBottom: 35,
   },
   economyCard: {
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.xl,
-    borderWidth: StyleSheet.hairlineWidth,
     height: 164,
     marginTop: 29,
     maxWidth: 350,
-    overflow: 'hidden',
     paddingHorizontal: 25,
     paddingTop: 13,
     width: '100%',

@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthTextField } from '../components/AuthTextField';
 import { PasswordRequirements, evaluatePassword } from '../components/PasswordRequirements';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -36,6 +37,8 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false);
 
   const canSubmit = useMemo(() => {
     const requirements = evaluatePassword(password);
@@ -77,8 +80,22 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
                 label="Password:"
                 onChangeText={setPassword}
                 placeholder="Enter your password"
-                secureTextEntry
+                secureTextEntry={!isPasswordVisible}
                 textContentType="newPassword"
+                trailing={
+                  <Pressable
+                    accessibilityLabel={isPasswordVisible ? 'Ocultar senha' : 'Mostrar senha'}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => setIsPasswordVisible((visible) => !visible)}
+                  >
+                    <Ionicons
+                      color={theme.colors.primary}
+                      name={isPasswordVisible ? 'eye' : 'eye-outline'}
+                      size={20}
+                    />
+                  </Pressable>
+                }
                 value={password}
               />
 
@@ -89,8 +106,22 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
                 label="Confirm Password:"
                 onChangeText={setConfirmPassword}
                 placeholder="Enter your password"
-                secureTextEntry
+                secureTextEntry={!isConfirmVisible}
                 textContentType="newPassword"
+                trailing={
+                  <Pressable
+                    accessibilityLabel={isConfirmVisible ? 'Ocultar confirmação' : 'Mostrar confirmação'}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => setIsConfirmVisible((visible) => !visible)}
+                  >
+                    <Ionicons
+                      color={theme.colors.primary}
+                      name={isConfirmVisible ? 'eye' : 'eye-outline'}
+                      size={20}
+                    />
+                  </Pressable>
+                }
                 value={confirmPassword}
               />
 

@@ -59,4 +59,22 @@ describe('RegisterScreen', () => {
     expect(getByText('SIGN UP')).toBeTruthy();
     expect(queryByText('SING UP')).toBeNull();
   });
+
+  /** Garante visibilidade independente da senha e da confirmação (03b). */
+  it('alterna a visibilidade da senha e da confirmação', () => {
+    const { getByLabelText, getByRole } = render(<RegisterScreen />);
+
+    expect(getByLabelText('Password').props.secureTextEntry).toBe(true);
+    expect(getByLabelText('Confirm Password').props.secureTextEntry).toBe(true);
+
+    fireEvent.press(getByRole('button', { name: 'Mostrar senha' }));
+    expect(getByLabelText('Password').props.secureTextEntry).toBe(false);
+    expect(getByLabelText('Confirm Password').props.secureTextEntry).toBe(true);
+
+    fireEvent.press(getByRole('button', { name: 'Mostrar confirmação' }));
+    expect(getByLabelText('Confirm Password').props.secureTextEntry).toBe(false);
+
+    fireEvent.press(getByRole('button', { name: 'Ocultar senha' }));
+    expect(getByLabelText('Password').props.secureTextEntry).toBe(true);
+  });
 });

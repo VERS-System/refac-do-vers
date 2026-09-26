@@ -97,4 +97,27 @@ describe('RegisterScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Sign up' }));
     expect(onRegister).not.toHaveBeenCalled();
   });
+
+  /** Garante conflito de email com campos preservados e reenvio (03d). */
+  it('exibe conflito e permite corrigir e reenviar', () => {
+    const onRegister = jest.fn();
+    const { getByLabelText, getByRole } = render(
+      <RegisterScreen onRegister={onRegister} status="conflict" />,
+    );
+
+    fireEvent.changeText(getByLabelText('Email'), 'anna@vers.com');
+    fireEvent.changeText(getByLabelText('Password'), 'Password123!');
+    fireEvent.changeText(getByLabelText('Confirm Password'), 'Password123!');
+
+    expect(
+      getByRole('alert', { name: 'Este email já está em uso. Entre ou use outro email.' }),
+    ).toBeTruthy();
+    expect(getByLabelText('Email').props.value).toBe('anna@vers.com');
+
+    fireEvent.press(getByRole('button', { name: 'Sign up' }));
+    expect(onRegister).toHaveBeenCalledWith({
+      email: 'anna@vers.com',
+      password: 'Password123!',
+    });
+  });
 });

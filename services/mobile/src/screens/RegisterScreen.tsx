@@ -52,6 +52,7 @@ export function RegisterScreen({ onLogin, onRegister, status = 'idle', animation
   const [isConfirmVisible, setIsConfirmVisible] = useState(false);
 
   const isSending = status === 'sending';
+  const isConflict = status === 'conflict';
 
   const canSubmit = useMemo(() => {
     const requirements = evaluatePassword(password);
@@ -154,6 +155,16 @@ export function RegisterScreen({ onLogin, onRegister, status = 'idle', animation
                   testID="register-sending"
                 />
               )}
+              {isConflict && (
+                <Text
+                  accessibilityLabel="Este email já está em uso. Entre ou use outro email."
+                  accessibilityRole="alert"
+                  style={styles.errorText}
+                  testID="register-conflict"
+                >
+                  Este email já está em uso. Entre ou use outro email.
+                </Text>
+              )}
             </View>
 
             <View style={styles.accountRow}>
@@ -198,6 +209,12 @@ const styles = StyleSheet.create({
   },
   sendingIndicator: {
     marginTop: 16,
+  },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 13,
+    marginTop: 16,
+    textAlign: 'center',
   },
   accountRow: {
     alignItems: 'center',

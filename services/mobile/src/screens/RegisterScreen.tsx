@@ -53,6 +53,7 @@ export function RegisterScreen({ onLogin, onRegister, status = 'idle', animation
 
   const isSending = status === 'sending';
   const isConflict = status === 'conflict';
+  const isGenericError = status === 'genericError';
 
   const canSubmit = useMemo(() => {
     const requirements = evaluatePassword(password);
@@ -163,6 +164,16 @@ export function RegisterScreen({ onLogin, onRegister, status = 'idle', animation
                   testID="register-conflict"
                 >
                   Este email já está em uso. Entre ou use outro email.
+                </Text>
+              )}
+              {isGenericError && (
+                <Text
+                  accessibilityLabel="Não foi possível criar a conta. Tente novamente."
+                  accessibilityRole="alert"
+                  style={styles.errorText}
+                  testID="register-error"
+                >
+                  Não foi possível criar a conta. Tente novamente.
                 </Text>
               )}
             </View>

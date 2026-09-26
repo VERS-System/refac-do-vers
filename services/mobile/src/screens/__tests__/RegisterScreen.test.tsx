@@ -120,4 +120,27 @@ describe('RegisterScreen', () => {
       password: 'Password123!',
     });
   });
+
+  /** Garante erro genérico distinto do conflito, com reenvio (03e). */
+  it('exibe erro genérico preservando os campos', () => {
+    const onRegister = jest.fn();
+    const { getByLabelText, getByRole, queryByRole } = render(
+      <RegisterScreen onRegister={onRegister} status="genericError" />,
+    );
+
+    fireEvent.changeText(getByLabelText('Email'), 'anna@vers.com');
+    fireEvent.changeText(getByLabelText('Password'), 'Password123!');
+    fireEvent.changeText(getByLabelText('Confirm Password'), 'Password123!');
+
+    expect(
+      getByRole('alert', { name: 'Não foi possível criar a conta. Tente novamente.' }),
+    ).toBeTruthy();
+    expect(
+      queryByRole('alert', { name: 'Este email já está em uso. Entre ou use outro email.' }),
+    ).toBeNull();
+    expect(getByLabelText('Email').props.value).toBe('anna@vers.com');
+
+    fireEvent.press(getByRole('button', { name: 'Sign up' }));
+    expect(onRegister).toHaveBeenCalledTimes(1);
+  });
 });

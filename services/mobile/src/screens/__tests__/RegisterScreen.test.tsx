@@ -77,4 +77,24 @@ describe('RegisterScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Ocultar senha' }));
     expect(getByLabelText('Password').props.secureTextEntry).toBe(true);
   });
+
+  /** Garante o envio: indicador, botão desabilitado e sem reenvio (03c). */
+  it('exibe carregamento e bloqueia reenvio durante o envio', () => {
+    const onRegister = jest.fn();
+    const { getByLabelText, getByRole } = render(
+      <RegisterScreen onRegister={onRegister} status="sending" />,
+    );
+
+    fireEvent.changeText(getByLabelText('Email'), 'anna@vers.com');
+    fireEvent.changeText(getByLabelText('Password'), 'Password123!');
+    fireEvent.changeText(getByLabelText('Confirm Password'), 'Password123!');
+
+    expect(getByRole('button', { name: 'Sign up' }).props.accessibilityState).toEqual({
+      disabled: true,
+    });
+    expect(getByLabelText('Enviando')).toBeTruthy();
+
+    fireEvent.press(getByRole('button', { name: 'Sign up' }));
+    expect(onRegister).not.toHaveBeenCalled();
+  });
 });

@@ -4,6 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -22,9 +23,19 @@ export type RegisterCredentials = {
   password: string;
 };
 
+/** Estados visuais do cadastro; a origem (rede, conflito) é do backend. */
+export type RegisterStatus =
+  | 'idle'
+  | 'sending'
+  | 'conflict'
+  | 'genericError'
+  | 'success';
+
 type RegisterScreenProps = {
   onLogin?: () => void;
   onRegister?: (credentials: RegisterCredentials) => void;
+  /** Estado visual atual; `idle` libera o envio. */
+  status?: RegisterStatus;
   /** Contador de focos da tela usado para disparar a animação da logo. */
   animationRun?: number;
 };
@@ -33,12 +44,14 @@ type RegisterScreenProps = {
  * Mantém os dados locais, apresenta a validação em tempo real e só libera o
  * envio quando todos os critérios e a confirmação de senha estiverem válidos.
  */
-export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterScreenProps) {
+export function RegisterScreen({ onLogin, onRegister, status = 'idle', animationRun }: RegisterScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+
+  const isSending = status === 'sending';
 
   const canSubmit = useMemo(() => {
     const requirements = evaluatePassword(password);
@@ -49,7 +62,7 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
 
   /** Envia as credenciais somente após a validação completa do formulário. */
   function handleRegister() {
-    if (!canSubmit) {
+    if (!canSubmit || isSending) {
       return;
     }
 
@@ -128,11 +141,19 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
               <View style={styles.signUpButton}>
                 <PrimaryButton
                   accessibilityLabel="Sign up"
-                  disabled={!canSubmit}
+                  disabled={!canSubmit || isSending}
                   label="SIGN UP"
                   onPress={handleRegister}
                 />
               </View>
+              {isSending && (
+                <ActivityIndicator
+                  accessibilityLabel="Enviando"
+                  color={theme.colors.primary}
+                  style={styles.sendingIndicator}
+                  testID="register-sending"
+                />
+              )}
             </View>
 
             <View style={styles.accountRow}>
@@ -174,6 +195,9 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 350,
     marginTop: 34,
+  },
+  sendingIndicator: {
+    marginTop: 16,
   },
   accountRow: {
     alignItems: 'center',

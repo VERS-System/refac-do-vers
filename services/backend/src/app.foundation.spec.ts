@@ -1,6 +1,6 @@
 // Testes HTTP da fundacao REST versionada do backend.
 
-import { Controller, Get, INestApplication, Param, Query } from '@nestjs/common';
+import { ConflictException, Controller, Get, HttpException, HttpStatus, INestApplication, Param, Query } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { Server } from 'http';
@@ -16,6 +16,34 @@ import {
 /** Expõe DTOs comuns apenas no harness HTTP para verificar a validação global. */
 @Controller('foundation-fixture')
 class FoundationFixtureController {
+  /** Devolve uma lista sintética no contrato público para verificar o envelope. */
+  @Get('list')
+  list(): object {
+    return {
+      data: [],
+      meta: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 },
+      requestId: 'fixture-list',
+    };
+  }
+
+  /** Provoca conflitos conhecidos somente no harness HTTP. */
+  @Get('conflict')
+  conflict(): never {
+    throw new ConflictException('detalhe interno de conflito');
+  }
+
+  /** Provoca limite conhecido somente no harness HTTP. */
+  @Get('rate-limit')
+  rateLimit(): never {
+    throw new HttpException('detalhe interno de limite', HttpStatus.TOO_MANY_REQUESTS);
+  }
+
+  /** Provoca falha inesperada somente no harness HTTP. */
+  @Get('failure')
+  failure(): never {
+    throw new Error('senha-sintetica-sql-interno');
+  }
+
   /** Recebe filtros e paginação sintéticos sem consultar dependências. */
   @Get('pagination')
   pagination(@Query() pagination: PaginationQueryDto): object {
@@ -152,6 +180,46 @@ describe('fundacao HTTP da aplicacao', () => {
       `${baseUrl}/api/v1/foundation-fixture/dates?startedFrom=2024-02-29T12%3A00%3A00Z&startedTo=2024-03-01T12%3A00%3A00Z`,
     );
     expect(dates.status).toBe(200);
+  });
+
+  it('preserva lista paginada sem envelope duplo por HTTP', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/foundation-fixture/list`, {
+      headers: { 'x-request-id': 'list-request' },
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: [],
+      meta: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 },
+      requestId: 'list-request',
+    });
+  });
+
+  it('padroniza erros HTTP sem expor detalhes internos', async () => {
+    for (const [path, status, code] of [
+      ['pagination?page=0', 400, 'VALIDATION_ERROR'],
+      ['missing/path', 404, 'RESOURCE_NOT_FOUND'],
+      ['conflict', 409, 'CONFLICT'],
+      ['rate-limit', 429, 'RATE_LIMIT_EXCEEDED'],
+      ['failure', 500, 'INTERNAL_SERVER_ERROR'],
+    ] as const) {
+      const response = await fetch(`${baseUrl}/api/v1/foundation-fixture/${path}`, {
+        headers: { 'x-request-id': `error-${status}` },
+      });
+      const body = (await response.json()) as {
+        error: { code: string; message: string; details: unknown[] };
+        requestId: string;
+        timestamp: string;
+      };
+
+      expect(response.status).toBe(status);
+      expect(response.headers.get('x-request-id')).toBe(`error-${status}`);
+      expect(body.error.code).toBe(code);
+      expect(body.error.message).toEqual(expect.any(String));
+      expect(Array.isArray(body.error.details)).toBe(true);
+      expect(body.requestId).toBe(`error-${status}`);
+      expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
+      expect(JSON.stringify(body)).not.toMatch(/senha-sintetica|sql-interno|detalhe interno|stack/);
+    }
   });
 });
 

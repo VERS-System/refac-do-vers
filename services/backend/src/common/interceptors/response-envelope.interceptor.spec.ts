@@ -40,6 +40,6 @@ describe('ResponseEnvelopeInterceptor', () => {
           handle: (): Observable<typeof response> => of(response),
         }),
       ),
-    ).resolves.toBe(response);
+    ).resolves.toEqual(response);
   });
 });

@@ -25,6 +25,12 @@
 - Padrões e máximo conferidos com `.AIs/docs/Api/openapi.yaml` e tipos compartilhados. Jest local: 15 suítes/45 testes aprovados.
 - Próximo lote: envelope e catálogo de erros por HTTP. O P2 (status 200 no log de falhas) permanece reservado ao lote 05.
 
+## Lote 04 — fechado em 26/09/2026
+
+- Harness HTTP cobre lista vazia paginada sem envelope duplo e erros 400, 404, 409, 429 e 500 com código, mensagem, detalhes, `requestId` e timestamp; não há exposição de mensagem interna ou stack trace nesses cenários.
+- Teste primeiro demonstrou que a lista podia devolver `requestId` divergente do header. `ResponseEnvelopeInterceptor` agora impõe o ID da requisição mesmo quando o controller entrega envelope público.
+- Jest local: 15 suítes/47 testes; ESLint e `nest build` passaram. Os logs de erros ainda registram status 200 (P2), reservado ao lote 05.
+
 ## Ordem de execução
 
 1. Lote 02: acrescentar teste de bootstrap com configuração inválida e conferir prefixo e middleware. Alterar código só se o teste demonstrar defeito.

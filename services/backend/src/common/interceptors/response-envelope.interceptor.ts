@@ -47,7 +47,7 @@ export class ResponseEnvelopeInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map((body: unknown) => {
         if (isPublicResponse(body)) {
-          return body;
+          return { ...body, requestId: getRequestId(request) };
         }
 
         return {

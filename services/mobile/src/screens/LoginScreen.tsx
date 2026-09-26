@@ -55,10 +55,12 @@ export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }
   const isSending = status === 'sending';
   const isGenericError = status === 'genericError';
   const isUnavailable = status === 'unavailable';
+  const isTemporarilyBlocked = status === 'temporarilyBlocked';
+  const isSubmitDisabled = isSending || isTemporarilyBlocked;
 
   /** Encaminha ao fluxo de autenticação as credenciais atualmente preenchidas. */
   function handleLogin() {
-    if (isSending) {
+    if (isSubmitDisabled) {
       return;
     }
 
@@ -113,7 +115,7 @@ export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }
               <View style={styles.loginButton}>
                 <PrimaryButton
                   accessibilityLabel="Login"
-                  disabled={isSending}
+                  disabled={isSubmitDisabled}
                   label="LOGIN"
                   onPress={handleLogin}
                 />
@@ -126,6 +128,16 @@ export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }
                   testID="login-error"
                 >
                   Não foi possível entrar. Verifique email e senha e tente novamente.
+                </Text>
+              )}
+              {isTemporarilyBlocked && (
+                <Text
+                  accessibilityLabel="Acesso bloqueado temporariamente. Aguarde alguns minutos e tente novamente."
+                  accessibilityRole="alert"
+                  style={styles.errorText}
+                  testID="login-blocked"
+                >
+                  Acesso bloqueado temporariamente. Aguarde alguns minutos e tente novamente.
                 </Text>
               )}
               {isUnavailable && (

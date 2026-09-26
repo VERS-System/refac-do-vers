@@ -115,4 +115,22 @@ describe('LoginScreen', () => {
       password: 'Password123!!',
     });
   });
+
+  /** Garante bloqueio temporário com envio desabilitado (02f). */
+  it('exibe bloqueio temporário e impede o envio', () => {
+    const onLogin = jest.fn();
+    const { getByRole } = render(
+      <LoginScreen onLogin={onLogin} status="temporarilyBlocked" />,
+    );
+
+    expect(
+      getByRole('alert', { name: 'Acesso bloqueado temporariamente. Aguarde alguns minutos e tente novamente.' }),
+    ).toBeTruthy();
+    expect(getByRole('button', { name: 'Login' }).props.accessibilityState).toEqual({
+      disabled: true,
+    });
+
+    fireEvent.press(getByRole('button', { name: 'Login' }));
+    expect(onLogin).not.toHaveBeenCalled();
+  });
 });

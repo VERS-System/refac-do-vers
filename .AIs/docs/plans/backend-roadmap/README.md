@@ -11,8 +11,8 @@ arquitetura; estes documentos definem como executar cada fase.
 | Fase | Documento | Estado | Dependência principal |
 | --- | --- | --- | --- |
 | 00 | [Baseline](00-baseline.md) | Concluída | — |
-| 01 | [Contratos da API](01-contratos-api.md) | Em andamento | Fase 00 |
-| 02 | [Schema e migrations](02-schema-migrations.md) | Planejada | Fase 01 |
+| 01 | [Contratos da API](01-contratos-api.md) | Concluída | Fase 00 |
+| 02 | [Schema e migrations](02-schema-migrations.md) | Concluída | Fase 01 |
 | 03 | [APIs e rotas](03-apis-rotas.md) | Planejada | Fase 02 |
 | 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Planejada | Fase 03 |
 | 05 | [Recursos de domínio](05-recursos-dominio.md) | Planejada | Fase 04 |
@@ -48,5 +48,6 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 
 - [Contratos iniciais da Fase 1](../backend-api-contracts-phase-1.md)
 - [Plano seguro da Fase 2](../backend-schema-phase-2.md)
+- [Plano executável da Fase 2](../backend-schema-phase-2-execution-roadmap.md)
 - [Schema v2 proposto](../schema-mobile-mqtt.md)
 - [Roadmap estratégico de Backend e MQTT](../backend-mqtt-roadmap.md)

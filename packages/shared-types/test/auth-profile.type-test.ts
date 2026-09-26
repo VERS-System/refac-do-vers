@@ -9,6 +9,7 @@ import type {
   RegisterRequest,
   UpdateUserProfileRequest,
   UserProfile,
+  UserRole,
 } from '../src/index';
 import { authResponseFixture, userProfileFixture } from '../src/index';
 
@@ -47,6 +48,12 @@ void logoutRequest;
 void profileUpdate;
 void profileResponse;
 void authResponse;
+
+const adminRoles: UserRole[] = ['USER', 'ADMIN'];
+void adminRoles;
+// @ts-expect-error A função TECHNICIAN não integra os papéis iniciais.
+const unsupportedRole: UserRole = 'TECHNICIAN';
+void unsupportedRole;
 
 // @ts-expect-error A senha nunca pertence ao perfil retornado pela API.
 const invalidProfile: UserProfile = { ...userProfileFixture, password: 'segredo' };

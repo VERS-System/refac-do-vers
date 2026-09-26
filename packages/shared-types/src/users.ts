@@ -1,6 +1,6 @@
 // Contratos compartilhados do perfil e das permissões de usuários do VERS.
 
-export type UserRole = 'USER' | 'ADMIN' | 'TECHNICIAN';
+export type UserRole = 'USER' | 'ADMIN';
 
 export type UserStatus = 'ACTIVE' | 'BLOCKED' | 'PENDING_VERIFICATION';
 

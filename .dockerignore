@@ -1,0 +1,25 @@
+# .dockerignore — contexto de build do VERS
+#
+# Impede que artefatos locais (node_modules do host, builds, .env, .git)
+# sejam copiados para dentro das imagens e destruam as dependências
+# instaladas com pnpm durante o build.
+
+node_modules
+**/node_modules
+
+dist
+**/dist
+build
+**/build
+
+.expo
+**/.expo
+
+.git
+.gitignore
+
+.env
+**/.env
+
+coverage
+**/coverage

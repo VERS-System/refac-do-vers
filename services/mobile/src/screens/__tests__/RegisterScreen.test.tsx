@@ -16,7 +16,7 @@ describe('RegisterScreen', () => {
     fireEvent.changeText(getByLabelText('Email'), 'anna@vers.com');
     fireEvent.changeText(getByLabelText('Password'), 'Password123!');
     fireEvent.changeText(getByLabelText('Confirm Password'), 'Password123!');
-    fireEvent.press(getByRole('button', { name: 'Sign-up' }));
+    fireEvent.press(getByRole('button', { name: 'Sign up' }));
 
     expect(onRegister).toHaveBeenCalledWith({
       email: 'anna@vers.com',
@@ -35,7 +35,7 @@ describe('RegisterScreen', () => {
     fireEvent.changeText(getByLabelText('Password'), 'Password123!');
     fireEvent.changeText(getByLabelText('Confirm Password'), 'Password123?');
 
-    const button = getByRole('button', { name: 'Sign-up' });
+    const button = getByRole('button', { name: 'Sign up' });
     expect(button.props.accessibilityState).toEqual({ disabled: true });
     fireEvent.press(button);
 

@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
@@ -31,7 +32,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <SafeAreaProvider>
       {isSplashVisible ? (
         <SplashScreen />
       ) : isAuthenticated ? (
@@ -40,6 +41,6 @@ export default function App() {
         <AuthNavigator onAuthenticated={handleAuthenticated} />
       )}
       <StatusBar hidden />
-    </>
+    </SafeAreaProvider>
   );
 }

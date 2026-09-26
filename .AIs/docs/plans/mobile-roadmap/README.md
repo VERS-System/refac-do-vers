@@ -10,7 +10,7 @@ negócio, segurança, persistência, cálculos e autorização pertencem ao back
 
 | Ordem | Task | Estado | Dependência visual |
 | --- | --- | --- | --- |
-| 00 | [Base visual e navegação](00-base-visual-navegacao.md) | Em andamento | — |
+| 00 | [Base visual e navegação](00-base-visual-navegacao.md) | Concluída | — |
 | 01 | [Splash](01-tela-splash.md) | Implementada | Task 00 |
 | 02 | [Login](02-tela-login.md) | Interface parcial | Tasks 00–01 |
 | 03 | [Cadastro](03-tela-cadastro.md) | Interface parcial | Task 02 |
@@ -52,8 +52,11 @@ Base → Splash → Login → Cadastro → Home
 8. Login Google, recuperação de senha e outras telas sem contrato aprovado
    permanecem fora do MVP.
 
-## Encaixe com o backend
+## Mapa de rotas
 
+Estados, pilhas, abas e rotas futuras em [route-map.md](route-map.md).
+
+## Encaixe com o backend
 | Grupo de telas | Contrato esperado |
 | --- | --- |
 | Login e cadastro | Backend F01 e F04 |

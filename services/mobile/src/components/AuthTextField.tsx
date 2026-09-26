@@ -3,7 +3,7 @@
  */
 
 import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 type AuthTextFieldProps = TextInputProps & {
   label: string;
@@ -22,8 +22,8 @@ export function AuthTextField({ label, style, ...inputProps }: AuthTextFieldProp
       <TextInput
         accessibilityLabel={accessibilityLabel}
         autoCapitalize="none"
-        placeholderTextColor={colors.gray}
-        selectionColor={colors.primary}
+        placeholderTextColor={theme.colors.gray}
+        selectionColor={theme.colors.primary}
         style={[styles.input, style]}
         {...inputProps}
       />
@@ -37,19 +37,19 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   label: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 13,
   },
   input: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 22,
+    backgroundColor: theme.colors.background,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 15,
     height: 39,
     paddingHorizontal: 20,
-    shadowColor: colors.white,
+    shadowColor: theme.colors.white,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,

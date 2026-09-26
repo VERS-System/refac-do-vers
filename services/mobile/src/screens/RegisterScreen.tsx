@@ -4,11 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -16,8 +12,9 @@ import {
 import { AuthTextField } from '../components/AuthTextField';
 import { PasswordRequirements, evaluatePassword } from '../components/PasswordRequirements';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { ScreenShell } from '../components/ScreenShell';
 import { VersLogo } from '../components/VersLogo';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 export type RegisterCredentials = {
   email: string;
@@ -27,13 +24,15 @@ export type RegisterCredentials = {
 type RegisterScreenProps = {
   onLogin?: () => void;
   onRegister?: (credentials: RegisterCredentials) => void;
+  /** Contador de focos da tela usado para disparar a animação da logo. */
+  animationRun?: number;
 };
 
 /**
  * Mantém os dados locais, apresenta a validação em tempo real e só libera o
  * envio quando todos os critérios e a confirmação de senha estiverem válidos.
  */
-export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
+export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -55,21 +54,9 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} testID="register-screen">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        style={styles.keyboardArea}
-      >
-        <ScrollView
-          scrollEnabled={true}
-          bounces={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.content}>
-            <VersLogo size={100} />
+    <ScreenShell testID="register-screen">
+      <View style={styles.content}>
+            <VersLogo animation="register" animationRun={animationRun} size={100} />
 
             <Text accessibilityRole="header" style={styles.title}>
               Create account
@@ -129,23 +116,11 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
               </Pressable>
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: colors.background,
-    flex: 1,
-  },
-  keyboardArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
   content: {
     alignItems: 'center',
     flex: 1,
@@ -154,7 +129,7 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 28,
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 26,
     fontWeight: '600',
     marginBottom: 22,
@@ -176,11 +151,11 @@ const styles = StyleSheet.create({
     marginTop: 31,
   },
   accountText: {
-    color: colors.white,
+    color: theme.colors.white,
     fontSize: 14,
   },
   accountLink: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 14,
     textDecorationLine: 'underline',
   },

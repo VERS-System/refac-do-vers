@@ -5,19 +5,16 @@
 import { useState } from 'react';
 import {
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { AuthTextField } from '../components/AuthTextField';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { ScreenShell } from '../components/ScreenShell';
 import { VersLogo } from '../components/VersLogo';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 export type LoginCredentials = {
   email: string;
@@ -28,13 +25,15 @@ type LoginScreenProps = {
   onGoogleLogin?: () => void;
   onLogin?: (credentials: LoginCredentials) => void;
   onSignUp?: () => void;
+  /** Contador de focos da tela usado para disparar a animação da logo. */
+  animationRun?: number;
 };
 
 /**
  * Exibe as opções de acesso e mantém somente o estado local dos campos; as
  * integrações reais são delegadas por callbacks para não acoplar UI e API.
  */
-export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenProps) {
+export function LoginScreen({ onGoogleLogin, onLogin, onSignUp, animationRun }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -44,19 +43,12 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} testID="login-screen">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardArea}
-      >
-        <ScrollView
-        scrollEnabled={false}
-          bounces={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.content}>
+    <ScreenShell testID="login-screen">
+      <View style={styles.content}>
+            <View style={styles.logoContainer}>
+              <VersLogo animation="login" animationRun={animationRun} size={98} />
+            </View>
+
             <Text accessibilityRole="header" style={styles.title}>
               Welcome back
             </Text>
@@ -114,36 +106,23 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
                 <Text style={styles.accountLink}>Sing up</Text>
               </Pressable>
             </View>
-
-            <View style={styles.logoContainer}>
-              <VersLogo size={98} />
-            </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: colors.background,
-    flex: 1,
-  },
-  keyboardArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
   content: {
     alignItems: 'center',
     flex: 1,
     paddingBottom: 38,
-    paddingTop: 82,
+    paddingTop: 40,
+  },
+  logoContainer: {
+    marginBottom: 26,
   },
   title: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 26,
     fontWeight: '600',
     marginBottom: 28,
@@ -158,7 +137,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   socialTitle: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '800',
     marginTop: 43,
@@ -172,8 +151,8 @@ const styles = StyleSheet.create({
     maxWidth: 350,
     width: '100%',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 100,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.pill,
   },
   googleIcon: {
     width: 25,
@@ -196,15 +175,12 @@ const styles = StyleSheet.create({
     marginTop: 29,
   },
   accountText: {
-    color: colors.white,
+    color: theme.colors.white,
     fontSize: 14,
   },
   accountLink: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 14,
     textDecorationLine: 'underline',
-  },
-  logoContainer: {
-    marginTop: 84,
   },
 });

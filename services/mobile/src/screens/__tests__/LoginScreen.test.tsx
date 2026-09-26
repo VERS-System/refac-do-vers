@@ -70,4 +70,25 @@ describe('LoginScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Login' }));
     expect(onLogin).not.toHaveBeenCalled();
   });
+
+  /** Garante erro genérico sem revelar se o email existe (02d). */
+  it('exibe erro genérico preservando os campos', () => {
+    const onLogin = jest.fn();
+    const { getByLabelText, getByRole, queryByText } = render(
+      <LoginScreen onLogin={onLogin} status="genericError" />,
+    );
+
+    fireEvent.changeText(getByLabelText('Email'), 'anna@vers.com');
+    fireEvent.changeText(getByLabelText('Password'), 'Password123!!');
+
+    expect(
+      getByRole('alert', { name: 'Não foi possível entrar. Verifique email e senha e tente novamente.' }),
+    ).toBeTruthy();
+    expect(queryByText('anna@vers.com')).toBeNull();
+    expect(getByLabelText('Email').props.value).toBe('anna@vers.com');
+    expect(getByLabelText('Password').props.value).toBe('Password123!!');
+
+    fireEvent.press(getByRole('button', { name: 'Login' }));
+    expect(onLogin).toHaveBeenCalledTimes(1);
+  });
 });

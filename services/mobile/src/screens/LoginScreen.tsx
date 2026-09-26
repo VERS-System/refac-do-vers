@@ -53,6 +53,7 @@ export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const isSending = status === 'sending';
+  const isGenericError = status === 'genericError';
 
   /** Encaminha ao fluxo de autenticação as credenciais atualmente preenchidas. */
   function handleLogin() {
@@ -116,6 +117,16 @@ export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }
                   onPress={handleLogin}
                 />
               </View>
+              {isGenericError && (
+                <Text
+                  accessibilityLabel="Não foi possível entrar. Verifique email e senha e tente novamente."
+                  accessibilityRole="alert"
+                  style={styles.errorText}
+                  testID="login-error"
+                >
+                  Não foi possível entrar. Verifique email e senha e tente novamente.
+                </Text>
+              )}
               {isSending && (
                 <ActivityIndicator
                   accessibilityLabel="Enviando"
@@ -169,6 +180,12 @@ const styles = StyleSheet.create({
   },
   sendingIndicator: {
     marginTop: 16,
+  },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 13,
+    marginTop: 16,
+    textAlign: 'center',
   },
   accountRow: {
     alignItems: 'center',

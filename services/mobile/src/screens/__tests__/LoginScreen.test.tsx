@@ -38,4 +38,17 @@ describe('LoginScreen', () => {
     expect(queryByRole('button', { name: 'Entrar com Google' })).toBeNull();
     expect(queryByText('OR')).toBeNull();
   });
+
+  /** Garante que a senha começa oculta e pode ser exibida (Task 02b). */
+  it('alterna a visibilidade da senha', () => {
+    const { getByLabelText, getByRole } = render(<LoginScreen />);
+
+    expect(getByLabelText('Password').props.secureTextEntry).toBe(true);
+
+    fireEvent.press(getByRole('button', { name: 'Mostrar senha' }));
+    expect(getByLabelText('Password').props.secureTextEntry).toBe(false);
+
+    fireEvent.press(getByRole('button', { name: 'Ocultar senha' }));
+    expect(getByLabelText('Password').props.secureTextEntry).toBe(true);
+  });
 });

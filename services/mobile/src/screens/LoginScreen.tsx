@@ -12,6 +12,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthTextField } from '../components/AuthTextField';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
@@ -37,6 +38,7 @@ type LoginScreenProps = {
 export function LoginScreen({ onLogin, onSignUp, animationRun }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   /** Encaminha ao fluxo de autenticação as credenciais atualmente preenchidas. */
   function handleLogin() {
@@ -69,8 +71,22 @@ export function LoginScreen({ onLogin, onSignUp, animationRun }: LoginScreenProp
                 label="Password:"
                 onChangeText={setPassword}
                 placeholder="Enter your password"
-                secureTextEntry
+                secureTextEntry={!isPasswordVisible}
                 textContentType="password"
+                trailing={
+                  <Pressable
+                    accessibilityLabel={isPasswordVisible ? 'Ocultar senha' : 'Mostrar senha'}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => setIsPasswordVisible((visible) => !visible)}
+                  >
+                    <Ionicons
+                      color={theme.colors.primary}
+                      name={isPasswordVisible ? 'eye' : 'eye-outline'}
+                      size={20}
+                    />
+                  </Pressable>
+                }
                 value={password}
               />
 

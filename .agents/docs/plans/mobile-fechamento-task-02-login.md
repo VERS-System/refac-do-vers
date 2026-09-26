@@ -69,3 +69,11 @@ persistência, sem Google.
 
 Arquivos em todas as sub-entregas: `src/screens/LoginScreen.tsx` e
 `src/screens/__tests__/LoginScreen.test.tsx`.
+
+## Decisões registradas
+
+- Alternador de visibilidade usa `Ionicons` (`eye-outline` oculta,
+  `eye` preenchido visível) dentro do campo, cor `theme.colors.primary`;
+  suporte via prop `trailing` do `AuthTextField` (refino da 02b).
+- Aplicar o mesmo alternador nos campos de senha e confirmação do Cadastro
+  ao fechar a Task 03 (decisão do programador em 26/09/2026).

@@ -165,4 +165,17 @@ describe('RegisterScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Voltar para o Login' }));
     expect(onLogin).toHaveBeenCalledTimes(1);
   });
+
+  /** Garante nome acessível em todos os botões da tela (03g). */
+  it('expõe nome acessível em todos os botões', () => {
+    const { getAllByRole } = render(<RegisterScreen />);
+
+    const buttons = getAllByRole('button');
+    expect(buttons.length).toBeGreaterThan(0);
+
+    for (const button of buttons) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+  });
 });

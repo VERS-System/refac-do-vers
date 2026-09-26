@@ -113,8 +113,10 @@ describe('fundacao HTTP da aplicacao', () => {
     for (const [route, query] of [
       ['pagination', 'extra=1'],
       ['dates', 'startedFrom=2026-02-31T12%3A00%3A00Z'],
+      ['dates', 'startedFrom=2026-09-24T12%3A00%3A00-03%3A00'],
       ['dates', 'startedFrom=2026-09-24T12%3A00%3A00Z&startedTo=2026-09-24T11%3A00%3A00Z'],
       ['pagination', 'page=0'],
+      ['pagination', 'page=-1'],
       ['pagination', 'pageSize=101'],
     ]) {
       const response = await fetch(`${baseUrl}/api/v1/foundation-fixture/${route}?${query}`);
@@ -132,5 +134,44 @@ describe('fundacao HTTP da aplicacao', () => {
 
     const invalid = await fetch(`${baseUrl}/api/v1/foundation-fixture/not-a-uuid`);
     expect(invalid.status).toBe(400);
+  });
+
+  it('aplica padrões e aceita os limites de paginação e datas UTC por HTTP', async () => {
+    const defaults = await fetch(`${baseUrl}/api/v1/foundation-fixture/pagination`);
+    expect(defaults.status).toBe(200);
+    expect((await defaults.json()) as object).toMatchObject({
+      data: { pagination: { page: 1, pageSize: 20 } },
+    });
+
+    const maximum = await fetch(
+      `${baseUrl}/api/v1/foundation-fixture/pagination?page=1&pageSize=100`,
+    );
+    expect(maximum.status).toBe(200);
+
+    const dates = await fetch(
+      `${baseUrl}/api/v1/foundation-fixture/dates?startedFrom=2024-02-29T12%3A00%3A00Z&startedTo=2024-03-01T12%3A00%3A00Z`,
+    );
+    expect(dates.status).toBe(200);
+  });
+});
+
+describe('configuração de inicialização', () => {
+  /** Confirma que a configuração inválida impede a compilação do módulo raiz. */
+  it('recusa prefixo inválido antes de iniciar a aplicação', async () => {
+    const originalPrefix = process.env.API_PREFIX;
+    process.env.API_PREFIX = '/api/';
+
+    try {
+      await jest.isolateModulesAsync(async () => {
+        const { Test: IsolatedTest } = await import('@nestjs/testing');
+        const { AppModule } = await import('./app.module');
+        await expect(
+          IsolatedTest.createTestingModule({ imports: [AppModule] }).compile(),
+        ).rejects.toThrow(/API_PREFIX/);
+      });
+    } finally {
+      if (originalPrefix === undefined) delete process.env.API_PREFIX;
+      else process.env.API_PREFIX = originalPrefix;
+    }
   });
 });

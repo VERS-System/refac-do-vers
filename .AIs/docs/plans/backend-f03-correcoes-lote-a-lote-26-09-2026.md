@@ -11,6 +11,20 @@
 - Baseline: `pnpm --filter @vers/backend test:unit`, `lint` e `build` não chegaram aos scripts: PowerShell bloqueou `pnpm.ps1` e `pnpm.cmd` tentou reinstalar `node_modules` sem TTY. Binários locais do serviço: Jest 15 suítes/40 testes, ESLint e `nest build` passaram.
 - Lote 02: prefixo `/api/v1`, roteamento HTTP e rejeição Joi de configuração inválida já têm testes existentes (`app.foundation.spec.ts`, `main.spec.ts`, `env.config.spec.ts`). Nenhuma alteração funcional necessária; a comprovação de falha de inicialização com configuração inválida ainda deve ser reforçada antes do encerramento formal do lote.
 
+## Lote 02 — fechado em 26/09/2026
+
+- `app.foundation.spec.ts` agora compila o `AppModule` em isolamento com `API_PREFIX=/api/` e confirma rejeição que identifica `API_PREFIX`.
+- O teste HTTP existente confirma `/api/v1/health/live`; `main.spec.ts` confirma a aplicação do prefixo e da infraestrutura global. Nenhuma mudança de produção foi necessária.
+- Jest local: 15 suítes/44 testes; ESLint e `nest build` passaram. `pnpm` tentou reinstalar dependências e falhou por conexão com o registro; os binários locais executaram os mesmos scripts.
+- Próximo lote: concluir revisão de entrada e paginação do lote 03.
+
+## Lote 03 — fechado em 26/09/2026
+
+- Correção P3 já aplicada nesta sessão: datas UTC inexistentes são rejeitadas por comparação com a representação canônica do instante; dia bissexto válido é aceito.
+- O harness HTTP comprova allowlist, UUID inválido, datas não UTC ou inexistentes, intervalo invertido, página zero ou negativa, `pageSize` acima de 100, transformação numérica, padrões 1/20 e limite válido de 100.
+- Padrões e máximo conferidos com `.AIs/docs/Api/openapi.yaml` e tipos compartilhados. Jest local: 15 suítes/45 testes aprovados.
+- Próximo lote: envelope e catálogo de erros por HTTP. O P2 (status 200 no log de falhas) permanece reservado ao lote 05.
+
 ## Ordem de execução
 
 1. Lote 02: acrescentar teste de bootstrap com configuração inválida e conferir prefixo e middleware. Alterar código só se o teste demonstrar defeito.

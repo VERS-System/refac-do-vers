@@ -155,4 +155,17 @@ describe('LoginScreen', () => {
       password: 'Password123!!',
     });
   });
+
+  /** Garante nome acessível em todos os botões da tela (02h). */
+  it('expõe nome acessível em todos os botões', () => {
+    const { getAllByRole } = render(<LoginScreen />);
+
+    const buttons = getAllByRole('button');
+    expect(buttons.length).toBeGreaterThan(0);
+
+    for (const button of buttons) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+  });
 });

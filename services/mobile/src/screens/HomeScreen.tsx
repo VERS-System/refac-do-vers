@@ -3,12 +3,12 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BatteryDonut } from '../components/BatteryDonut';
 import { BottomNavigation, MainTab } from '../components/BottomNavigation';
 import { EnergyBarChart } from '../components/EnergyBarChart';
 import { AppCard } from '../components/AppCard';
+import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
 
 const BATTERY_VALUES = [52, 48, 72, 57, 75, 50];
@@ -25,12 +25,11 @@ type HomeScreenProps = {
  */
 export function HomeScreen({ onOpenViber, onTabPress }: HomeScreenProps) {
   return (
-    <SafeAreaView style={styles.safeArea} testID="home-screen">
-      <ScrollView
-        bounces={false}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenShell
+      contentContainerStyle={styles.scrollContent}
+      footer={<BottomNavigation activeTab="home" onTabPress={onTabPress} />}
+      testID="home-screen"
+    >
         <Pressable
           accessibilityLabel="Conversar com o Viber"
           accessibilityRole="button"
@@ -63,18 +62,11 @@ export function HomeScreen({ onOpenViber, onTabPress }: HomeScreenProps) {
           <BatteryDonut recoveredPercentage={65} />
           <Text style={styles.usedLabel}>Battery Used</Text>
         </View>
-      </ScrollView>
-
-      <BottomNavigation activeTab="home" onTabPress={onTabPress} />
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: theme.colors.background,
-    flex: 1,
-  },
   scrollContent: {
     alignItems: 'center',
     paddingBottom: 92,

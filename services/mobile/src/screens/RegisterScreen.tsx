@@ -4,18 +4,15 @@
 
 import { useMemo, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthTextField } from '../components/AuthTextField';
 import { PasswordRequirements, evaluatePassword } from '../components/PasswordRequirements';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { ScreenShell } from '../components/ScreenShell';
 import { VersLogo } from '../components/VersLogo';
 import { theme } from '../constants/theme';
 
@@ -57,20 +54,8 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} testID="register-screen">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        style={styles.keyboardArea}
-      >
-        <ScrollView
-          scrollEnabled={true}
-          bounces={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.content}>
+    <ScreenShell testID="register-screen">
+      <View style={styles.content}>
             <VersLogo animation="register" animationRun={animationRun} size={100} />
 
             <Text accessibilityRole="header" style={styles.title}>
@@ -131,23 +116,11 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
               </Pressable>
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: theme.colors.background,
-    flex: 1,
-  },
-  keyboardArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
   content: {
     alignItems: 'center',
     flex: 1,

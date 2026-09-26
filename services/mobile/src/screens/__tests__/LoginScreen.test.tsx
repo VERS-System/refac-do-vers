@@ -51,4 +51,23 @@ describe('LoginScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Ocultar senha' }));
     expect(getByLabelText('Password').props.secureTextEntry).toBe(true);
   });
+
+  /** Garante o envio: indicador, botão desabilitado e sem reenvio (02c). */
+  it('exibe carregamento e bloqueia reenvio durante o envio', () => {
+    const onLogin = jest.fn();
+    const { getByLabelText, getByRole } = render(
+      <LoginScreen onLogin={onLogin} status="sending" />,
+    );
+
+    fireEvent.changeText(getByLabelText('Email'), 'anna@vers.com');
+    fireEvent.changeText(getByLabelText('Password'), 'Password123!!');
+
+    expect(getByRole('button', { name: 'Login' }).props.accessibilityState).toEqual({
+      disabled: true,
+    });
+    expect(getByLabelText('Enviando')).toBeTruthy();
+
+    fireEvent.press(getByRole('button', { name: 'Login' }));
+    expect(onLogin).not.toHaveBeenCalled();
+  });
 });

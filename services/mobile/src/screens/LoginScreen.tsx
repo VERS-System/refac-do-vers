@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -24,9 +25,20 @@ export type LoginCredentials = {
   password: string;
 };
 
+/** Estados visuais do acesso; a origem (rede, bloqueio, sessão) é do backend. */
+export type LoginStatus =
+  | 'idle'
+  | 'sending'
+  | 'genericError'
+  | 'unavailable'
+  | 'temporarilyBlocked'
+  | 'sessionExpired';
+
 type LoginScreenProps = {
   onLogin?: (credentials: LoginCredentials) => void;
   onSignUp?: () => void;
+  /** Estado visual atual; `idle` libera o envio. */
+  status?: LoginStatus;
   /** Contador de focos da tela usado para disparar a animação da logo. */
   animationRun?: number;
 };
@@ -35,13 +47,19 @@ type LoginScreenProps = {
  * Exibe as opções de acesso e mantém somente o estado local dos campos; as
  * integrações reais são delegadas por callbacks para não acoplar UI e API.
  */
-export function LoginScreen({ onLogin, onSignUp, animationRun }: LoginScreenProps) {
+export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
+  const isSending = status === 'sending';
+
   /** Encaminha ao fluxo de autenticação as credenciais atualmente preenchidas. */
   function handleLogin() {
+    if (isSending) {
+      return;
+    }
+
     onLogin?.({ email, password });
   }
 
@@ -91,8 +109,21 @@ export function LoginScreen({ onLogin, onSignUp, animationRun }: LoginScreenProp
               />
 
               <View style={styles.loginButton}>
-                <PrimaryButton label="LOGIN" accessibilityLabel="Login" onPress={handleLogin} />
+                <PrimaryButton
+                  accessibilityLabel="Login"
+                  disabled={isSending}
+                  label="LOGIN"
+                  onPress={handleLogin}
+                />
               </View>
+              {isSending && (
+                <ActivityIndicator
+                  accessibilityLabel="Enviando"
+                  color={theme.colors.primary}
+                  style={styles.sendingIndicator}
+                  testID="login-sending"
+                />
+              )}
             </View>
 
             <View style={styles.accountRow}>
@@ -135,6 +166,9 @@ const styles = StyleSheet.create({
   loginButton: {
     marginTop: 31,
     width: '100%',
+  },
+  sendingIndicator: {
+    marginTop: 16,
   },
   accountRow: {
     alignItems: 'center',

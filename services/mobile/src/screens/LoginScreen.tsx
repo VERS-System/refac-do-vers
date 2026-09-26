@@ -56,6 +56,7 @@ export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }
   const isGenericError = status === 'genericError';
   const isUnavailable = status === 'unavailable';
   const isTemporarilyBlocked = status === 'temporarilyBlocked';
+  const isSessionExpired = status === 'sessionExpired';
   const isSubmitDisabled = isSending || isTemporarilyBlocked;
 
   /** Encaminha ao fluxo de autenticação as credenciais atualmente preenchidas. */
@@ -140,6 +141,16 @@ export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }
                   Acesso bloqueado temporariamente. Aguarde alguns minutos e tente novamente.
                 </Text>
               )}
+              {isSessionExpired && (
+                <Text
+                  accessibilityLabel="Sua sessão expirou. Entre novamente para continuar."
+                  accessibilityRole="alert"
+                  style={styles.infoText}
+                  testID="login-session-expired"
+                >
+                  Sua sessão expirou. Entre novamente para continuar.
+                </Text>
+              )}
               {isUnavailable && (
                 <View style={styles.retryBlock}>
                   <Text
@@ -213,6 +224,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: theme.colors.error,
+    fontSize: 13,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  infoText: {
+    color: theme.colors.primary,
     fontSize: 13,
     marginTop: 16,
     textAlign: 'center',

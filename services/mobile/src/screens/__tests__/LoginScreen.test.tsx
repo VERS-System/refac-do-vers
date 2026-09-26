@@ -133,4 +133,26 @@ describe('LoginScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Login' }));
     expect(onLogin).not.toHaveBeenCalled();
   });
+
+  /** Garante sessão expirada sem detalhes de segurança (02g). */
+  it('exibe sessão expirada com formulário pronto para novo acesso', () => {
+    const onLogin = jest.fn();
+    const { getByLabelText, getByRole } = render(
+      <LoginScreen onLogin={onLogin} status="sessionExpired" />,
+    );
+
+    expect(
+      getByRole('alert', { name: 'Sua sessão expirou. Entre novamente para continuar.' }),
+    ).toBeTruthy();
+    expect(getByLabelText('Email').props.value).toBe('');
+    expect(getByLabelText('Password').props.value).toBe('');
+
+    fireEvent.changeText(getByLabelText('Email'), 'anna@vers.com');
+    fireEvent.changeText(getByLabelText('Password'), 'Password123!!');
+    fireEvent.press(getByRole('button', { name: 'Login' }));
+    expect(onLogin).toHaveBeenCalledWith({
+      email: 'anna@vers.com',
+      password: 'Password123!!',
+    });
+  });
 });

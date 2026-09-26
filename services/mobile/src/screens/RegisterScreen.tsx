@@ -4,11 +4,13 @@
 
 import { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthTextField } from '../components/AuthTextField';
 import { PasswordRequirements, evaluatePassword } from '../components/PasswordRequirements';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -21,9 +23,19 @@ export type RegisterCredentials = {
   password: string;
 };
 
+/** Estados visuais do cadastro; a origem (rede, conflito) é do backend. */
+export type RegisterStatus =
+  | 'idle'
+  | 'sending'
+  | 'conflict'
+  | 'genericError'
+  | 'success';
+
 type RegisterScreenProps = {
   onLogin?: () => void;
   onRegister?: (credentials: RegisterCredentials) => void;
+  /** Estado visual atual; `idle` libera o envio. */
+  status?: RegisterStatus;
   /** Contador de focos da tela usado para disparar a animação da logo. */
   animationRun?: number;
 };
@@ -32,10 +44,17 @@ type RegisterScreenProps = {
  * Mantém os dados locais, apresenta a validação em tempo real e só libera o
  * envio quando todos os critérios e a confirmação de senha estiverem válidos.
  */
-export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterScreenProps) {
+export function RegisterScreen({ onLogin, onRegister, status = 'idle', animationRun }: RegisterScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+
+  const isSending = status === 'sending';
+  const isConflict = status === 'conflict';
+  const isGenericError = status === 'genericError';
+  const isSuccess = status === 'success';
 
   const canSubmit = useMemo(() => {
     const requirements = evaluatePassword(password);
@@ -46,7 +65,7 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
 
   /** Envia as credenciais somente após a validação completa do formulário. */
   function handleRegister() {
-    if (!canSubmit) {
+    if (!canSubmit || isSending || isSuccess) {
       return;
     }
 
@@ -77,8 +96,22 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
                 label="Password:"
                 onChangeText={setPassword}
                 placeholder="Enter your password"
-                secureTextEntry
+                secureTextEntry={!isPasswordVisible}
                 textContentType="newPassword"
+                trailing={
+                  <Pressable
+                    accessibilityLabel={isPasswordVisible ? 'Ocultar senha' : 'Mostrar senha'}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => setIsPasswordVisible((visible) => !visible)}
+                  >
+                    <Ionicons
+                      color={theme.colors.primary}
+                      name={isPasswordVisible ? 'eye' : 'eye-outline'}
+                      size={20}
+                    />
+                  </Pressable>
+                }
                 value={password}
               />
 
@@ -89,19 +122,71 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
                 label="Confirm Password:"
                 onChangeText={setConfirmPassword}
                 placeholder="Enter your password"
-                secureTextEntry
+                secureTextEntry={!isConfirmVisible}
                 textContentType="newPassword"
+                trailing={
+                  <Pressable
+                    accessibilityLabel={isConfirmVisible ? 'Ocultar confirmação' : 'Mostrar confirmação'}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => setIsConfirmVisible((visible) => !visible)}
+                  >
+                    <Ionicons
+                      color={theme.colors.primary}
+                      name={isConfirmVisible ? 'eye' : 'eye-outline'}
+                      size={20}
+                    />
+                  </Pressable>
+                }
                 value={confirmPassword}
               />
 
               <View style={styles.signUpButton}>
                 <PrimaryButton
                   accessibilityLabel="Sign up"
-                  disabled={!canSubmit}
-                  label="SING UP"
+                  disabled={!canSubmit || isSending || isSuccess}
+                  label="SIGN UP"
                   onPress={handleRegister}
                 />
               </View>
+              {isSending && (
+                <ActivityIndicator
+                  accessibilityLabel="Enviando"
+                  color={theme.colors.primary}
+                  style={styles.sendingIndicator}
+                  testID="register-sending"
+                />
+              )}
+              {isConflict && (
+                <Text
+                  accessibilityLabel="Este email já está em uso. Entre ou use outro email."
+                  accessibilityRole="alert"
+                  style={styles.errorText}
+                  testID="register-conflict"
+                >
+                  Este email já está em uso. Entre ou use outro email.
+                </Text>
+              )}
+              {isGenericError && (
+                <Text
+                  accessibilityLabel="Não foi possível criar a conta. Tente novamente."
+                  accessibilityRole="alert"
+                  style={styles.errorText}
+                  testID="register-error"
+                >
+                  Não foi possível criar a conta. Tente novamente.
+                </Text>
+              )}
+              {isSuccess && (
+                <Text
+                  accessibilityLabel="Conta criada com sucesso. Volte ao Login para entrar."
+                  accessibilityRole="alert"
+                  style={styles.successText}
+                  testID="register-success"
+                >
+                  Conta criada com sucesso. Volte ao Login para entrar.
+                </Text>
+              )}
             </View>
 
             <View style={styles.accountRow}>
@@ -143,6 +228,21 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 350,
     marginTop: 34,
+  },
+  sendingIndicator: {
+    marginTop: 16,
+  },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 13,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  successText: {
+    color: theme.colors.success,
+    fontSize: 13,
+    marginTop: 16,
+    textAlign: 'center',
   },
   accountRow: {
     alignItems: 'center',

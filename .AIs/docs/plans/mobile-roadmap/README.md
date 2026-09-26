@@ -52,8 +52,11 @@ Base → Splash → Login → Cadastro → Home
 8. Login Google, recuperação de senha e outras telas sem contrato aprovado
    permanecem fora do MVP.
 
-## Encaixe com o backend
+## Mapa de rotas
 
+Estados, pilhas, abas e rotas futuras em [route-map.md](route-map.md).
+
+## Encaixe com o backend
 | Grupo de telas | Contrato esperado |
 | --- | --- |
 | Login e cadastro | Backend F01 e F04 |

@@ -5,6 +5,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { BottomNavigation } from '../BottomNavigation';
+import { TAB_ORDER, type MainTab } from '../../navigation/tabs';
 
 describe('BottomNavigation', () => {
   /** Encaminha a aba selecionada e informa semanticamente a aba ativa. */
@@ -28,6 +29,23 @@ describe('BottomNavigation', () => {
 
     expect(queryByRole('button', { name: 'Diagnóstico' })).toBeNull();
     expect(queryByRole('button', { name: 'Abrir diagnóstico do carro' })).toBeNull();
+  });
+
+  /** Varredura permanente: nenhuma aba, em nenhum estado, expõe diagnóstico. */
+  it('não expõe diagnóstico em nenhuma aba ativa (Task 00 - Item 6a)', () => {
+    const tabs: MainTab[] = [...TAB_ORDER];
+
+    for (const activeTab of tabs) {
+      const { queryByRole, queryByText, unmount } = render(
+        <BottomNavigation activeTab={activeTab} />,
+      );
+
+      expect(queryByRole('button', { name: 'Diagnóstico' })).toBeNull();
+      expect(queryByRole('button', { name: 'Abrir diagnóstico do carro' })).toBeNull();
+      expect(queryByText('Your car Diagnostic')).toBeNull();
+
+      unmount();
+    }
   });
 
   /** Garante que o botão central usa a imagem versAlt fornecida pelo programador. */

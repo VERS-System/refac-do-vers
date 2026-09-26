@@ -17,10 +17,9 @@
 | Método | Rota | Acesso | Resultado |
 | --- | --- | --- | --- |
 | `GET` | `/health/live` | Público | Confirma que o processo HTTP está vivo, sem consultar banco, Redis ou serviços externos. |
-| `GET` | `/health/ready` | Público | Confirma que o processo está pronto para rotas que dependem do banco. |
+| `GET` | `/health/ready` | Público | Confirma que PostgreSQL e Redis estão disponíveis. |
 
-`ready` usa apenas o banco como dependência obrigatória nesta fase. Redis não é
-dependência do REST até decisão operacional posterior. Falhas de dependência
+`ready` exige PostgreSQL e Redis por decisão do programador em 26/09/2026. Falhas de dependência
 retornam `SERVICE_UNAVAILABLE` sem expor URL, host, credenciais ou detalhes
 internos.
 

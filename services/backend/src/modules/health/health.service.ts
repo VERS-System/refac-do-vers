@@ -1,6 +1,8 @@
 // Servico de health checks com probe de dependencia testavel.
 
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface HealthStatus {
@@ -9,6 +11,7 @@ export interface HealthStatus {
   checkedAt: string;
   dependencies?: {
     database: 'ok';
+    redis: 'ok';
   };
 }
 
@@ -41,7 +44,10 @@ function withTimeout<TValue>(
 
 @Injectable()
 export class HealthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * Retorna vida do processo sem consultar dependencias externas.
@@ -55,12 +61,35 @@ export class HealthService {
   }
 
   /**
-   * Executa um probe curto no banco para sinalizar prontidao.
-   * Redis nao e dependencia obrigatoria do REST nesta fase.
+   * Consulta Redis sem manter conexão entre probes.
+   * ponytail: uma conexão por readiness; reutilizar se a frequência de probes exigir.
+   */
+  private async probeRedis(): Promise<void> {
+    const redis = new Redis({
+      host: this.configService.getOrThrow<string>('REDIS_HOST'),
+      port: this.configService.getOrThrow<number>('REDIS_PORT'),
+      lazyConnect: true,
+      connectTimeout: READY_TIMEOUT_MS,
+      retryStrategy: (): null => null,
+    });
+
+    try {
+      await withTimeout(redis.ping(), READY_TIMEOUT_MS);
+    } finally {
+      redis.disconnect();
+    }
+  }
+
+  /**
+   * Executa probes curtos no banco e Redis para sinalizar prontidao.
+   * Falha de qualquer dependencia devolve 503 sem detalhe interno.
    */
   async ready(): Promise<HealthStatus> {
     try {
-      await withTimeout(this.prisma.$queryRawUnsafe('SELECT 1'), READY_TIMEOUT_MS);
+      await Promise.all([
+        withTimeout(this.prisma.$queryRawUnsafe('SELECT 1'), READY_TIMEOUT_MS),
+        this.probeRedis(),
+      ]);
 
       return {
         status: 'ok',
@@ -68,6 +97,7 @@ export class HealthService {
         checkedAt: new Date().toISOString(),
         dependencies: {
           database: 'ok',
+          redis: 'ok',
         },
       };
     } catch {

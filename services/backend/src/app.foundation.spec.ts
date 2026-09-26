@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { Server } from 'http';
 import { AddressInfo } from 'net';
+import Redis from 'ioredis';
 import { configureApplication } from './main';
 import { PrismaService } from './prisma/prisma.service';
 import {
@@ -72,6 +73,9 @@ class FoundationFixtureController {
 describe('fundacao HTTP da aplicacao', () => {
   let app: INestApplication;
   let baseUrl: string;
+  let prismaQuery: jest.SpyInstance;
+  let prismaConnect: jest.SpyInstance;
+  let redisPing: jest.SpyInstance;
 
   beforeAll(async () => {
     process.env.DATABASE_URL =
@@ -81,17 +85,20 @@ describe('fundacao HTTP da aplicacao', () => {
     process.env.NODE_ENV = 'test';
     process.env.API_PREFIX = 'api/v1';
 
+    redisPing = jest.spyOn(Redis.prototype, 'ping').mockResolvedValue('PONG');
+    jest.spyOn(Redis.prototype, 'disconnect').mockImplementation();
+    const prisma = new PrismaService();
+    prismaConnect = jest.spyOn(prisma, '$connect').mockRejectedValue(new Error('database unavailable'));
+    prismaQuery = jest.spyOn(prisma, '$queryRawUnsafe').mockResolvedValue([{ ok: 1 }]);
+    jest.spyOn(prisma, '$disconnect').mockResolvedValue(undefined);
+
     const { AppModule } = await import('./app.module');
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
       controllers: [FoundationFixtureController],
     })
       .overrideProvider(PrismaService)
-      .useValue({
-        onModuleInit: jest.fn(),
-        onModuleDestroy: jest.fn(),
-        $queryRawUnsafe: jest.fn().mockResolvedValue([{ ok: 1 }]),
-      })
+      .useValue(prisma)
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -108,6 +115,7 @@ describe('fundacao HTTP da aplicacao', () => {
 
   afterAll(async () => {
     await app.close();
+    jest.restoreAllMocks();
   });
 
   it('responde live em /api/v1 com envelope e requestId', async () => {
@@ -132,15 +140,41 @@ describe('fundacao HTTP da aplicacao', () => {
       headers: { 'x-request-id': 'integration-ready' },
     });
     const body = (await response.json()) as {
-      data: { dependencies: { database: string } };
+      data: { dependencies: { database: string; redis: string } };
       requestId: string;
     };
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({
-      data: { dependencies: { database: 'ok' } },
+      data: { dependencies: { database: 'ok', redis: 'ok' } },
       requestId: 'integration-ready',
     });
+  });
+
+  it('mantém live disponível e recupera ready após falha do banco', async () => {
+    prismaQuery.mockRejectedValueOnce(new Error('postgresql://secret'));
+
+    const failed = await fetch(`${baseUrl}/api/v1/health/ready`);
+    const failedBody = (await failed.json()) as { error: { code: string } };
+    expect(failed.status).toBe(503);
+    expect(failedBody.error.code).toBe('SERVICE_UNAVAILABLE');
+    expect(JSON.stringify(failedBody)).not.toContain('postgresql://secret');
+
+    const live = await fetch(`${baseUrl}/api/v1/health/live`);
+    expect(live.status).toBe(200);
+    expect(prismaConnect).not.toHaveBeenCalled();
+
+    const recovered = await fetch(`${baseUrl}/api/v1/health/ready`);
+    expect(recovered.status).toBe(200);
+  });
+
+  it('degrada ready quando Redis falha sem derrubar live', async () => {
+    redisPing.mockRejectedValueOnce(new Error('redis://secret'));
+    const failed = await fetch(`${baseUrl}/api/v1/health/ready`);
+    expect(failed.status).toBe(503);
+    expect(JSON.stringify(await failed.json())).not.toContain('redis://secret');
+    expect((await fetch(`${baseUrl}/api/v1/health/live`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/api/v1/health/ready`)).status).toBe(200);
   });
 
   it('rejeita campos extras, datas inexistentes e intervalo invertido por HTTP', async () => {

@@ -16,7 +16,7 @@ export class HealthController {
   }
 
   /**
-   * Confirma que o processo esta pronto para atender rotas que dependem do banco.
+   * Confirma que PostgreSQL e Redis estao disponiveis para o REST.
    */
   @Get('ready')
   ready(): Promise<HealthStatus> {

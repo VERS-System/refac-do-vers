@@ -52,6 +52,13 @@
 - Nenhum gravador real ou evento de domínio foi ligado nesta fase. A decisão de quando uma ação de domínio deve falhar por indisponibilidade da auditoria fica para o fluxo que usar o callback.
 - Jest local: 15 suítes/54 testes; ESLint e `nest build` passaram. Próximo lote: liveness e readiness.
 
+## Lote 08 — fechado em 26/09/2026
+
+- P1 corrigido: Prisma não conecta mais em `onModuleInit`; a primeira consulta abre conexão sob demanda. O encerramento chama `$disconnect()` uma vez e permite repetição se falhar.
+- Readiness exige PostgreSQL e Redis conforme decisão do programador. Ambos têm timeout de 1 segundo; qualquer falha retorna 503 `SERVICE_UNAVAILABLE` sem detalhes internos. Redis usa `ioredis` já instalado e uma conexão curta por probe, fechada ao final.
+- Testes HTTP usam Prisma sintético com `$connect()` configurado para falhar: o app inicia, `live` segue 200, `ready` muda de 503 para 200 após recuperação de banco ou Redis. Testes unitários cobrem timeout de ambos e shutdown idempotente.
+- `.AIs/docs/Api/endpoints.md` e OpenAPI passaram a declarar PostgreSQL e Redis no readiness. Jest local: 15 suítes/55 testes; ESLint e `nest build` passaram. Próximo lote: contrato e entrega.
+
 ## Ordem de execução
 
 1. Lote 02: acrescentar teste de bootstrap com configuração inválida e conferir prefixo e middleware. Alterar código só se o teste demonstrar defeito.

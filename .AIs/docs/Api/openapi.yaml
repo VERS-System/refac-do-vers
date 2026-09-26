@@ -904,8 +904,12 @@ components:
         dependencies:
           type: object
           additionalProperties: false
+          required: [database, redis]
           properties:
             database:
+              type: string
+              enum: [ok]
+            redis:
               type: string
               enum: [ok]
     HealthResponse:

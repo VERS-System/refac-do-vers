@@ -45,6 +45,13 @@
 - Limite padrão atual: 100 requisições por 60 segundos, configurável por `RATE_LIMIT_MAX_REQUESTS` e `RATE_LIMIT_TTL_SECONDS`. Os valores finais de produção seguem para decisão do programador.
 - Jest local: 15 suítes/52 testes; ESLint e `nest build` passaram. Próximo lote: auditoria mínima.
 
+## Lote 07 — fechado em 26/09/2026
+
+- `AuditPolicyService` mantém allowlist de ação e recurso, descarta `payload` e agora valida UUIDs de ator/recurso e `requestId` com o formato aceito pelo middleware HTTP.
+- `persistEvent` entrega somente `SafeAuditEvent` a um callback de persistência. Teste com callback sintético que falha confirma que o payload não chega ao gravador e que o erro interno é substituído por mensagem genérica.
+- Nenhum gravador real ou evento de domínio foi ligado nesta fase. A decisão de quando uma ação de domínio deve falhar por indisponibilidade da auditoria fica para o fluxo que usar o callback.
+- Jest local: 15 suítes/54 testes; ESLint e `nest build` passaram. Próximo lote: liveness e readiness.
+
 ## Ordem de execução
 
 1. Lote 02: acrescentar teste de bootstrap com configuração inválida e conferir prefixo e middleware. Alterar código só se o teste demonstrar defeito.

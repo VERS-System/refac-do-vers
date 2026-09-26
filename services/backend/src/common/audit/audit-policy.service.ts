@@ -61,6 +61,15 @@ const ALLOWED_RESOURCE_TYPES = new Set<AuditResourceType>([
   'test',
   'supportRequest',
 ]);
+const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,80}$/;
+
+/** Mantém IDs opcionais dentro dos formatos aceitos pelo banco e pelo HTTP. */
+function toAllowedId(value: string | null | undefined, pattern: RegExp): string | null {
+  if (value == null) return null;
+  if (!pattern.test(value)) throw new Error('Identificador de auditoria invalido');
+  return value;
+}
 
 /**
  * Verifica se o valor pertence a allowlist de acoes auditaveis.
@@ -97,9 +106,26 @@ export class AuditPolicyService {
       action: toAllowedAction(input.action),
       resourceType: toAllowedResourceType(input.resourceType),
       result: input.result,
-      actorId: input.actorId ?? null,
-      resourceId: input.resourceId ?? null,
-      requestId: input.requestId ?? null,
+      actorId: toAllowedId(input.actorId, UUID_PATTERN),
+      resourceId: toAllowedId(input.resourceId, UUID_PATTERN),
+      requestId: toAllowedId(input.requestId, REQUEST_ID_PATTERN),
     };
+  }
+
+  /**
+   * Entrega somente o evento permitido ao gravador fornecido pelo domínio.
+   * Oculta erros internos de armazenamento sem guardar payload livre.
+   */
+  async persistEvent(
+    input: AuditEventInput,
+    persist: (event: SafeAuditEvent) => Promise<void>,
+  ): Promise<void> {
+    const event = this.createEvent(input);
+
+    try {
+      await persist(event);
+    } catch {
+      throw new Error('Falha ao registrar auditoria');
+    }
   }
 }

@@ -36,4 +36,50 @@ describe('AuditPolicyService', () => {
       }),
     ).toThrow('Acao de auditoria nao permitida');
   });
+
+  it('entrega só o evento seguro e oculta falha interna de persistência', async () => {
+    const service = new AuditPolicyService();
+    const persist = jest.fn().mockRejectedValue(new Error('postgresql://segredo-interno'));
+
+    await expect(service.persistEvent({
+      action: 'vehicle.create',
+      resourceType: 'vehicle',
+      result: 'FAILURE',
+      requestId: 'request-audit',
+      payload: { password: 'senha-sintetica' },
+    }, persist)).rejects.toThrow('Falha ao registrar auditoria');
+
+    expect(persist).toHaveBeenCalledWith({
+      action: 'vehicle.create',
+      resourceType: 'vehicle',
+      result: 'FAILURE',
+      actorId: null,
+      resourceId: null,
+      requestId: 'request-audit',
+    });
+    expect(JSON.stringify(persist.mock.calls)).not.toContain('senha-sintetica');
+  });
+
+  it('rejeita identificadores fora do formato persistível', () => {
+    const service = new AuditPolicyService();
+
+    expect(() => service.createEvent({
+      action: 'auth.login',
+      resourceType: 'session',
+      result: 'SUCCESS',
+      actorId: 'email@example.com',
+    })).toThrow('Identificador de auditoria invalido');
+    expect(() => service.createEvent({
+      action: 'vehicle.create',
+      resourceType: 'vehicle',
+      result: 'SUCCESS',
+      resourceId: 'placa-ABC1234',
+    })).toThrow('Identificador de auditoria invalido');
+    expect(() => service.createEvent({
+      action: 'auth.login',
+      resourceType: 'session',
+      result: 'SUCCESS',
+      requestId: 'id com espaco',
+    })).toThrow('Identificador de auditoria invalido');
+  });
 });

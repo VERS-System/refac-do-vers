@@ -98,7 +98,7 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
                 <PrimaryButton
                   accessibilityLabel="Sign up"
                   disabled={!canSubmit}
-                  label="SING UP"
+                  label="SIGN UP"
                   onPress={handleRegister}
                 />
               </View>

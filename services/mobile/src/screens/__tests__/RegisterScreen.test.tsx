@@ -51,4 +51,12 @@ describe('RegisterScreen', () => {
 
     expect(onLogin).toHaveBeenCalledTimes(1);
   });
+
+  /** Garante a grafia correta do botão de cadastro (03a). */
+  it('exibe SIGN UP sem typos no botão', () => {
+    const { getByText, queryByText } = render(<RegisterScreen />);
+
+    expect(getByText('SIGN UP')).toBeTruthy();
+    expect(queryByText('SING UP')).toBeNull();
+  });
 });

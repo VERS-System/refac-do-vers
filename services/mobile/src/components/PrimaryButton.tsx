@@ -3,7 +3,7 @@
  */
 
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { theme } from '../constants/theme';
+import { colors } from '../constants/colors';
 
 type PrimaryButtonProps = {
   accessibilityLabel?: string;
@@ -43,8 +43,8 @@ export function PrimaryButton({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radii.pill,
+    backgroundColor: colors.primary,
+    borderRadius: 100,
     height: 39,
     justifyContent: 'center',
     width: '100%',
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     opacity: 0.48,
   },
   label: {
-    color: theme.colors.background,
+    color: colors.background,
     fontSize: 15,
     fontWeight: '800',
   },

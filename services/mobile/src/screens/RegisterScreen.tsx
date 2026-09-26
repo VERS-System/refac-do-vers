@@ -7,17 +7,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthTextField } from '../components/AuthTextField';
 import { PasswordRequirements, evaluatePassword } from '../components/PasswordRequirements';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { VersLogo } from '../components/VersLogo';
-import { theme } from '../constants/theme';
+import { colors } from '../constants/colors';
 
 export type RegisterCredentials = {
   email: string;
@@ -27,15 +27,13 @@ export type RegisterCredentials = {
 type RegisterScreenProps = {
   onLogin?: () => void;
   onRegister?: (credentials: RegisterCredentials) => void;
-  /** Contador de focos da tela usado para disparar a animação da logo. */
-  animationRun?: number;
 };
 
 /**
  * Mantém os dados locais, apresenta a validação em tempo real e só libera o
  * envio quando todos os critérios e a confirmação de senha estiverem válidos.
  */
-export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterScreenProps) {
+export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -71,7 +69,7 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
-            <VersLogo animation="register" animationRun={animationRun} size={100} />
+            <VersLogo size={100} />
 
             <Text accessibilityRole="header" style={styles.title}>
               Create account
@@ -139,7 +137,7 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     flex: 1,
   },
   keyboardArea: {
@@ -156,7 +154,7 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 28,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontSize: 26,
     fontWeight: '600',
     marginBottom: 22,
@@ -178,11 +176,11 @@ const styles = StyleSheet.create({
     marginTop: 31,
   },
   accountText: {
-    color: theme.colors.white,
+    color: colors.white,
     fontSize: 14,
   },
   accountLink: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontSize: 14,
     textDecorationLine: 'underline',
   },

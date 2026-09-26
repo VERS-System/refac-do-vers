@@ -1,14 +1,13 @@
 /**
  * Implementa a barra inferior compartilhada pelas telas principais do VERS.
- *
- * O botão central usa a imagem `versAlt.png` fornecida pelo programador.
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
-import { theme } from '../constants/theme';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { colors } from '../constants/colors';
+import { VersLogo } from './VersLogo';
 
-export type MainTab = 'home' | 'battery' | 'vers' | 'profile';
+export type MainTab = 'home' | 'battery' | 'vers' | 'diagnostic' | 'profile';
 
 type BottomNavigationProps = {
   activeTab: MainTab;
@@ -40,13 +39,13 @@ function NavigationIcon({ activeTab, icon, label, onPress, tab }: NavigationIcon
       onPress={handlePress}
       style={[styles.iconButton, isActive && styles.activeButton]}
     >
-      <Ionicons color={theme.colors.primary} name={icon} size={25} />
+      <Ionicons color={colors.primary} name={icon} size={25} />
     </Pressable>
   );
 }
 
 /**
- * Organiza as quatro áreas do app, dando destaque central à marca conforme os
+ * Organiza as cinco áreas do app, dando destaque central à marca conforme os
  * mockups e permitindo que cada tela controle a navegação externamente.
  */
 export function BottomNavigation({ activeTab, onTabPress }: BottomNavigationProps) {
@@ -78,14 +77,15 @@ export function BottomNavigation({ activeTab, onTabPress }: BottomNavigationProp
         onPress={handleVersPress}
         style={styles.brandButton}
       >
-        <Image
-          accessibilityLabel="Logotipo do VERS"
-          resizeMode="contain"
-          source={require('../assets/versAlt.png')}
-          style={styles.brandImage}
-          testID="vers-brand-image"
-        />
+        <VersLogo size={52} />
       </Pressable>
+      <NavigationIcon
+        activeTab={activeTab}
+        icon="pulse-outline"
+        label="Diagnóstico"
+        onPress={onTabPress}
+        tab="diagnostic"
+      />
       <NavigationIcon
         activeTab={activeTab}
         icon="person-outline"
@@ -100,8 +100,8 @@ export function BottomNavigation({ activeTab, onTabPress }: BottomNavigationProp
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    borderColor: theme.colors.border,
+    backgroundColor: colors.background,
+    borderColor: colors.border,
     borderRadius: 29,
     borderWidth: StyleSheet.hairlineWidth,
     bottom: 12,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     position: 'absolute',
     right: 28,
-    shadowColor: theme.colors.white,
+    shadowColor: colors.white,
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -125,18 +125,13 @@ const styles = StyleSheet.create({
     width: 46,
   },
   activeButton: {
-    backgroundColor: theme.colors.tabActive,
+    backgroundColor: '#292819',
   },
   brandButton: {
     alignItems: 'center',
-    borderRadius: 23,
-    height: 46,
+    height: 52,
     justifyContent: 'center',
     overflow: 'hidden',
-    width: 46,
-  },
-  brandImage: {
-    height: 22,
-    width: 28,
+    width: 58,
   },
 });

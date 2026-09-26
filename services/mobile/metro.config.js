@@ -16,6 +16,6 @@ config.resolver.nodeModulesPaths = [
 ];
 
 // 3. Bloqueie duplicidade de resolução do react-native
-config.resolver.disableHierarchicalLookup = false;
+config.resolver.disableHierarchicalLookup = true;
 
 module.exports = config;

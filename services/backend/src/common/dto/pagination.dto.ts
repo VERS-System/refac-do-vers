@@ -5,7 +5,6 @@ import {
   IsInt,
   IsOptional,
   IsUUID,
-  Matches,
   Max,
   Min,
   Validate,
@@ -16,6 +15,33 @@ import {
 
 const UTC_DATE_TIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+
+/**
+ * Valida o formato UTC e a existencia do instante sem normalizar dias invalidos.
+ * Compara a representacao canonica para rejeitar datas corrigidas pelo Date.
+ */
+@ValidatorConstraint({ name: 'isValidUtcDateTime', async: false })
+class IsValidUtcDateTime implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (typeof value !== 'string' || !UTC_DATE_TIME_PATTERN.test(value)) {
+      return false;
+    }
+
+    const instant = new Date(value);
+    if (Number.isNaN(instant.getTime())) {
+      return false;
+    }
+
+    const canonical = instant.toISOString();
+    return value.includes('.')
+      ? canonical === value
+      : `${canonical.slice(0, 19)}Z` === value;
+  }
+
+  defaultMessage(): string {
+    return 'Informe uma data e hora UTC valida.';
+  }
+}
 
 /**
  * Confirma que dois filtros UTC formam um intervalo crescente.
@@ -61,11 +87,11 @@ export class UuidParamDto {
 
 export class UtcDateRangeQueryDto {
   @IsOptional()
-  @Matches(UTC_DATE_TIME_PATTERN)
+  @Validate(IsValidUtcDateTime)
   startedFrom?: string;
 
   @IsOptional()
-  @Matches(UTC_DATE_TIME_PATTERN)
+  @Validate(IsValidUtcDateTime)
   @Validate(IsUtcRangeEndAfterStart)
   startedTo?: string;
 }

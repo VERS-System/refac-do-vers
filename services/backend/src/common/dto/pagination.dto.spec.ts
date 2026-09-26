@@ -51,4 +51,18 @@ describe('DTOs comuns da API', () => {
       expect.arrayContaining(['startedFrom', 'startedTo']),
     );
   });
+
+  it('rejeita dias inexistentes e aceita o dia bissexto valido', async () => {
+    const impossible = plainToInstance(UtcDateRangeQueryDto, {
+      startedFrom: '2026-02-31T12:00:00Z',
+    });
+    const leapDay = plainToInstance(UtcDateRangeQueryDto, {
+      startedFrom: '2024-02-29T12:00:00Z',
+    });
+
+    expect((await validate(impossible)).map((error) => error.property)).toContain(
+      'startedFrom',
+    );
+    await expect(validate(leapDay)).resolves.toHaveLength(0);
+  });
 });

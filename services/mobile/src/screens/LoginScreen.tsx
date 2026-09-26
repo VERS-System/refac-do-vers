@@ -54,6 +54,7 @@ export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }
 
   const isSending = status === 'sending';
   const isGenericError = status === 'genericError';
+  const isUnavailable = status === 'unavailable';
 
   /** Encaminha ao fluxo de autenticação as credenciais atualmente preenchidas. */
   function handleLogin() {
@@ -127,6 +128,23 @@ export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }
                   Não foi possível entrar. Verifique email e senha e tente novamente.
                 </Text>
               )}
+              {isUnavailable && (
+                <View style={styles.retryBlock}>
+                  <Text
+                    accessibilityLabel="Serviço indisponível no momento. Tente novamente em instantes."
+                    accessibilityRole="alert"
+                    style={styles.errorText}
+                    testID="login-unavailable"
+                  >
+                    Serviço indisponível no momento. Tente novamente em instantes.
+                  </Text>
+                  <PrimaryButton
+                    accessibilityLabel="Tentar novamente"
+                    label="TENTAR NOVAMENTE"
+                    onPress={handleLogin}
+                  />
+                </View>
+              )}
               {isSending && (
                 <ActivityIndicator
                   accessibilityLabel="Enviando"
@@ -186,6 +204,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 16,
     textAlign: 'center',
+  },
+  retryBlock: {
+    gap: 16,
+    marginTop: 16,
+    maxWidth: 350,
+    width: '100%',
   },
   accountRow: {
     alignItems: 'center',

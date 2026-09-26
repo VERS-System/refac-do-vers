@@ -91,4 +91,28 @@ describe('LoginScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Login' }));
     expect(onLogin).toHaveBeenCalledTimes(1);
   });
+
+  /** Garante indisponibilidade distinta com nova tentativa (02e). */
+  it('exibe indisponibilidade e repete o envio ao tentar de novo', () => {
+    const onLogin = jest.fn();
+    const { getByLabelText, getByRole, queryByRole } = render(
+      <LoginScreen onLogin={onLogin} status="unavailable" />,
+    );
+
+    fireEvent.changeText(getByLabelText('Email'), 'anna@vers.com');
+    fireEvent.changeText(getByLabelText('Password'), 'Password123!!');
+
+    expect(
+      getByRole('alert', { name: 'Serviço indisponível no momento. Tente novamente em instantes.' }),
+    ).toBeTruthy();
+    expect(
+      queryByRole('alert', { name: 'Não foi possível entrar. Verifique email e senha e tente novamente.' }),
+    ).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
+    expect(onLogin).toHaveBeenCalledWith({
+      email: 'anna@vers.com',
+      password: 'Password123!!',
+    });
+  });
 });

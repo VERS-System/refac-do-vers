@@ -1,10 +1,12 @@
 /**
  * Implementa a tela de autenticação do usuário conforme o mockup mobile do VERS.
+ *
+ * Login social permanece fora do MVP por falta de contrato aprovado (Task 02):
+ * a tela expõe apenas email, senha e o atalho para o cadastro.
  */
 
 import { useState } from 'react';
 import {
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -22,7 +24,6 @@ export type LoginCredentials = {
 };
 
 type LoginScreenProps = {
-  onGoogleLogin?: () => void;
   onLogin?: (credentials: LoginCredentials) => void;
   onSignUp?: () => void;
   /** Contador de focos da tela usado para disparar a animação da logo. */
@@ -33,7 +34,7 @@ type LoginScreenProps = {
  * Exibe as opções de acesso e mantém somente o estado local dos campos; as
  * integrações reais são delegadas por callbacks para não acoplar UI e API.
  */
-export function LoginScreen({ onGoogleLogin, onLogin, onSignUp, animationRun }: LoginScreenProps) {
+export function LoginScreen({ onLogin, onSignUp, animationRun }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -78,23 +79,6 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp, animationRun }: 
               </View>
             </View>
 
-            <Text style={styles.socialTitle}>OR</Text>
-            <Pressable
-              accessibilityLabel="Entrar com Google"
-              accessibilityRole="button"
-              hitSlop={12}
-              onPress={onGoogleLogin}
-              style={({ pressed }) => [styles.googleButton, pressed && styles.pressed]}
-            >
-              <View style={styles.googleCTA}>
-                <Image 
-                  source={require('../assets/googleIcon.png')} 
-                  style={styles.googleIcon} 
-                />
-                <Text style={styles.accountText}>Continue with Google</Text>
-              </View>
-            </Pressable>
-
             <View style={styles.accountRow}>
               <Text style={styles.accountText}>Don't have an account? </Text>
               <Pressable
@@ -103,7 +87,7 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp, animationRun }: 
                 hitSlop={8}
                 onPress={onSignUp}
               >
-                <Text style={styles.accountLink}>Sing up</Text>
+                <Text style={styles.accountLink}>Sign up</Text>
               </Pressable>
             </View>
           </View>
@@ -135,38 +119,6 @@ const styles = StyleSheet.create({
   loginButton: {
     marginTop: 31,
     width: '100%',
-  },
-  socialTitle: {
-    color: theme.colors.primary,
-    fontSize: 14,
-    fontWeight: '800',
-    marginTop: 43,
-  },
-  googleButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: 48,
-    textAlign: 'center',
-    marginTop: 29,
-    maxWidth: 350,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.pill,
-  },
-  googleIcon: {
-    width: 25,
-    height: 25,
-    resizeMode: 'contain',
-  },
-  googleCTA: {
-    flexDirection: 'row',
-    alignItems: 'center',     // <--- Alinha o ícone e o texto no eixo vertical
-    justifyContent: 'center',
-    gap: 10,
-  },
-  pressed: {
-    opacity: 0.7,
   },
   accountRow: {
     alignItems: 'center',

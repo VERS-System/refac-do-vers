@@ -21,18 +21,21 @@ describe('LoginScreen', () => {
     });
   });
 
-  /** Confirma que as alternativas de Google e Cadastro disparam seus fluxos. */
-  it('aciona login Google e abertura do cadastro', () => {
-    const onGoogleLogin = jest.fn();
+  /** Confirma que a abertura do cadastro dispara seu fluxo. */
+  it('abre o cadastro ao pressionar o link de conta', () => {
     const onSignUp = jest.fn();
-    const { getByRole } = render(
-      <LoginScreen onGoogleLogin={onGoogleLogin} onSignUp={onSignUp} />,
-    );
+    const { getByRole } = render(<LoginScreen onSignUp={onSignUp} />);
 
-    fireEvent.press(getByRole('button', { name: 'Entrar com Google' }));
     fireEvent.press(getByRole('button', { name: 'Criar uma conta' }));
 
-    expect(onGoogleLogin).toHaveBeenCalledTimes(1);
     expect(onSignUp).toHaveBeenCalledTimes(1);
+  });
+
+  /** Garante que não há login social sem contrato aprovado (Task 02). */
+  it('não exibe botão Google nem divisor social', () => {
+    const { queryByRole, queryByText } = render(<LoginScreen />);
+
+    expect(queryByRole('button', { name: 'Entrar com Google' })).toBeNull();
+    expect(queryByText('OR')).toBeNull();
   });
 });

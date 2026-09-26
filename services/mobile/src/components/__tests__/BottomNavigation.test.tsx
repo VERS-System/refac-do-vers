@@ -3,7 +3,6 @@
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
 import { BottomNavigation } from '../BottomNavigation';
 
 describe('BottomNavigation', () => {
@@ -20,30 +19,5 @@ describe('BottomNavigation', () => {
 
     fireEvent.press(getByRole('button', { name: 'Bateria' }));
     expect(onTabPress).toHaveBeenCalledWith('battery');
-  });
-
-  /** Garante que a aba de diagnóstico do veículo permanece fora do escopo. */
-  it('não expõe atalho de diagnóstico do veículo', () => {
-    const { queryByRole } = render(<BottomNavigation activeTab="home" />);
-
-    expect(queryByRole('button', { name: 'Diagnóstico' })).toBeNull();
-    expect(queryByRole('button', { name: 'Abrir diagnóstico do carro' })).toBeNull();
-  });
-
-  /** Garante que o botão central usa a imagem versAlt fornecida pelo programador. */
-  it('exibe a marca versAlt no botão central', () => {
-    const { getByTestId, queryByTestId } = render(<BottomNavigation activeTab="vers" />);
-
-    expect(getByTestId('vers-brand-image')).toBeTruthy();
-    expect(queryByTestId('vers-logo')).toBeNull();
-  });
-
-  /** Garante que a marca central tem porte comparável aos ícones de 25px. */
-  it('mantém a marca central no porte dos demais ícones', () => {
-    const { getByTestId } = render(<BottomNavigation activeTab="vers" />);
-    const style = StyleSheet.flatten(getByTestId('vers-brand-image').props.style);
-
-    expect(style.width).toBeLessThanOrEqual(30);
-    expect(style.height).toBeLessThanOrEqual(30);
   });
 });

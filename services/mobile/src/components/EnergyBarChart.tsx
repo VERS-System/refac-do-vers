@@ -3,7 +3,7 @@
  */
 
 import { StyleSheet, View } from 'react-native';
-import { theme } from '../constants/theme';
+import { colors } from '../constants/colors';
 
 type EnergyBarChartProps = {
   height?: number;
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   baseline: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     bottom: 0,
     height: StyleSheet.hairlineWidth,
     left: 0,
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
   bar: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     width: 2,
   },
 });

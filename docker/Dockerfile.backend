@@ -9,18 +9,10 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copia os manifests do root e do backend.
-# O schema do Prisma vem antes do install porque o postinstall do backend
-# roda `prisma generate` e precisa dele já presente.
+# Copia os manifests do root e do backend
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY services/backend/package.json ./services/backend/
-COPY services/backend/prisma ./services/backend/prisma
-COPY services/backend/prisma.config.ts ./services/backend/
 COPY packages/ ./packages/
-
-# DATABASE_URL dummy só para o `prisma generate` do postinstall/build.
-# Em runtime o valor real vem do .env (env_file no compose).
-ENV DATABASE_URL=postgresql://build:build@localhost:5432/vers
 
 # Instala dependências (apenas as de produção + dev para build)
 RUN pnpm install --frozen-lockfile
@@ -39,12 +31,9 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copia os artifacts do build mantendo o layout do workspace pnpm:
-# o dist fica dentro de services/backend para que o Node resolva as
-# dependências em services/backend/node_modules e /app/node_modules.
-COPY --from=builder /app/services/backend/dist ./services/backend/dist
-COPY --from=builder /app/services/backend/package.json ./services/backend/package.json
-COPY --from=builder /app/services/backend/node_modules ./services/backend/node_modules
+# Copia os artifacts do build
+COPY --from=builder /app/services/backend/dist ./dist
+COPY --from=builder /app/services/backend/package.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/pnpm-lock.yaml ./
@@ -52,4 +41,4 @@ COPY --from=builder /app/package.json ./
 
 EXPOSE 3000
 
-CMD ["node", "services/backend/dist/main"]
+CMD ["node", "dist/main"]

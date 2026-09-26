@@ -15,11 +15,3 @@ jest.mock('@expo/vector-icons', () => {
 
   return { Ionicons: MockIcon };
 });
-
-/**
- * Substitui o módulo nativo de área segura por mocks de teste durante o Jest,
- * incluindo o SafeAreaProviderCompat usado internamente pelas telas de navegação.
- */
-jest.mock('react-native-safe-area-context', () =>
-  require('react-native-safe-area-context/jest/mock').default
-);

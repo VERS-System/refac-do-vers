@@ -4,7 +4,7 @@
 
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { theme } from '../constants/theme';
+import { colors } from '../constants/colors';
 
 type BatteryDonutProps = {
   recoveredPercentage: number;
@@ -38,7 +38,7 @@ export function BatteryDonut({
           cy={size / 2}
           fill="none"
           r={radius}
-          stroke={theme.colors.white}
+          stroke={colors.white}
           strokeWidth={strokeWidth}
         />
         <Circle
@@ -48,7 +48,7 @@ export function BatteryDonut({
           origin={`${size / 2}, ${size / 2}`}
           r={radius}
           rotation="-90"
-          stroke={theme.colors.primary}
+          stroke={colors.primary}
           strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={dashOffset}
           strokeLinecap="butt"

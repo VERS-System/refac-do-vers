@@ -6,7 +6,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 import {
   getLogoAnimationPlan,
   getLogoTravelDistance,
@@ -26,9 +26,9 @@ const BAR_POINTS: Record<LogoBar, string> = {
 
 /** Cor de preenchimento de cada barra do logotipo. */
 const BAR_FILL: Record<LogoBar, string> = {
-  left: colors.logoLight,
-  center: colors.logoGold,
-  right: colors.logoLight,
+  left: theme.colors.logoLight,
+  center: theme.colors.logoGold,
+  right: theme.colors.logoLight,
 };
 
 type VersLogoProps = {

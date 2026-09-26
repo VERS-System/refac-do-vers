@@ -3,7 +3,7 @@
  */
 
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 export type PasswordRequirementState = {
   hasMinimumLength: boolean;
@@ -94,12 +94,12 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   title: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 13,
   },
   box: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
+    backgroundColor: theme.colors.background,
+    borderColor: theme.colors.border,
     borderRadius: 27,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 15,
@@ -110,10 +110,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   requirementText: {
-    color: colors.gray,
+    color: theme.colors.gray,
     fontSize: 14,
   },
   requirementMet: {
-    color: colors.primary,
+    color: theme.colors.primary,
   },
 });

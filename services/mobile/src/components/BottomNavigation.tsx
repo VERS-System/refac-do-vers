@@ -6,7 +6,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 export type MainTab = 'home' | 'battery' | 'vers' | 'profile';
 
@@ -40,7 +40,7 @@ function NavigationIcon({ activeTab, icon, label, onPress, tab }: NavigationIcon
       onPress={handlePress}
       style={[styles.iconButton, isActive && styles.activeButton]}
     >
-      <Ionicons color={colors.primary} name={icon} size={25} />
+      <Ionicons color={theme.colors.primary} name={icon} size={25} />
     </Pressable>
   );
 }
@@ -100,8 +100,8 @@ export function BottomNavigation({ activeTab, onTabPress }: BottomNavigationProp
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    backgroundColor: colors.background,
-    borderColor: colors.border,
+    backgroundColor: theme.colors.background,
+    borderColor: theme.colors.border,
     borderRadius: 29,
     borderWidth: StyleSheet.hairlineWidth,
     bottom: 12,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     position: 'absolute',
     right: 28,
-    shadowColor: colors.white,
+    shadowColor: theme.colors.white,
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     width: 46,
   },
   activeButton: {
-    backgroundColor: colors.tabActive,
+    backgroundColor: theme.colors.tabActive,
   },
   brandButton: {
     alignItems: 'center',

@@ -32,4 +32,20 @@ describe('tokens visuais (Task 00 - F1)', () => {
     expect(theme.layout).toBe(layout);
     expect(theme.typography.body.fontSize).toBe(16);
   });
+
+  /** Garante que o theme é a porta única para raios usados nas telas. */
+  it('expõe via theme os raios aplicados nas telas', () => {
+    expect(theme.radii.pill).toBe(100);
+    expect(theme.radii.xl).toBe(34);
+    expect(theme.radii.lg).toBe(22);
+  });
+
+  /** Garante que o theme expõe a escala de espaçamento das telas. */
+  it('expõe via theme a escala de espaçamento', () => {
+    expect(theme.spacing.xs).toBe(4);
+    expect(theme.spacing.sm).toBe(8);
+    expect(theme.spacing.md).toBe(16);
+    expect(theme.spacing.lg).toBe(24);
+    expect(theme.spacing.xl).toBe(32);
+  });
 });

@@ -9,7 +9,7 @@ import { Animated, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VersLogo } from '../components/VersLogo';
 import { getSplashCenterOffset } from '../components/logoAnimation';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 /** Margem do topo onde a logo se acomoda, igual ao espaçamento das telas. */
 const SPLASH_TOP_MARGIN = 40;
@@ -52,7 +52,7 @@ export function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: theme.colors.background,
     flex: 1,
   },
 });

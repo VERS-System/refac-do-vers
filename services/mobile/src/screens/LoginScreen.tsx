@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthTextField } from '../components/AuthTextField';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { VersLogo } from '../components/VersLogo';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 export type LoginCredentials = {
   email: string;
@@ -129,7 +129,7 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp, animationRun }: 
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: colors.background,
+    backgroundColor: theme.colors.background,
     flex: 1,
   },
   keyboardArea: {
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     marginBottom: 26,
   },
   title: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 26,
     fontWeight: '600',
     marginBottom: 28,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   socialTitle: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '800',
     marginTop: 43,
@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
     maxWidth: 350,
     width: '100%',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 100,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.pill,
   },
   googleIcon: {
     width: 25,
@@ -201,11 +201,11 @@ const styles = StyleSheet.create({
     marginTop: 29,
   },
   accountText: {
-    color: colors.white,
+    color: theme.colors.white,
     fontSize: 14,
   },
   accountLink: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 14,
     textDecorationLine: 'underline',
   },

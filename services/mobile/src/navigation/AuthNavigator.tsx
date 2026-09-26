@@ -5,7 +5,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { createContext, useContext } from 'react';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
 import { useFocusLogoAnimationRun } from './focusRunCounter';
@@ -25,7 +25,7 @@ const AuthenticatedContext = createContext<(() => void) | undefined>(undefined);
  */
 export const AUTH_SCREEN_OPTIONS = {
   animation: 'none',
-  contentStyle: { backgroundColor: colors.background },
+  contentStyle: { backgroundColor: theme.colors.background },
   headerShown: false,
 } as const;
 

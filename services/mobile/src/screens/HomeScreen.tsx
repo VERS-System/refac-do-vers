@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BatteryDonut } from '../components/BatteryDonut';
 import { BottomNavigation, MainTab } from '../components/BottomNavigation';
 import { EnergyBarChart } from '../components/EnergyBarChart';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 const BATTERY_VALUES = [52, 48, 72, 57, 75, 50];
 const ECONOMY_VALUES = [42, 45, 39, 41, 58, 63, 48, 44, 70, 67, 42];
@@ -38,7 +38,7 @@ export function HomeScreen({ onOpenViber, onTabPress }: HomeScreenProps) {
         >
           <Text style={styles.viberLead}>Chat with </Text>
           <Text style={styles.viberName}>Viber</Text>
-          <Ionicons color={colors.primary} name="chatbox-outline" size={22} />
+          <Ionicons color={theme.colors.primary} name="chatbox-outline" size={22} />
         </Pressable>
 
         <View style={styles.topCards}>
@@ -75,7 +75,7 @@ export function HomeScreen({ onOpenViber, onTabPress }: HomeScreenProps) {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: colors.background,
+    backgroundColor: theme.colors.background,
     flex: 1,
   },
   scrollContent: {
@@ -90,13 +90,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   viberLead: {
-    color: colors.white,
+    color: theme.colors.white,
     fontSize: 20,
   },
   viberName: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 20,
-    marginRight: 4,
+    marginRight: theme.spacing.xs,
     textDecorationLine: 'underline',
   },
   topCards: {
@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   card: {
-    borderColor: colors.border,
-    borderRadius: 34,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.xl,
     borderWidth: StyleSheet.hairlineWidth,
     height: 164,
     overflow: 'hidden',
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   cardTitle: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 20,
   },
   smallChart: {
@@ -128,8 +128,8 @@ const styles = StyleSheet.create({
     paddingBottom: 35,
   },
   economyCard: {
-    borderColor: colors.border,
-    borderRadius: 34,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.xl,
     borderWidth: StyleSheet.hairlineWidth,
     height: 164,
     marginTop: 29,
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   economyTitle: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 23,
     textAlign: 'center',
   },
@@ -155,12 +155,12 @@ const styles = StyleSheet.create({
     marginTop: 31,
   },
   recoveredLabel: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 12,
     marginBottom: 9,
   },
   usedLabel: {
-    color: colors.white,
+    color: theme.colors.white,
     fontSize: 12,
     marginTop: 10,
     opacity: 0.12,

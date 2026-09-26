@@ -17,7 +17,7 @@ import { AuthTextField } from '../components/AuthTextField';
 import { PasswordRequirements, evaluatePassword } from '../components/PasswordRequirements';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { VersLogo } from '../components/VersLogo';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 export type RegisterCredentials = {
   email: string;
@@ -139,7 +139,7 @@ export function RegisterScreen({ onLogin, onRegister, animationRun }: RegisterSc
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: colors.background,
+    backgroundColor: theme.colors.background,
     flex: 1,
   },
   keyboardArea: {
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 28,
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 26,
     fontWeight: '600',
     marginBottom: 22,
@@ -178,11 +178,11 @@ const styles = StyleSheet.create({
     marginTop: 31,
   },
   accountText: {
-    color: colors.white,
+    color: theme.colors.white,
     fontSize: 14,
   },
   accountLink: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 14,
     textDecorationLine: 'underline',
   },

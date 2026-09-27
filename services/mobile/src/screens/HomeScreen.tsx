@@ -3,20 +3,33 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BatteryDonut } from '../components/BatteryDonut';
 import { BottomNavigation, MainTab } from '../components/BottomNavigation';
 import { EnergyBarChart } from '../components/EnergyBarChart';
 import { AppCard } from '../components/AppCard';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
 
 const BATTERY_VALUES = [52, 48, 72, 57, 75, 50];
 const ECONOMY_VALUES = [42, 45, 39, 41, 58, 63, 48, 44, 70, 67, 42];
 
+/** Estados visuais da Home; a origem dos dados é do backend (F06 futuro). */
+export type HomeStatus =
+  | 'loading'
+  | 'success'
+  | 'noData'
+  | 'error'
+  | 'noInstallation'
+  | 'insufficientQuality';
+
 type HomeScreenProps = {
   onOpenViber?: () => void;
   onTabPress?: (tab: MainTab) => void;
+  onRetry?: () => void;
+  /** Estado visual atual; `success` exibe os indicadores. */
+  status?: HomeStatus;
   /** Período dos indicadores exibidos. */
   periodLabel?: string;
   /** Unidade de energia dos indicadores exibidos. */
@@ -32,11 +45,78 @@ type HomeScreenProps = {
 export function HomeScreen({
   onOpenViber,
   onTabPress,
+  onRetry,
+  status = 'success',
   periodLabel = 'Últimos 30 dias',
   energyUnit = 'Wh',
   qualityLabel = 'dados de amostra',
 }: HomeScreenProps) {
   const caption = `${periodLabel} · ${energyUnit} · ${qualityLabel}`;
+
+  if (status === 'loading') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="home" onTabPress={onTabPress} />}
+        testID="home-screen"
+      >
+        <View style={styles.stateBlock}>
+          <ActivityIndicator
+            accessibilityLabel="Carregando"
+            color={theme.colors.primary}
+            size="large"
+            testID="home-loading"
+          />
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'noData') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="home" onTabPress={onTabPress} />}
+        testID="home-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Nenhum dado disponível para o período."
+            accessibilityRole="alert"
+            style={styles.stateText}
+            testID="home-no-data"
+          >
+            Nenhum dado disponível para o período.
+          </Text>
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="home" onTabPress={onTabPress} />}
+        testID="home-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Não foi possível carregar os dados. Tente novamente."
+            accessibilityRole="alert"
+            style={styles.stateText}
+            testID="home-error"
+          >
+            Não foi possível carregar os dados. Tente novamente.
+          </Text>
+          <View style={styles.retryButton}>
+            <PrimaryButton
+              accessibilityLabel="Tentar novamente"
+              label="TENTAR NOVAMENTE"
+              onPress={() => onRetry?.()}
+            />
+          </View>
+        </View>
+      </ScreenShell>
+    );
+  }
 
   return (
     <ScreenShell
@@ -89,6 +169,22 @@ const styles = StyleSheet.create({
     paddingBottom: 92,
     paddingHorizontal: 20,
     paddingTop: 30,
+  },
+  stateBlock: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 16,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  stateText: {
+    color: theme.colors.white,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  retryButton: {
+    maxWidth: 350,
+    width: '100%',
   },
   viberLink: {
     alignItems: 'center',

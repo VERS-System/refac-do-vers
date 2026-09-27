@@ -43,4 +43,39 @@ describe('HomeScreen', () => {
 
     expect(getAllByText('Hoje · kWh · dados parciais')).toHaveLength(3);
   });
+
+  /** Garante carregamento sem números (04b). */
+  it('exibe carregamento sem indicadores', () => {
+    const { getByLabelText, queryByText } = render(<HomeScreen status="loading" />);
+
+    expect(getByLabelText('Carregando')).toBeTruthy();
+    expect(queryByText('Battery usage')).toBeNull();
+    expect(queryByText('Money economy')).toBeNull();
+  });
+
+  /** Garante ausência de dados sem zeros inventados (04b). */
+  it('exibe ausência de dados sem indicadores', () => {
+    const { getByRole, queryByText } = render(<HomeScreen status="noData" />);
+
+    expect(
+      getByRole('alert', { name: 'Nenhum dado disponível para o período.' }),
+    ).toBeTruthy();
+    expect(queryByText('Battery usage')).toBeNull();
+  });
+
+  /** Garante erro com nova tentativa (04b). */
+  it('exibe erro e repete a carga ao tentar de novo', () => {
+    const onRetry = jest.fn();
+    const { getByRole, queryByText } = render(
+      <HomeScreen onRetry={onRetry} status="error" />,
+    );
+
+    expect(
+      getByRole('alert', { name: 'Não foi possível carregar os dados. Tente novamente.' }),
+    ).toBeTruthy();
+    expect(queryByText('Battery usage')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
 });

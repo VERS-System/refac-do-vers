@@ -59,6 +59,26 @@
 - Testes HTTP usam Prisma sintético com `$connect()` configurado para falhar: o app inicia, `live` segue 200, `ready` muda de 503 para 200 após recuperação de banco ou Redis. Testes unitários cobrem timeout de ambos e shutdown idempotente.
 - `.AIs/docs/Api/endpoints.md` e OpenAPI passaram a declarar PostgreSQL e Redis no readiness. Jest local: 15 suítes/55 testes; ESLint e `nest build` passaram. Próximo lote: contrato e entrega.
 
+## Lote 09 — conferência final em 26/09/2026
+
+| Grupo de operações no OpenAPI | Contrato | Registradas no `AppModule` |
+| --- | ---: | ---: |
+| Health | 2 | 2 |
+| Auth | 5 | 0 |
+| Users | 2 | 0 |
+| Vehicles | 5 | 0 |
+| Installations | 4 | 0 |
+| Tests | 6 | 0 |
+| Data e comparações | 4 | 0 |
+| Support | 3 | 0 |
+| **Total** | **31** | **2** |
+
+- Apenas `GET /api/v1/health/live` e `GET /api/v1/health/ready` estão implementados. As outras 29 operações são contratos futuros; os controllers sintéticos de `app.foundation.spec.ts` existem só no teste.
+- OpenAPI 3.1 foi lido com parser YAML; seus 20 códigos de erro coincidem com `ApiErrorCode` de `packages/shared-types/src/api.ts`. `HealthStatus.dependencies` exige `database` e `redis`, em linha com a resposta HTTP testada.
+- `services/backend/.env.example` foi corrigido para `API_PREFIX=api/v1` e `CORS_ORIGINS` em uma linha. `endpoints.md` explicita o estado de implementação.
+- Validação final: `npm.cmd run test:unit` passou (15 suítes/55 testes); ESLint, `nest build`, parser YAML e `git diff --check` passaram. Nenhum serviço externo foi usado.
+- **F03 concluída e revisão aprovada pelo programador em 26/09/2026.** Exceção de ambiente registrada: `pnpm --filter @vers/backend test:unit` não chegou ao script por causa da checagem/reinstalação de dependências; `npm.cmd run test:unit` executou o script do serviço e passou com 15 suítes/55 testes. ESLint e `nest build` passaram pelos binários locais.
+
 ## Ordem de execução
 
 1. Lote 02: acrescentar teste de bootstrap com configuração inválida e conferir prefixo e middleware. Alterar código só se o teste demonstrar defeito.
@@ -74,5 +94,5 @@ Cada correção de código começa por teste comportamental que falha, seguida d
 
 ## Decisões operacionais abertas
 
-- Redis no readiness REST: **decisão do programador em 26/09/2026: PostgreSQL e Redis são obrigatórios**. O código atual consulta só PostgreSQL; implementar e testar no lote 08.
+- Redis no readiness REST: **decisão do programador em 26/09/2026: PostgreSQL e Redis são obrigatórios**. Implementado e testado no lote 08.
 - Domínio de cookies, `SameSite` e CSRF pertencem à F04; limites finais de rate limit e retenção de logs seguem pendentes para ambiente real.

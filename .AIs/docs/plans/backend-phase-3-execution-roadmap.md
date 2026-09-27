@@ -4,7 +4,8 @@
 
 ## Objetivo e estado
 
-**Estado em 24/09/2026: planejada.** A Fase 02 entregou o schema e a primeira
+**Estado em 26/09/2026: concluída, com revisão aprovada pelo programador.** Os lotes executados estão registrados no
+[plano de correções](backend-f03-correcoes-lote-a-lote-26-09-2026.md). A Fase 02 entregou o schema e a primeira
 migration. Esta fase prepara o backend NestJS para receber autenticação e
 recursos de domínio: bootstrap consistente, roteamento `/api/v1`, entrada
 validada, respostas e erros uniformes, correlação, logs seguros e health checks.
@@ -53,15 +54,15 @@ testes, MQTT, WebSocket ou IA. Esses fluxos pertencem às fases 04–08.
 
 | Lote | Estado | Entrega revisável | Evidência mínima |
 | --- | --- | --- | --- |
-| 01 — Baseline da API | Planejado | Inventário dos scaffolds, rotas registradas, configuração e comandos; matriz contrato × implementação. | `test:unit`, lint e build atuais; relatório de falhas e decisões abertas. |
-| 02 — Bootstrap e prefixo | Planejado | Configuração testável de `/api/v1`, ordem de middleware e módulos; nenhuma rota de negócio ligada antes de estar pronta. | Testes de inicialização/roteamento e configuração inválida; `test:unit`, lint, build. |
-| 03 — Entrada e paginação | Planejado | `ValidationPipe`, DTOs base para UUID, datas UTC, filtros e paginação com allowlist e limites dos contratos. | Testes HTTP de campo extra, valor inválido, bordas e transformação; `test:unit`. |
-| 04 — Envelope e catálogo de erros | Planejado | Resposta `data`/`meta`/`requestId`, erro `error`/`requestId`/`timestamp` e mapeamento estável sem stack trace. | Testes HTTP de sucesso, validação, 404 e falha inesperada; `test:unit`, lint, build. |
-| 05 — Correlação e logs | Planejado | Request ID único, propagação à resposta e logs estruturados com redaction; política para ID de entrada não confiável. | Testes de correlação, concorrência e ausência de segredo/payload pessoal; `test:unit`. |
-| 06 — Limites HTTP e CORS | Planejado | Consolidar Helmet, CORS allowlist com credenciais e throttling existentes; tratamento consistente de 429. | Testes de origem permitida/negada, headers, preflight e limite; `test:unit`, lint, build. |
-| 07 — Auditoria mínima | Planejado | Interface e política allowlist para eventos auditáveis; integração persistente somente onde houver ação de domínio real. | Testes de redaction, evento permitido e falha de persistência sem vazar dados; `test:unit`. |
-| 08 — Liveness e readiness | Planejado | `/health/live` e `/health/ready`, probe de banco com timeout, política documentada para Redis e shutdown idempotente. | Testes de processo vivo, banco indisponível/recuperado, timeout e encerramento; `test:unit`, lint, build. |
-| 09 — Contrato e entrega | Planejado | Conferência OpenAPI × rotas efetivas, exemplos sintéticos, documentação operacional e contexto; remover alegações de rotas ainda não implementadas. | `test:unit`, lint, build, testes HTTP de integração sem Neon e diff de contrato revisado. |
+| 01 — Baseline da API | Concluído | Inventário dos scaffolds, rotas registradas, configuração e comandos; matriz contrato × implementação. | `test:unit`, lint e build atuais; relatório de falhas e decisões abertas. |
+| 02 — Bootstrap e prefixo | Concluído | Configuração testável de `/api/v1`, ordem de middleware e módulos; nenhuma rota de negócio ligada antes de estar pronta. | Testes de inicialização/roteamento e configuração inválida; `test:unit`, lint, build. |
+| 03 — Entrada e paginação | Concluído | `ValidationPipe`, DTOs base para UUID, datas UTC, filtros e paginação com allowlist e limites dos contratos. | Testes HTTP de campo extra, valor inválido, bordas e transformação; `test:unit`. |
+| 04 — Envelope e catálogo de erros | Concluído | Resposta `data`/`meta`/`requestId`, erro `error`/`requestId`/`timestamp` e mapeamento estável sem stack trace. | Testes HTTP de sucesso, validação, 404 e falha inesperada; `test:unit`, lint, build. |
+| 05 — Correlação e logs | Concluído | Request ID único, propagação à resposta e logs estruturados com redaction; política para ID de entrada não confiável. | Testes de correlação, concorrência e ausência de segredo/payload pessoal; `test:unit`. |
+| 06 — Limites HTTP e CORS | Concluído | Consolidar Helmet, CORS allowlist com credenciais e throttling existentes; tratamento consistente de 429. | Testes de origem permitida/negada, headers, preflight e limite; `test:unit`, lint, build. |
+| 07 — Auditoria mínima | Concluído | Interface e política allowlist para eventos auditáveis; integração persistente somente onde houver ação de domínio real. | Testes de redaction, evento permitido e falha de persistência sem vazar dados; `test:unit`. |
+| 08 — Liveness e readiness | Concluído | `/health/live` e `/health/ready`, probe de banco com timeout, política documentada para Redis e shutdown idempotente. | Testes de processo vivo, banco indisponível/recuperado, timeout e encerramento; `test:unit`, lint, build. |
+| 09 — Contrato e entrega | Concluído | Conferência OpenAPI × rotas efetivas, exemplos sintéticos, documentação operacional e contexto; remover alegações de rotas ainda não implementadas. | `test:unit`, lint, build, testes HTTP de integração sem Neon e diff de contrato revisado. |
 
 ### 01 — Baseline da API
 

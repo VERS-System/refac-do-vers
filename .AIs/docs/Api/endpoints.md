@@ -12,6 +12,10 @@
 - Respostas incluem `requestId` para correlação.
 - Nenhuma resposta contém senha, access token ou refresh token.
 
+**Estado em 26/09/2026:** apenas `GET /health/live` e `GET /health/ready` estão
+registrados no backend. As demais rotas deste documento e do OpenAPI são
+contratos aprovados para fases futuras.
+
 ## Health checks
 
 | Método | Rota | Acesso | Resultado |

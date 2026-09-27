@@ -45,10 +45,37 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
         '503':
           $ref: '#/components/responses/ServiceUnavailableError'
+  /auth/csrf:
+    get:
+      tags: [Auth]
+      summary: Emite token CSRF e cookie vinculado antes de mutações
+      security: []
+      responses:
+        '200':
+          description: Token para enviar em X-CSRF-Token; não autentica o cliente.
+          headers:
+            Set-Cookie:
+              description: Cookie HttpOnly de vínculo do token CSRF.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, requestId]
+                properties:
+                  data:
+                    type: object
+                    required: [csrfToken]
+                    properties:
+                      csrfToken:
+                        type: string
+                  requestId:
+                    type: string
   /auth/register:
     post:
       tags: [Auth]
-      summary: Cadastra usuário e inicia sessão
+      summary: Aceita cadastro sem iniciar sessão e sem revelar se o email existe
       security: []
       requestBody:
         required: true
@@ -57,12 +84,10 @@ paths:
             schema:
               $ref: '#/components/schemas/RegisterRequest'
       responses:
-        '201':
-          $ref: '#/components/responses/Authenticated'
+        '202':
+          description: Solicitação aceita; resposta igual para email novo ou já cadastrado, sem body e sem cookies de sessão.
         '400':
           $ref: '#/components/responses/ValidationError'
-        '409':
-          $ref: '#/components/responses/ConflictError'
   /auth/login:
     post:
       tags: [Auth]

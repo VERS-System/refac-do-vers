@@ -82,11 +82,19 @@ Erro:
 
 | Método | Rota | Acesso | Resultado |
 | --- | --- | --- | --- |
-| `POST` | `/auth/register` | Público | Cria a conta, inicia a sessão e retorna o perfil. |
+| `GET` | `/auth/csrf` | Público | Emite token CSRF e cookie vinculado para mutações. |
+| `POST` | `/auth/register` | Público | Aceita o cadastro sem iniciar sessão; responde igual para email novo ou já cadastrado. |
 | `POST` | `/auth/login` | Público | Inicia a sessão e retorna o perfil. |
 | `POST` | `/auth/refresh` | Refresh cookie | Rotaciona a sessão; body vazio. |
 | `POST` | `/auth/logout` | Refresh cookie | Revoga a sessão atual e limpa os cookies; body vazio. |
 | `POST` | `/auth/logout-all` | Access cookie | Revoga todas as sessões do usuário e limpa os cookies atuais. |
+
+`GET /auth/csrf` retorna `data.csrfToken` e define o cookie de vínculo. O
+cliente envia o token em `X-CSRF-Token` nas mutações; o backend valida também
+`Origin`. O token CSRF não é um token de autenticação. Access JWT dura 15
+minutos e refresh JWT sete dias, com chaves distintas configuráveis. Cookies
+de auth são `HttpOnly`, host-only e `SameSite=Lax`; `Secure` é obrigatório sob
+HTTPS. Domínios finais de produção seguem pendentes.
 
 ### Cadastro
 
@@ -99,8 +107,10 @@ Erro:
 ```
 
 A senha deve possuir no mínimo oito caracteres, uma letra maiúscula, um
-caractere especial e nenhum espaço. A resposta contém somente `UserProfile`;
-os tokens são enviados exclusivamente nos cookies.
+caractere especial e nenhum espaço. A resposta é `202` sem corpo e sem cookies
+de sessão, tanto para email novo quanto para email já cadastrado. Uma conta
+nova permanece `PENDING_VERIFICATION` e com acesso restrito; a ativação será
+definida em fase futura. Nenhum email pode ser inferido pela resposta pública.
 
 ### Login
 
@@ -359,7 +369,7 @@ existência de recursos de outra conta. Motivo ou filtro inválido retorna
 
 | Código | Uso |
 | --- | --- |
-| `AUTH_EMAIL_ALREADY_REGISTERED` | Email já vinculado a uma conta. |
+| `AUTH_EMAIL_ALREADY_REGISTERED` | Reservado para contratos futuros; o cadastro público não expõe esse erro. |
 | `AUTH_INVALID_CREDENTIALS` | Login inválido sem enumerar usuários. |
 | `AUTH_INVALID_REFRESH_TOKEN` | Refresh cookie ausente, inválido ou expirado. |
 | `AUTH_SESSION_REVOKED` | Sessão já revogada. |

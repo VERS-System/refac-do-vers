@@ -4,8 +4,8 @@
 
 ## Objetivo e estado
 
-**Planejada em 26/09/2026.** A F03 concluiu a fundação HTTP; apenas health está
-registrado. Implementar as cinco rotas `/auth/*` contratadas, sessões em cookies
+**Lote 01 inventariado em 26/09/2026; lote 02 ainda não iniciado.** A F03 concluiu a fundação HTTP; apenas health está
+registrado. Implementar as seis rotas `/auth/*` contratadas, sessões em cookies
 e proteção das rotas que forem entregues nas fases seguintes. Cada lote produz
 um diff pequeno, testes antes do código e revisão do programador. A IA não faz
 commits, acessa `.env`, Neon ou serviços externos sem autorização específica.
@@ -20,23 +20,63 @@ commits, acessa `.env`, Neon ou serviços externos sem autorização específica
   `auth.config.ts` contém apenas `JWT_SECRET` e `JWT_EXPIRATION=7d`.
 - O schema já contém `User`, papéis globais e `RefreshSession` com hash,
   expiração, revogação e encadeamento. `User` nasce como
-  `PENDING_VERIFICATION`; o contrato de cadastro inicia sessão.
+  `PENDING_VERIFICATION`; o cadastro agora retorna `202` sem sessão.
 - Dependências de JWT, Passport e bcrypt já estão instaladas. Reutilizar o que
   houver; não adicionar bibliotecas sem necessidade comprovada.
+
+### Inventário do lote 01 — 26/09/2026
+
+| Contrato ou base | Estado observado |
+| --- | --- |
+| `POST /auth/register`, `/login`, `/refresh`, `/logout`, `/logout-all` | Todos documentados em OpenAPI e `endpoints.md`; nenhum registrado no `AppModule`. |
+| AuthModule, controller, service, DTOs e estratégia local | Arquivos de zero bytes; sem comportamento a reaproveitar. |
+| Guards JWT, papéis e WebSocket | Arquivos de zero bytes; sem proteção ativa. |
+| Configuração JWT | `auth.config.ts` mapeia um único segredo e expiração; `env.config.ts` valida segredo mínimo de 16 caracteres e aceita duração, padrão `7d`. |
+| CORS e infraestrutura HTTP | CORS allowlist com credenciais e headers de segurança ativos da F03; não há mecanismo CSRF. |
+| Persistência | `User` com email `citext`, hash de senha, status `PENDING_VERIFICATION`, papéis; `RefreshSession` com hash único, expiração, revogação e substituição. |
+| Tipos compartilhados | Códigos de erro e tipos de auth/perfil já declarados; confrontar com qualquer alteração do contrato antes de implementar. |
+
+**Validação local:** `pnpm --filter @vers/backend {test:unit,lint,build}` não
+iniciou devido à política de execução de `pnpm.ps1` no PowerShell.
+`npm.cmd run test:unit` no serviço passou (15 suítes, 55 testes), assim como
+`npm.cmd run lint` e `npm.cmd run build`. Sem Neon, Redis ou `.env` lidos.
+
+**Decisões do programador já recebidas:** produção ainda sem domínios/origens
+definidos, com abertura a sugestões; conta `PENDING_VERIFICATION` terá acesso
+restrito e permanecerá pendente até uma fase futura. O cadastro retorna `202`
+sem body nem sessão tanto para email novo quanto para email existente. Os
+contratos públicos foram atualizados; uma conta recém-cadastrada não poderá
+fazer login até existir ativação. Para desenvolvimento, foi aprovada a política
+provisória de cookies `HttpOnly`, `Secure` sob HTTPS, host-only,
+`SameSite=Lax`, com validação de `Origin` e token CSRF nas mutações. Access JWT
+dura 15 minutos e refresh JWT sete dias, com segredos distintos configuráveis.
+Foi aprovada `GET /auth/csrf` para emitir token e cookie vinculado antes das
+mutações. O dashboard deixa de usar Electron e passa a ser cliente web Vite com
+Tailwind; a migração é planejada separadamente.
 
 ## Decisões do programador antes de ativar auth
 
 1. Origem e domínio de produção do web/desktop e da API; uso dos cookies no
-   mobile. Registrar `SameSite`, `Secure`, `Domain` e `Path` para access e
-   refresh, incluindo ambiente local.
-2. Mecanismo CSRF para requisições mutáveis autenticadas por cookie, inclusive
-   `refresh`, `logout` e `logout-all`; definir comportamento de clientes nativos.
-3. Vida útil de access/refresh, chaves distintas e política de rotação de
-   assinatura. O valor único atual de sete dias não é uma decisão final.
-4. Conta `PENDING_VERIFICATION`: quais rotas pode usar e como se torna
-   `ACTIVE`, pois não há contrato de verificação de email nesta fase.
-5. Política de bloqueio/tentativas e resposta de cadastro para email existente:
-   o contrato atual prevê `409`, que revela a existência da conta.
+   mobile. A política provisória de desenvolvimento está registrada acima;
+   fechar `Domain` e `Path` para access e refresh antes do lote 02.
+2. Aprovado `Origin` + token CSRF nas mutações. Definir emissão/renovação do
+   token, aplicação em `refresh`, `logout`, `logout-all` e clientes nativos.
+3. Vida útil de 15 minutos para access e sete dias para refresh, com chaves
+   distintas, aprovadas. Política de rotação de assinatura fica para o lote 02.
+4. Conta `PENDING_VERIFICATION`: acesso restrito aprovado; a lista exata de
+   rotas permitidas será fechada antes de ligar guards. A ativação pertence a
+   uma fase futura.
+5. Cadastro indistinguível `202` sem sessão aprovado e refletido nos
+   contratos. Definir política de bloqueio/tentativas para login.
+
+**Pendências para produção:** origens e domínios finais; integração do mobile
+com cookies; valores de `Path` e mecanismo concreto de emissão/vínculo do
+token CSRF no lote 02. Essas definições técnicas devem ser testadas antes de
+ligar qualquer mutação autenticada.
+
+**Saída do lote 01:** baseline, matriz contrato × implementação e decisões para
+iniciar o lote 02 registrados. Política de bloqueio de login e permissões exatas
+de `PENDING_VERIFICATION` permanecem para os lotes 04 e 07, respectivamente.
 
 Registrar as respostas neste plano e refletir qualquer mudança de contrato em
 `endpoints.md` e `openapi.yaml` antes do lote afetado. Nenhuma política acima
@@ -47,8 +87,8 @@ será inferida por um valor padrão de biblioteca.
 | Lote | Entrega | Teste mínimo antes da implementação |
 | --- | --- | --- |
 | 01 — Baseline e decisões | Confirmar scaffolds, schema, contratos, comandos locais e decisões acima. | `test:unit`, lint, build; inventário de divergências. |
-| 02 — Configuração e cookies | Validar segredos, expirações e opções aprovadas; emissor/limpeza de cookies sem tokens no JSON ou logs. | Configuração inválida falha no início; atributos de cookie e limpeza são simétricos; nenhuma credencial vaza. |
-| 03 — Cadastro | DTO allowlist, email normalizado, senha validada, hash bcrypt, criação de `USER` e sessão atômica. | Payload extra/senha inválida, corrida de email duplicado, hash persistido, perfil público e cookies corretos. |
+| 02 — Configuração e cookies | Validar segredos, expirações e opções aprovadas; emissor/limpeza de cookies e `GET /auth/csrf`. | Configuração inválida falha no início; atributos de cookie e limpeza são simétricos; Origin/CSRF validados. |
+| 03 — Cadastro | DTO allowlist, email normalizado, senha validada, hash bcrypt, criação de `USER` pendente. | Payload extra/senha inválida, corrida de email duplicado, hash persistido e `202` indistinguível sem sessão. |
 | 04 — Login | Validar credenciais e estado da conta; criar sessão e emitir cookies. | Email ausente e senha errada têm resposta genérica equivalente; conta bloqueada e rate limit; nenhum token no body/log. |
 | 05 — Refresh | Verificar cookie, hash e estado da sessão; rotacionar de forma atômica e encadear substituição. | Expirado/revogado, duas chamadas concorrentes, replay e revogação da cadeia comprometida. |
 | 06 — Logout | Revogar sessão atual ou todas as sessões do usuário; expirar cookies com os mesmos atributos. | Repetição, sessão alheia, `logout-all`, refresh posterior negado e resposta `204` sem body. |
@@ -70,9 +110,10 @@ cookies, CSRF, duração e estados de conta. Revisão do programador antes do lo
 
 ### 02 — Configuração e cookies
 
-**Escopo:** validar opções de assinatura e duração no startup, criar uma única
-rotina de emissão/limpeza de cookies com os atributos aprovados e conectar a
-proteção CSRF para as mutações que usam cookies.
+**Escopo:** validar segredos distintos e durações aprovadas no startup, criar
+uma única rotina de emissão/limpeza de cookies com os atributos aprovados e
+`GET /auth/csrf` para fornecer token e cookie vinculado. Validar `Origin` e
+token CSRF nas mutações; expor o header CSRF na allowlist CORS.
 
 **Arquivos previstos:** `src/config/auth.config.ts`, `src/config/env.config.ts`,
 `src/modules/auth/` e respectivos testes; `.env.example` se surgirem variáveis.
@@ -84,20 +125,21 @@ registrada ainda. **Saída:** infraestrutura testada sem credencial no JSON/log.
 ### 03 — Cadastro
 
 **Escopo:** validar DTO e email, aplicar a regra de senha, gravar hash e papel
-`USER`, criar sessão conforme política aprovada e retornar `UserProfile`.
-Capturar conflito de unicidade do banco, inclusive corrida concorrente.
+`USER` com estado pendente. Capturar conflito de unicidade do banco, inclusive
+corrida concorrente, sem revelar se a conta já existe.
 
 **Arquivos previstos:** `src/modules/auth/{auth.module,auth.controller,auth.service}.ts`,
 `src/modules/auth/dto/register.dto.ts`, `src/app.module.ts` e testes.
 
 **RED → GREEN:** payload válido/inválido, campo extra, email com caixa distinta,
-duplicidade concorrente, hash no banco, status e cookies de `201`. **Saída:**
+duplicidade concorrente, hash no banco, `202` sem body nem cookies de sessão.
+**Saída:**
 somente `/auth/register` é ligado e documentado como implementado.
 
 ### 04 — Login
 
 **Escopo:** verificar senha e status segundo a decisão do lote 01; criar sessão
-e cookies. Reutilizar os componentes do cadastro. Não criar estratégia Local
+e cookies. Reutilizar os componentes dos lotes anteriores. Não criar estratégia Local
 se o service existente cobrir o fluxo com menos código.
 
 **Arquivos previstos:** `src/modules/auth/auth.service.ts`,
@@ -175,7 +217,8 @@ preparados nesta fase.
 
 ## Critério de saída
 
-- As cinco rotas `/auth/*` cumprem status, cookies e envelopes contratados.
+- As seis rotas `/auth/*` cumprem status, cookies e envelopes contratados;
+  cadastro não cria sessão e a ativação da conta continua fora da F04.
 - CSRF, CORS, papéis, revogação e replay têm testes de abuso.
 - Somente hashes de senha e refresh são persistidos; respostas, auditoria e
   logs não contêm credenciais ou dados pessoais desnecessários.

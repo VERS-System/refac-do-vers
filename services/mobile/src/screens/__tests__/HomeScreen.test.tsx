@@ -27,4 +27,20 @@ describe('HomeScreen', () => {
     expect(onOpenViber).toHaveBeenCalledTimes(1);
     expect(queryByRole('button', { name: 'Abrir diagnóstico do carro' })).toBeNull();
   });
+
+  /** Garante período, unidade e qualidade em cada indicador (04a). */
+  it('anuncia período, unidade e qualidade em cada indicador', () => {
+    const { getAllByText } = render(<HomeScreen />);
+
+    expect(getAllByText('Últimos 30 dias · Wh · dados de amostra')).toHaveLength(3);
+  });
+
+  /** Garante que período, unidade e qualidade vêm por props (04a). */
+  it('permite sobrescrever período, unidade e qualidade', () => {
+    const { getAllByText } = render(
+      <HomeScreen periodLabel="Hoje" energyUnit="kWh" qualityLabel="dados parciais" />,
+    );
+
+    expect(getAllByText('Hoje · kWh · dados parciais')).toHaveLength(3);
+  });
 });

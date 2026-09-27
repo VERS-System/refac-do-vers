@@ -17,13 +17,27 @@ const ECONOMY_VALUES = [42, 45, 39, 41, 58, 63, 48, 44, 70, 67, 42];
 type HomeScreenProps = {
   onOpenViber?: () => void;
   onTabPress?: (tab: MainTab) => void;
+  /** Período dos indicadores exibidos. */
+  periodLabel?: string;
+  /** Unidade de energia dos indicadores exibidos. */
+  energyUnit?: string;
+  /** Qualidade dos dados exibidos. */
+  qualityLabel?: string;
 };
 
 /**
  * Apresenta os resumos estáticos da primeira versão e delega os atalhos para
  * que dados reais e rotas adicionais possam ser conectados posteriormente.
  */
-export function HomeScreen({ onOpenViber, onTabPress }: HomeScreenProps) {
+export function HomeScreen({
+  onOpenViber,
+  onTabPress,
+  periodLabel = 'Últimos 30 dias',
+  energyUnit = 'Wh',
+  qualityLabel = 'dados de amostra',
+}: HomeScreenProps) {
+  const caption = `${periodLabel} · ${energyUnit} · ${qualityLabel}`;
+
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -44,6 +58,7 @@ export function HomeScreen({ onOpenViber, onTabPress }: HomeScreenProps) {
         <View style={styles.topCards}>
           <AppCard accessibilityLabel="Abrir uso da bateria" style={styles.batteryCard}>
             <Text style={styles.cardTitle}>Battery usage</Text>
+            <Text style={styles.caption}>{caption}</Text>
             <View style={styles.smallChart}>
               <EnergyBarChart height={73} values={BATTERY_VALUES} />
             </View>
@@ -52,6 +67,7 @@ export function HomeScreen({ onOpenViber, onTabPress }: HomeScreenProps) {
 
         <AppCard style={styles.economyCard}>
           <Text style={styles.economyTitle}>Money economy</Text>
+          <Text style={styles.caption}>{caption}</Text>
           <View style={styles.economyChart}>
             <EnergyBarChart height={76} values={ECONOMY_VALUES} />
           </View>
@@ -61,6 +77,7 @@ export function HomeScreen({ onOpenViber, onTabPress }: HomeScreenProps) {
           <Text style={styles.recoveredLabel}>Battery Recovered</Text>
           <BatteryDonut recoveredPercentage={65} />
           <Text style={styles.usedLabel}>Battery Used</Text>
+          <Text style={styles.caption}>{caption}</Text>
         </View>
     </ScreenShell>
   );
@@ -104,6 +121,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: theme.colors.primary,
     fontSize: 20,
+  },
+  caption: {
+    color: theme.colors.gray,
+    fontSize: 11,
+    marginTop: 4,
+    textAlign: 'center',
   },
   smallChart: {
     flex: 1,

@@ -15,7 +15,8 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [Contratos REST](Api/endpoints.md)                                 | Rotas, regras de acesso, estados e erros da API.                        |
 | [OpenAPI 3.1](Api/openapi.yaml)                                     | Especificação dos contratos REST.                                       |
 | [Roadmap MQTT/ESP32](plans/mqtt-esp-roadmap/README.md)            | Firmware, sensores, contrato MQTT, conectividade e testes do ESP32.     |
-| [Roadmap do front desktop](plans/desktop-roadmap/README.md)       | Telas, navegação, estados visuais e entrega do dashboard Electron.      |
+| [Roadmap do dashboard web](plans/desktop-roadmap/README.md)       | Telas, navegação, estados visuais e entrega do dashboard Vite.          |
+| [Migração do dashboard web](plans/dashboard-vite-sem-electron-26-09-2026.md) | Plano e verificação da retirada do empacotamento nativo. |
 | [Roadmap do core](plans/core-roadmap.md)                          | Fases, dependências, critérios de aceite e ordem de implementação.      |
 | [Roadmap de Backend e MQTT](plans/backend-mqtt-roadmap.md)        | Fonte de verdade para ingestão, tratamento, APIs e segurança do backend. |
 | [Baseline do backend](plans/backend-baseline-03-09-2026.md)       | Estado verificado antes da implementação das APIs.                       |
@@ -25,6 +26,9 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [Fase 2 — plano executável](plans/backend-schema-phase-2-execution-roadmap.md) | Doze lotes de modelagem, migration e validação do banco. |
 | [Dicionário de dados](plans/backend-schema-phase-2-data-dictionary.md) | Tabelas, campos, unidades e restrições do schema inicial. |
 | [Runbook do banco](plans/backend-schema-phase-2-runbook.md) | Validação, aplicação e retorno de migrations. |
+| [Fase 3 — plano executável](plans/backend-phase-3-execution-roadmap.md) | Nove lotes da fundação REST, validação, observabilidade e saúde. |
+| [Plano da issue LUC-28](plans/LUC-28-backend-f03-fundacao-apis-rotas.md) | Escopo e execução do pull da fundação REST. |
+| [Revisão do pull da Fase 3](problems/backend-f03-review-24-09-2026.md) | Aderência aos lotes e problemas identificados. |
 | [Roadmap executável do backend](plans/backend-roadmap/README.md)  | Fases detalhadas do backend, dependências, etapas e critérios de saída. |
 | [Roadmap de telas do mobile](plans/mobile-roadmap/README.md)      | Tasks por tela, navegação, estados visuais e encaixe com o backend.     |
 

@@ -13,7 +13,7 @@ arquitetura; estes documentos definem como executar cada fase.
 | 00 | [Baseline](00-baseline.md) | Concluída | — |
 | 01 | [Contratos da API](01-contratos-api.md) | Concluída | Fase 00 |
 | 02 | [Schema e migrations](02-schema-migrations.md) | Concluída | Fase 01 |
-| 03 | [APIs e rotas](03-apis-rotas.md) | Planejada | Fase 02 |
+| 03 | [APIs e rotas](03-apis-rotas.md) | Concluída | Fase 02 |
 | 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Planejada | Fase 03 |
 | 05 | [Recursos de domínio](05-recursos-dominio.md) | Planejada | Fase 04 |
 | 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Planejada | Fase 05 |
@@ -49,5 +49,7 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Contratos iniciais da Fase 1](../backend-api-contracts-phase-1.md)
 - [Plano seguro da Fase 2](../backend-schema-phase-2.md)
 - [Plano executável da Fase 2](../backend-schema-phase-2-execution-roadmap.md)
+- [Plano executável da Fase 3](../backend-phase-3-execution-roadmap.md)
+- [Plano executável da Fase 4](../backend-phase-4-execution-roadmap.md)
 - [Schema v2 proposto](../schema-mobile-mqtt.md)
 - [Roadmap estratégico de Backend e MQTT](../backend-mqtt-roadmap.md)

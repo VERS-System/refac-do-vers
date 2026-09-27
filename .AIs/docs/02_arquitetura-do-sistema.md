@@ -3,7 +3,7 @@
 # Arquitetura do sistema
 
 > **Estado em 13/08/2026:** a implementação digital usa um monorepo com NestJS,
-> Prisma/PostgreSQL (Neon), React, Electron, React Native e FastAPI. MQTT e
+> Prisma/PostgreSQL (Neon), React/Vite/Tailwind, React Native e FastAPI. MQTT e
 > WebSocket possuem scaffolds dentro do backend, mas sua integração funcional
 > ainda será validada pelas fases 0, 5 e 7 do
 > [roadmap do core](plans/core-roadmap.md).

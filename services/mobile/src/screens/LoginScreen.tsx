@@ -1,62 +1,80 @@
 /**
  * Implementa a tela de autenticação do usuário conforme o mockup mobile do VERS.
+ *
+ * Login social permanece fora do MVP por falta de contrato aprovado (Task 02):
+ * a tela expõe apenas email, senha e o atalho para o cadastro.
  */
 
 import { useState } from 'react';
 import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
+  ActivityIndicator,
   Pressable,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthTextField } from '../components/AuthTextField';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { ScreenShell } from '../components/ScreenShell';
 import { VersLogo } from '../components/VersLogo';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 export type LoginCredentials = {
   email: string;
   password: string;
 };
 
+/** Estados visuais do acesso; a origem (rede, bloqueio, sessão) é do backend. */
+export type LoginStatus =
+  | 'idle'
+  | 'sending'
+  | 'genericError'
+  | 'unavailable'
+  | 'temporarilyBlocked'
+  | 'sessionExpired';
+
 type LoginScreenProps = {
-  onGoogleLogin?: () => void;
   onLogin?: (credentials: LoginCredentials) => void;
   onSignUp?: () => void;
+  /** Estado visual atual; `idle` libera o envio. */
+  status?: LoginStatus;
+  /** Contador de focos da tela usado para disparar a animação da logo. */
+  animationRun?: number;
 };
 
 /**
  * Exibe as opções de acesso e mantém somente o estado local dos campos; as
  * integrações reais são delegadas por callbacks para não acoplar UI e API.
  */
-export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenProps) {
+export function LoginScreen({ onLogin, onSignUp, status = 'idle', animationRun }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const isSending = status === 'sending';
+  const isGenericError = status === 'genericError';
+  const isUnavailable = status === 'unavailable';
+  const isTemporarilyBlocked = status === 'temporarilyBlocked';
+  const isSessionExpired = status === 'sessionExpired';
+  const isSubmitDisabled = isSending || isTemporarilyBlocked;
 
   /** Encaminha ao fluxo de autenticação as credenciais atualmente preenchidas. */
   function handleLogin() {
+    if (isSubmitDisabled) {
+      return;
+    }
+
     onLogin?.({ email, password });
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} testID="login-screen">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardArea}
-      >
-        <ScrollView
-        scrollEnabled={false}
-          bounces={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.content}>
+    <ScreenShell testID="login-screen">
+      <View style={styles.content}>
+            <View style={styles.logoContainer}>
+              <VersLogo animation="login" animationRun={animationRun} size={98} />
+            </View>
+
             <Text accessibilityRole="header" style={styles.title}>
               Welcome back
             </Text>
@@ -76,32 +94,89 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
                 label="Password:"
                 onChangeText={setPassword}
                 placeholder="Enter your password"
-                secureTextEntry
+                secureTextEntry={!isPasswordVisible}
                 textContentType="password"
+                trailing={
+                  <Pressable
+                    accessibilityLabel={isPasswordVisible ? 'Ocultar senha' : 'Mostrar senha'}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => setIsPasswordVisible((visible) => !visible)}
+                  >
+                    <Ionicons
+                      color={theme.colors.primary}
+                      name={isPasswordVisible ? 'eye' : 'eye-outline'}
+                      size={20}
+                    />
+                  </Pressable>
+                }
                 value={password}
               />
 
               <View style={styles.loginButton}>
-                <PrimaryButton label="LOGIN" accessibilityLabel="Login" onPress={handleLogin} />
-              </View>
-            </View>
-
-            <Text style={styles.socialTitle}>OR</Text>
-            <Pressable
-              accessibilityLabel="Entrar com Google"
-              accessibilityRole="button"
-              hitSlop={12}
-              onPress={onGoogleLogin}
-              style={({ pressed }) => [styles.googleButton, pressed && styles.pressed]}
-            >
-              <View style={styles.googleCTA}>
-                <Image 
-                  source={require('../assets/googleIcon.png')} 
-                  style={styles.googleIcon} 
+                <PrimaryButton
+                  accessibilityLabel="Login"
+                  disabled={isSubmitDisabled}
+                  label="LOGIN"
+                  onPress={handleLogin}
                 />
-                <Text style={styles.accountText}>Continue with Google</Text>
               </View>
-            </Pressable>
+              {isGenericError && (
+                <Text
+                  accessibilityLabel="Não foi possível entrar. Verifique email e senha e tente novamente."
+                  accessibilityRole="alert"
+                  style={styles.errorText}
+                  testID="login-error"
+                >
+                  Não foi possível entrar. Verifique email e senha e tente novamente.
+                </Text>
+              )}
+              {isTemporarilyBlocked && (
+                <Text
+                  accessibilityLabel="Acesso bloqueado temporariamente. Aguarde alguns minutos e tente novamente."
+                  accessibilityRole="alert"
+                  style={styles.errorText}
+                  testID="login-blocked"
+                >
+                  Acesso bloqueado temporariamente. Aguarde alguns minutos e tente novamente.
+                </Text>
+              )}
+              {isSessionExpired && (
+                <Text
+                  accessibilityLabel="Sua sessão expirou. Entre novamente para continuar."
+                  accessibilityRole="alert"
+                  style={styles.infoText}
+                  testID="login-session-expired"
+                >
+                  Sua sessão expirou. Entre novamente para continuar.
+                </Text>
+              )}
+              {isUnavailable && (
+                <View style={styles.retryBlock}>
+                  <Text
+                    accessibilityLabel="Serviço indisponível no momento. Tente novamente em instantes."
+                    accessibilityRole="alert"
+                    style={styles.errorText}
+                    testID="login-unavailable"
+                  >
+                    Serviço indisponível no momento. Tente novamente em instantes.
+                  </Text>
+                  <PrimaryButton
+                    accessibilityLabel="Tentar novamente"
+                    label="TENTAR NOVAMENTE"
+                    onPress={handleLogin}
+                  />
+                </View>
+              )}
+              {isSending && (
+                <ActivityIndicator
+                  accessibilityLabel="Enviando"
+                  color={theme.colors.primary}
+                  style={styles.sendingIndicator}
+                  testID="login-sending"
+                />
+              )}
+            </View>
 
             <View style={styles.accountRow}>
               <Text style={styles.accountText}>Don't have an account? </Text>
@@ -111,39 +186,26 @@ export function LoginScreen({ onGoogleLogin, onLogin, onSignUp }: LoginScreenPro
                 hitSlop={8}
                 onPress={onSignUp}
               >
-                <Text style={styles.accountLink}>Sing up</Text>
+                <Text style={styles.accountLink}>Sign up</Text>
               </Pressable>
             </View>
-
-            <View style={styles.logoContainer}>
-              <VersLogo size={98} />
-            </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: colors.background,
-    flex: 1,
-  },
-  keyboardArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
   content: {
     alignItems: 'center',
     flex: 1,
     paddingBottom: 38,
-    paddingTop: 82,
+    paddingTop: 40,
+  },
+  logoContainer: {
+    marginBottom: 26,
   },
   title: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 26,
     fontWeight: '600',
     marginBottom: 28,
@@ -157,37 +219,26 @@ const styles = StyleSheet.create({
     marginTop: 31,
     width: '100%',
   },
-  socialTitle: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '800',
-    marginTop: 43,
+  sendingIndicator: {
+    marginTop: 16,
   },
-  googleButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: 48,
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 13,
+    marginTop: 16,
     textAlign: 'center',
-    marginTop: 29,
+  },
+  infoText: {
+    color: theme.colors.primary,
+    fontSize: 13,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  retryBlock: {
+    gap: 16,
+    marginTop: 16,
     maxWidth: 350,
     width: '100%',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 100,
-  },
-  googleIcon: {
-    width: 25,
-    height: 25,
-    resizeMode: 'contain',
-  },
-  googleCTA: {
-    flexDirection: 'row',
-    alignItems: 'center',     // <--- Alinha o ícone e o texto no eixo vertical
-    justifyContent: 'center',
-    gap: 10,
-  },
-  pressed: {
-    opacity: 0.7,
   },
   accountRow: {
     alignItems: 'center',
@@ -196,15 +247,12 @@ const styles = StyleSheet.create({
     marginTop: 29,
   },
   accountText: {
-    color: colors.white,
+    color: theme.colors.white,
     fontSize: 14,
   },
   accountLink: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 14,
     textDecorationLine: 'underline',
-  },
-  logoContainer: {
-    marginTop: 84,
   },
 });

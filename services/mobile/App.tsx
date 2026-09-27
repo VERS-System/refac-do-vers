@@ -4,15 +4,14 @@
 
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { AuthNavigator } from './src/navigation/AuthNavigator';
-import { HomeScreen } from './src/screens/HomeScreen';
-import { SplashScreen } from './src/screens/SplashScreen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { RootNavigator } from './src/navigation/RootNavigator';
 
 const SPLASH_DURATION_MS = 1500;
 
 /**
- * Renderiza o fluxo inicial e troca a apresentação pela autenticação depois que
- * o tempo mínimo de exposição da marca é concluído.
+ * Mantém o bootstrap local (temporizador e sessão provisória) e delega ao
+ * `RootNavigator` a escolha do fluxo visível.
  */
 export default function App() {
   const [isSplashVisible, setIsSplashVisible] = useState(true);
@@ -31,15 +30,13 @@ export default function App() {
   }
 
   return (
-    <>
-      {isSplashVisible ? (
-        <SplashScreen />
-      ) : isAuthenticated ? (
-        <HomeScreen />
-      ) : (
-        <AuthNavigator onAuthenticated={handleAuthenticated} />
-      )}
+    <SafeAreaProvider>
+      <RootNavigator
+        isAuthenticated={isAuthenticated}
+        isSplashVisible={isSplashVisible}
+        onAuthenticated={handleAuthenticated}
+      />
       <StatusBar hidden />
-    </>
+    </SafeAreaProvider>
   );
 }

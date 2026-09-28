@@ -124,4 +124,23 @@ describe('HomeScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Abrir sistema VERS' }));
     expect(onOpenVersSystem).toHaveBeenCalledTimes(1);
   });
+
+  /** Garante nome acessível em botões e atalhos da Home (04e). */
+  it('expõe nome acessível em botões e atalhos', () => {
+    const { getAllByRole } = render(
+      <HomeScreen
+        onOpenBattery={() => {}}
+        onOpenVersSystem={() => {}}
+        onOpenViber={() => {}}
+      />,
+    );
+
+    const buttons = getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(4);
+
+    for (const button of buttons) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+  });
 });

@@ -28,6 +28,10 @@ type HomeScreenProps = {
   onOpenViber?: () => void;
   onTabPress?: (tab: MainTab) => void;
   onRetry?: () => void;
+  /** Abre os detalhes de energia (Task 05 futura). */
+  onOpenBattery?: () => void;
+  /** Abre os detalhes do sistema VERS (Task 07 futura). */
+  onOpenVersSystem?: () => void;
   /** Estado visual atual; `success` exibe os indicadores. */
   status?: HomeStatus;
   /** Quando falso, omite o selo de amostra (dados reais do backend). */
@@ -48,6 +52,8 @@ export function HomeScreen({
   onOpenViber,
   onTabPress,
   onRetry,
+  onOpenBattery,
+  onOpenVersSystem,
   status = 'success',
   isSampleData = true,
   periodLabel = 'Últimos 30 dias',
@@ -185,7 +191,11 @@ export function HomeScreen({
         )}
 
         <View style={styles.topCards}>
-          <AppCard accessibilityLabel="Abrir uso da bateria" style={styles.batteryCard}>
+          <AppCard
+            accessibilityLabel="Abrir uso da bateria"
+            onPress={onOpenBattery}
+            style={styles.batteryCard}
+          >
             <Text style={styles.cardTitle}>Battery usage</Text>
             <Text style={styles.caption}>{caption}</Text>
             <View style={styles.smallChart}>
@@ -194,7 +204,11 @@ export function HomeScreen({
           </AppCard>
         </View>
 
-        <AppCard style={styles.economyCard}>
+        <AppCard
+          accessibilityLabel="Abrir detalhes de energia"
+          onPress={onOpenBattery}
+          style={styles.economyCard}
+        >
           <Text style={styles.economyTitle}>Money economy</Text>
           <Text style={styles.caption}>{caption}</Text>
           <View style={styles.economyChart}>
@@ -202,12 +216,17 @@ export function HomeScreen({
           </View>
         </AppCard>
 
-        <View style={styles.donutSection}>
+        <Pressable
+          accessibilityLabel="Abrir sistema VERS"
+          accessibilityRole="button"
+          onPress={onOpenVersSystem}
+          style={styles.donutSection}
+        >
           <Text style={styles.recoveredLabel}>Battery Recovered</Text>
           <BatteryDonut recoveredPercentage={65} />
           <Text style={styles.usedLabel}>Battery Used</Text>
           <Text style={styles.caption}>{caption}</Text>
-        </View>
+        </Pressable>
     </ScreenShell>
   );
 }

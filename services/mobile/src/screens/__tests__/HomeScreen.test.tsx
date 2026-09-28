@@ -108,4 +108,20 @@ describe('HomeScreen', () => {
     rerender(<HomeScreen isSampleData={false} />);
     expect(queryByTestId('home-sample-seal')).toBeNull();
   });
+
+  /** Garante atalhos de bateria e sistema VERS por callbacks (04d). */
+  it('aciona os atalhos de bateria e sistema VERS', () => {
+    const onOpenBattery = jest.fn();
+    const onOpenVersSystem = jest.fn();
+    const { getByRole } = render(
+      <HomeScreen onOpenBattery={onOpenBattery} onOpenVersSystem={onOpenVersSystem} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Abrir uso da bateria' }));
+    fireEvent.press(getByRole('button', { name: 'Abrir detalhes de energia' }));
+    expect(onOpenBattery).toHaveBeenCalledTimes(2);
+
+    fireEvent.press(getByRole('button', { name: 'Abrir sistema VERS' }));
+    expect(onOpenVersSystem).toHaveBeenCalledTimes(1);
+  });
 });

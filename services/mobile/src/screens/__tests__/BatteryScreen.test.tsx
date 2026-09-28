@@ -1,35 +1,60 @@
 /**
- * Testes unitários da tela de bateria e energia do aplicativo VERS.
+ * Testes unitários da tela de bateria e energia (mockup battery1).
  */
 
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { BatteryScreen } from '../BatteryScreen';
 
+const HOURLY = [
+  { label: '11 AM', value: 52 },
+  { label: '12 PM', value: 48 },
+  { label: '1 PM', value: 72 },
+  { label: '2 PM', value: 57 },
+  { label: '3 PM', value: 75 },
+  { label: '4 PM', value: 50 },
+];
+
 describe('BatteryScreen', () => {
-  /** Apresenta o resumo do período com unidades e qualidade (05a). */
-  it('apresenta energia recuperada, potência média e pico com contexto', () => {
+  /** Apresenta o registro mensal com a legenda do mockup. */
+  it('apresenta registro mensal com legenda', () => {
     const { getByText } = render(<BatteryScreen />);
 
-    expect(getByText('Bateria e energia')).toBeTruthy();
-    expect(getByText('12.4 Wh')).toBeTruthy();
-    expect(getByText('3.1 W')).toBeTruthy();
-    expect(getByText('8.7 W')).toBeTruthy();
-    expect(getByText('Últimos 30 dias · dados de amostra')).toBeTruthy();
+    expect(getByText('MONTHLY RECORD')).toBeTruthy();
+    expect(getByText('Battery Recovered')).toBeTruthy();
+    expect(getByText('Battery Used')).toBeTruthy();
   });
 
-  /** Permite sobrescrever o resumo por props (05a). */
-  it('permite sobrescrever o resumo por props', () => {
-    const { getByText } = render(
-      <BatteryScreen
-        averagePowerW={2}
-        peakPowerW={5}
-        periodLabel="Hoje"
-        qualityLabel="dados parciais"
-        recoveredEnergyWh={7}
-      />,
+  /** Apresenta o card Today com as horas do mockup. */
+  it('apresenta o card Today com horas e barras', () => {
+    const { getAllByTestId, getByText } = render(<BatteryScreen />);
+
+    expect(getByText('Today')).toBeTruthy();
+    expect(getByText('11 AM')).toBeTruthy();
+    expect(getByText('4 PM')).toBeTruthy();
+    expect(getAllByTestId('energy-bar')).toHaveLength(6);
+  });
+
+  /** Apresenta o calendário funcional do mockup. */
+  it('apresenta o calendário e seleciona o dia', () => {
+    const onSelectDay = jest.fn();
+    const { getByRole, getByTestId } = render(
+      <BatteryScreen onSelectDay={onSelectDay} />,
     );
 
-    expect(getByText('7 Wh')).toBeTruthy();
-    expect(getByText('Hoje · dados parciais')).toBeTruthy();
+    expect(getByTestId('battery-calendar')).toBeTruthy();
+
+    fireEvent.press(getByRole('button', { name: '24' }));
+    expect(onSelectDay).toHaveBeenCalledTimes(1);
+  });
+
+  /** Responde aos dados fornecidos por props. */
+  it('responde aos dados fornecidos', () => {
+    const { getAllByTestId, getByText, queryByText } = render(
+      <BatteryScreen hourlyData={HOURLY.slice(0, 3)} />,
+    );
+
+    expect(getAllByTestId('energy-bar')).toHaveLength(3);
+    expect(getByText('11 AM')).toBeTruthy();
+    expect(queryByText('4 PM')).toBeNull();
   });
 });

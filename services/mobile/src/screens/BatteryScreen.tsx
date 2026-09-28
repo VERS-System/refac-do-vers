@@ -6,6 +6,7 @@
  * nenhum valor é calculado aqui e ausências futuras serão `null`, nunca zero.
  */
 
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BatteryCalendar } from '../components/BatteryCalendar';
@@ -29,6 +30,19 @@ const DEFAULT_HOURLY: HourlyPoint[] = [
   { label: '4 PM', value: 50 },
 ];
 
+const DEFAULT_MONEY: HourlyPoint[] = [
+  { label: '11 AM', value: 42 },
+  { label: '12 PM', value: 45 },
+  { label: '1 PM', value: 39 },
+  { label: '2 PM', value: 41 },
+  { label: '3 PM', value: 58 },
+  { label: '4 PM', value: 63 },
+  { label: '5 PM', value: 48 },
+  { label: '6 PM', value: 44 },
+  { label: '7 PM', value: 70 },
+  { label: '8 PM', value: 67 },
+];
+
 type BatteryScreenProps = {
   onTabPress?: (tab: MainTab) => void;
   onSelectDay?: (isoDate: string) => void;
@@ -37,6 +51,8 @@ type BatteryScreenProps = {
   recoveredPercentage?: number;
   /** Série horária do card Today. */
   hourlyData?: HourlyPoint[];
+  /** Série de economia exibida no modo expandido. */
+  moneyData?: HourlyPoint[];
   /** Dias com dados no formato `YYYY-MM-DD`. */
   daysWithData?: string[];
 };
@@ -51,8 +67,17 @@ export function BatteryScreen({
   onExpandToday,
   recoveredPercentage = 65,
   hourlyData = DEFAULT_HOURLY,
+  moneyData = DEFAULT_MONEY,
   daysWithData = [],
 }: BatteryScreenProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  /** Alterna o modo expandido e notifica o chamador. */
+  function toggleExpanded() {
+    setIsExpanded((expanded) => !expanded);
+    onExpandToday?.();
+  }
+
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -73,16 +98,20 @@ export function BatteryScreen({
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Today</Text>
           <Pressable
-            accessibilityLabel="Expandir gráfico do dia"
+            accessibilityLabel={isExpanded ? 'Recolher gráfico do dia' : 'Expandir gráfico do dia'}
             accessibilityRole="button"
             hitSlop={8}
-            onPress={onExpandToday}
+            onPress={toggleExpanded}
           >
-            <Ionicons color={theme.colors.primary} name="expand" size={18} />
+            <Ionicons
+              color={theme.colors.primary}
+              name={isExpanded ? 'contract' : 'expand'}
+              size={18}
+            />
           </Pressable>
         </View>
         <EnergyBarChart
-          height={96}
+          height={isExpanded ? 180 : 96}
           values={hourlyData.map((point) => point.value)}
         />
         <View style={styles.hourLabels}>
@@ -92,11 +121,23 @@ export function BatteryScreen({
             </Text>
           ))}
         </View>
+
+        {isExpanded && (
+          <View style={styles.moneySection}>
+            <Text style={styles.cardTitle}>Money economy</Text>
+            <EnergyBarChart
+              height={150}
+              values={moneyData.map((point) => point.value)}
+            />
+          </View>
+        )}
       </View>
 
-      <View style={styles.card}>
-        <BatteryCalendar daysWithData={daysWithData} onSelectDay={onSelectDay} />
-      </View>
+      {!isExpanded && (
+        <View style={styles.card}>
+          <BatteryCalendar daysWithData={daysWithData} onSelectDay={onSelectDay} />
+        </View>
+      )}
     </ScreenShell>
   );
 }
@@ -163,5 +204,8 @@ const styles = StyleSheet.create({
   hourLabel: {
     color: theme.colors.primary,
     fontSize: 10,
+  },
+  moneySection: {
+    marginTop: 24,
   },
 });

@@ -57,4 +57,24 @@ describe('BatteryScreen', () => {
     expect(getByText('11 AM')).toBeTruthy();
     expect(queryByText('4 PM')).toBeNull();
   });
+
+  /** Alterna o modo expandido com Money economy (05d, battery2). */
+  it('expande o card com Money economy e recolhe de volta', () => {
+    const onExpandToday = jest.fn();
+    const { getByRole, getByTestId, getByText, queryByTestId, queryByText } = render(
+      <BatteryScreen onExpandToday={onExpandToday} />,
+    );
+
+    expect(getByTestId('battery-calendar')).toBeTruthy();
+    expect(queryByText('Money economy')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Expandir gráfico do dia' }));
+    expect(onExpandToday).toHaveBeenCalledTimes(1);
+    expect(queryByTestId('battery-calendar')).toBeNull();
+    expect(getByText('Money economy')).toBeTruthy();
+
+    fireEvent.press(getByRole('button', { name: 'Recolher gráfico do dia' }));
+    expect(getByTestId('battery-calendar')).toBeTruthy();
+    expect(queryByText('Money economy')).toBeNull();
+  });
 });

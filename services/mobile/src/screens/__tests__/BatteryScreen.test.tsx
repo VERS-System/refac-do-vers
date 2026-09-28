@@ -131,4 +131,17 @@ describe('BatteryScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
+
+  /** Garante nome acessível em botões e atalhos da bateria (05f). */
+  it('expõe nome acessível em botões e atalhos', () => {
+    const { getAllByRole } = render(<BatteryScreen />);
+
+    const buttons = getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(3);
+
+    for (const button of buttons) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+  });
 });

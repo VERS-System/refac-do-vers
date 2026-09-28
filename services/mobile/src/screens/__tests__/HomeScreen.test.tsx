@@ -78,4 +78,34 @@ describe('HomeScreen', () => {
     fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
+
+  /** Garante orientação sem instalação e sem números (04c). */
+  it('exibe ausência de instalação sem indicadores', () => {
+    const { getByRole, queryByText } = render(<HomeScreen status="noInstallation" />);
+
+    expect(
+      getByRole('alert', { name: 'Nenhum sistema VERS vinculado. Cadastre um veículo para começar.' }),
+    ).toBeTruthy();
+    expect(queryByText('Battery usage')).toBeNull();
+  });
+
+  /** Garante aviso de qualidade insuficiente sem números (04c). */
+  it('exibe qualidade insuficiente sem indicadores', () => {
+    const { getByRole, queryByText } = render(<HomeScreen status="insufficientQuality" />);
+
+    expect(
+      getByRole('alert', { name: 'Dados insuficientes para exibir os indicadores.' }),
+    ).toBeTruthy();
+    expect(queryByText('Battery usage')).toBeNull();
+  });
+
+  /** Garante selo de amostra enquanto houver fixtures (04c). */
+  it('exibe selo de amostra no sucesso e omite com dados reais', () => {
+    const { getByTestId, queryByTestId, rerender } = render(<HomeScreen />);
+
+    expect(getByTestId('home-sample-seal')).toBeTruthy();
+
+    rerender(<HomeScreen isSampleData={false} />);
+    expect(queryByTestId('home-sample-seal')).toBeNull();
+  });
 });

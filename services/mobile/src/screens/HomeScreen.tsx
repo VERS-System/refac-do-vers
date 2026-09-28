@@ -30,6 +30,8 @@ type HomeScreenProps = {
   onRetry?: () => void;
   /** Estado visual atual; `success` exibe os indicadores. */
   status?: HomeStatus;
+  /** Quando falso, omite o selo de amostra (dados reais do backend). */
+  isSampleData?: boolean;
   /** Período dos indicadores exibidos. */
   periodLabel?: string;
   /** Unidade de energia dos indicadores exibidos. */
@@ -47,6 +49,7 @@ export function HomeScreen({
   onTabPress,
   onRetry,
   status = 'success',
+  isSampleData = true,
   periodLabel = 'Últimos 30 dias',
   energyUnit = 'Wh',
   qualityLabel = 'dados de amostra',
@@ -118,6 +121,46 @@ export function HomeScreen({
     );
   }
 
+  if (status === 'noInstallation') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="home" onTabPress={onTabPress} />}
+        testID="home-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Nenhum sistema VERS vinculado. Cadastre um veículo para começar."
+            accessibilityRole="alert"
+            style={styles.stateText}
+            testID="home-no-installation"
+          >
+            Nenhum sistema VERS vinculado. Cadastre um veículo para começar.
+          </Text>
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'insufficientQuality') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="home" onTabPress={onTabPress} />}
+        testID="home-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Dados insuficientes para exibir os indicadores."
+            accessibilityRole="alert"
+            style={styles.stateText}
+            testID="home-insufficient-quality"
+          >
+            Dados insuficientes para exibir os indicadores.
+          </Text>
+        </View>
+      </ScreenShell>
+    );
+  }
+
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -134,6 +177,12 @@ export function HomeScreen({
           <Text style={styles.viberName}>Viber</Text>
           <Ionicons color={theme.colors.primary} name="chatbox-outline" size={22} />
         </Pressable>
+
+        {isSampleData && (
+          <Text style={styles.sampleSeal} testID="home-sample-seal">
+            DADOS DE AMOSTRA
+          </Text>
+        )}
 
         <View style={styles.topCards}>
           <AppCard accessibilityLabel="Abrir uso da bateria" style={styles.batteryCard}>
@@ -223,6 +272,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
     textAlign: 'center',
+  },
+  sampleSeal: {
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    color: theme.colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   smallChart: {
     flex: 1,

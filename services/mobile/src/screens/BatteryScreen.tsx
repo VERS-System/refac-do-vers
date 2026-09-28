@@ -7,12 +7,13 @@
  */
 
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BatteryCalendar } from '../components/BatteryCalendar';
 import { BatteryDonut } from '../components/BatteryDonut';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
 import { EnergyBarChart } from '../components/EnergyBarChart';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
 
@@ -43,10 +44,22 @@ const DEFAULT_MONEY: HourlyPoint[] = [
   { label: '8 PM', value: 67 },
 ];
 
+/** Estados visuais da bateria; a origem dos dados é do backend (F06 futuro). */
+export type BatteryStatus =
+  | 'loading'
+  | 'success'
+  | 'empty'
+  | 'partial'
+  | 'invalid'
+  | 'error';
+
 type BatteryScreenProps = {
   onTabPress?: (tab: MainTab) => void;
   onSelectDay?: (isoDate: string) => void;
   onExpandToday?: () => void;
+  onRetry?: () => void;
+  /** Estado visual atual; `success` e `partial` exibem os gráficos. */
+  status?: BatteryStatus;
   /** Porcentagem recuperada do donut. */
   recoveredPercentage?: number;
   /** Série horária do card Today. */
@@ -65,6 +78,8 @@ export function BatteryScreen({
   onTabPress,
   onSelectDay,
   onExpandToday,
+  onRetry,
+  status = 'success',
   recoveredPercentage = 65,
   hourlyData = DEFAULT_HOURLY,
   moneyData = DEFAULT_MONEY,
@@ -78,6 +93,91 @@ export function BatteryScreen({
     onExpandToday?.();
   }
 
+  if (status === 'loading') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="battery" onTabPress={onTabPress} />}
+        testID="battery-screen"
+      >
+        <View style={styles.stateBlock}>
+          <ActivityIndicator
+            accessibilityLabel="Carregando"
+            color={theme.colors.primary}
+            size="large"
+            testID="battery-loading"
+          />
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="battery" onTabPress={onTabPress} />}
+        testID="battery-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Nenhum dado de energia para o período."
+            accessibilityRole="alert"
+            style={styles.stateText}
+            testID="battery-empty"
+          >
+            Nenhum dado de energia para o período.
+          </Text>
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'invalid') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="battery" onTabPress={onTabPress} />}
+        testID="battery-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Dados inválidos para o período."
+            accessibilityRole="alert"
+            style={styles.stateText}
+            testID="battery-invalid"
+          >
+            Dados inválidos para o período.
+          </Text>
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="battery" onTabPress={onTabPress} />}
+        testID="battery-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Não foi possível carregar a energia. Tente novamente."
+            accessibilityRole="alert"
+            style={styles.stateText}
+            testID="battery-error"
+          >
+            Não foi possível carregar a energia. Tente novamente.
+          </Text>
+          <View style={styles.retryButton}>
+            <PrimaryButton
+              accessibilityLabel="Tentar novamente"
+              label="TENTAR NOVAMENTE"
+              onPress={() => onRetry?.()}
+            />
+          </View>
+        </View>
+      </ScreenShell>
+    );
+  }
+
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -85,6 +185,17 @@ export function BatteryScreen({
       testID="battery-screen"
     >
       <Text style={styles.recordTitle}>MONTHLY RECORD</Text>
+
+      {status === 'partial' && (
+        <Text
+          accessibilityLabel="Dados parciais para o período."
+          accessibilityRole="alert"
+          style={styles.partialNotice}
+          testID="battery-partial"
+        >
+          Dados parciais para o período.
+        </Text>
+      )}
 
       <View style={styles.donutRow}>
         <BatteryDonut recoveredPercentage={recoveredPercentage} size={150} />
@@ -154,6 +265,27 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: 3,
+  },
+  partialNotice: {
+    color: theme.colors.primary,
+    fontSize: 12,
+    marginTop: 8,
+  },
+  stateBlock: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 16,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  stateText: {
+    color: theme.colors.white,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  retryButton: {
+    maxWidth: 350,
+    width: '100%',
   },
   donutRow: {
     alignItems: 'flex-end',

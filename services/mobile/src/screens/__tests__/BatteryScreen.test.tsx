@@ -77,4 +77,58 @@ describe('BatteryScreen', () => {
     expect(getByTestId('battery-calendar')).toBeTruthy();
     expect(queryByText('Money economy')).toBeNull();
   });
+
+  /** Garante carregamento sem gráficos (05e). */
+  it('exibe carregamento sem gráficos', () => {
+    const { getByLabelText, queryByTestId } = render(<BatteryScreen status="loading" />);
+
+    expect(getByLabelText('Carregando')).toBeTruthy();
+    expect(queryByTestId('battery-calendar')).toBeNull();
+  });
+
+  /** Garante vazio sem zeros inventados (05e). */
+  it('exibe ausência de dados sem gráficos', () => {
+    const { getByRole, queryByTestId } = render(<BatteryScreen status="empty" />);
+
+    expect(
+      getByRole('alert', { name: 'Nenhum dado de energia para o período.' }),
+    ).toBeTruthy();
+    expect(queryByTestId('battery-calendar')).toBeNull();
+  });
+
+  /** Garante parcial com aviso e conteúdo (05e). */
+  it('exibe aviso parcial mantendo os gráficos', () => {
+    const { getByRole, getByTestId } = render(<BatteryScreen status="partial" />);
+
+    expect(
+      getByRole('alert', { name: 'Dados parciais para o período.' }),
+    ).toBeTruthy();
+    expect(getByTestId('battery-calendar')).toBeTruthy();
+  });
+
+  /** Garante inválido sem agregados (05e). */
+  it('exibe dados inválidos sem gráficos', () => {
+    const { getByRole, queryByTestId } = render(<BatteryScreen status="invalid" />);
+
+    expect(
+      getByRole('alert', { name: 'Dados inválidos para o período.' }),
+    ).toBeTruthy();
+    expect(queryByTestId('battery-calendar')).toBeNull();
+  });
+
+  /** Garante erro com nova tentativa (05e). */
+  it('exibe erro e repete a carga ao tentar de novo', () => {
+    const onRetry = jest.fn();
+    const { getByRole, queryByTestId } = render(
+      <BatteryScreen onRetry={onRetry} status="error" />,
+    );
+
+    expect(
+      getByRole('alert', { name: 'Não foi possível carregar a energia. Tente novamente.' }),
+    ).toBeTruthy();
+    expect(queryByTestId('battery-calendar')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
 });

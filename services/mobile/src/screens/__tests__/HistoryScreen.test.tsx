@@ -1,11 +1,12 @@
 /**
- * Testes unitários da tela de histórico energético (Task 06, lotes 06a–06c).
+ * Testes unitários da tela de histórico energético (Task 06, lotes 06a–06d).
  *
- * Existe para travar o scaffold visual, o calendário standalone e o resumo do
- * dia: título, mês inicial e limites por props, seleção com ISO do mês
- * exibido, resumo pronto do contrato e acesso aos testes por callback, sem
- * rede, cálculo ou persistência. Os dados chegam por props (fixtures até o
- * F06); ausências nunca viram zero.
+ * Existe para travar o scaffold visual, o calendário standalone, o resumo do
+ * dia e a lista paginada: título, mês inicial e limites por props, seleção
+ * com ISO do mês exibido, resumo pronto do contrato, linhas com período,
+ * unidade e qualidade e paginação por callback, sem rede, cálculo ou
+ * persistência. Os dados chegam por props (fixtures até o F06); ausências
+ * nunca viram zero.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -152,5 +153,99 @@ describe('HistoryScreen resumo do dia (06c)', () => {
 
     expect(getByTestId('history-summary')).toBeTruthy();
     expect(queryByRole('button', { name: 'Ver testes do dia' })).toBeNull();
+  });
+});
+
+describe('HistoryScreen lista histórica (06d)', () => {
+  const ITEMS = [
+    {
+      energyUnit: 'Wh',
+      id: '2025-04-24',
+      periodLabel: '24/04/2025',
+      qualityLabel: 'dados parciais',
+      recoveredEnergyWh: 12.5,
+    },
+    {
+      energyUnit: 'Wh',
+      id: '2025-04-23',
+      periodLabel: '23/04/2025',
+      qualityLabel: 'dados válidos',
+      recoveredEnergyWh: 8.25,
+    },
+  ];
+
+  /** Exibe as linhas com período, unidade e qualidade e esconde o vazio. */
+  it('exibe a lista com período, unidade e qualidade', () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <HistoryScreen items={ITEMS} page={1} pageSize={2} totalItems={2} />,
+    );
+
+    expect(getByTestId('history-list')).toBeTruthy();
+    expect(getByText('24/04/2025')).toBeTruthy();
+    expect(getByText('12.5 Wh')).toBeTruthy();
+    expect(getByText('dados parciais')).toBeTruthy();
+    expect(queryByTestId('history-empty')).toBeNull();
+  });
+
+  /** Omite o valor da linha sem zerar quando a energia está ausente. */
+  it('omite o valor da linha sem zerar', () => {
+    const { getByTestId, queryByText } = render(
+      <HistoryScreen items={[{ ...ITEMS[0], recoveredEnergyWh: null }]} />,
+    );
+
+    expect(getByTestId('history-list')).toBeTruthy();
+    expect(queryByText('12.5 Wh')).toBeNull();
+    expect(queryByText('0 Wh')).toBeNull();
+  });
+
+  /** Pagina por callback sem conter regra de página. */
+  it('avança a página por callback', () => {
+    const onPageChange = jest.fn();
+    const { getByRole, getByText } = render(
+      <HistoryScreen
+        items={[ITEMS[0]]}
+        onPageChange={onPageChange}
+        page={1}
+        pageSize={1}
+        totalItems={2}
+      />,
+    );
+
+    expect(getByText('Página 1 de 2')).toBeTruthy();
+
+    fireEvent.press(getByRole('button', { name: 'Próxima página' }));
+
+    expect(onPageChange).toHaveBeenCalledWith(2);
+  });
+
+  /** Trava anterior na primeira e próxima na última sem notificar. */
+  it('trava as bordas da paginação sem notificar', () => {
+    const onPageChange = jest.fn();
+    const first = render(
+      <HistoryScreen
+        items={[ITEMS[0]]}
+        onPageChange={onPageChange}
+        page={1}
+        pageSize={1}
+        totalItems={2}
+      />,
+    );
+
+    fireEvent.press(first.getByRole('button', { name: 'Página anterior' }));
+    expect(onPageChange).not.toHaveBeenCalled();
+    first.unmount();
+
+    const last = render(
+      <HistoryScreen
+        items={[ITEMS[1]]}
+        onPageChange={onPageChange}
+        page={2}
+        pageSize={1}
+        totalItems={2}
+      />,
+    );
+
+    fireEvent.press(last.getByRole('button', { name: 'Próxima página' }));
+    expect(onPageChange).not.toHaveBeenCalled();
   });
 });

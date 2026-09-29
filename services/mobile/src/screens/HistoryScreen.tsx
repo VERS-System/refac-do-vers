@@ -1,16 +1,18 @@
 /**
- * Implementa a tela de histórico energético (Task 06, lotes 06a–06e).
+ * Implementa a tela de histórico energético (Task 06, lotes 06a–06f).
  *
  * Existe para dar ao histórico uma rota standalone sem criar aba nova: usa o
  * `ScreenShell` padrão, o `AppHeader` com voltar por callback, reutiliza o
  * `BatteryCalendar` da Task 05 como base de navegação mensal, apresenta o
  * resumo pronto do dia selecionado com acesso aos testes, a lista histórica
- * paginada espelhando o envelope do contrato e os estados visuais por prop.
- * Mês inicial e limites chegam por props e apenas travam a navegação fora
- * deles; vazio e indisponível mantêm o calendário (mês sem dados não parece
- * falha) e só carregamento e erro tomam a tela.
- * Dados chegam por props (fixtures até o F06); nada é calculado, buscado ou
- * persistido aqui e ausências nunca viram zero.
+ * paginada espelhando o envelope do contrato, os estados visuais por prop e
+ * o timezone do contrato exibido sem conversão. Mês inicial e limites chegam
+ * por props e apenas travam a navegação fora deles; vazio e indisponível
+ * mantêm o calendário (mês sem dados não parece falha) e só carregamento e
+ * erro tomam a tela.
+ * Dados e rótulos chegam por props (fixtures até o F06); nada é calculado,
+ * buscado, persistido ou reinterpretado com `Date` local e ausências nunca
+ * viram zero.
  */
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -91,6 +93,8 @@ type HistoryScreenProps = {
   status?: HistoryStatus;
   /** Repete a carga no erro; ausente mantém o botão sem efeito. */
   onRetry?: () => void;
+  /** Timezone como veio do contrato; exibido sem conversão. */
+  timeZone?: string | null;
   onSelectDay?: (isoDate: string) => void;
   onMonthChange?: (month: number, year: number) => void;
 };
@@ -119,6 +123,7 @@ export function HistoryScreen({
   onPageChange,
   status = 'success',
   onRetry,
+  timeZone = null,
   onSelectDay,
   onMonthChange,
 }: HistoryScreenProps) {
@@ -192,6 +197,12 @@ export function HistoryScreen({
         testID="history-header"
         title="Histórico"
       />
+
+      {timeZone ? (
+        <Text style={styles.timeZoneCaption} testID="history-timezone">
+          {`Fuso horário: ${timeZone}`}
+        </Text>
+      ) : null}
 
       <View style={styles.calendarCard}>
         <BatteryCalendar
@@ -314,6 +325,12 @@ const styles = StyleSheet.create({
     marginTop: 18,
     padding: 16,
     width: '100%',
+  },
+  timeZoneCaption: {
+    color: theme.colors.gray,
+    fontSize: 11,
+    marginTop: 8,
+    textAlign: 'center',
   },
   emptyBlock: {
     alignItems: 'center',

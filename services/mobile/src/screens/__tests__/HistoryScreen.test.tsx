@@ -1,13 +1,14 @@
 /**
- * Testes unitários da tela de histórico energético (Task 06, lotes 06a–06e).
+ * Testes unitários da tela de histórico energético (Task 06, lotes 06a–06f).
  *
  * Existe para travar o scaffold visual, o calendário standalone, o resumo do
- * dia, a lista paginada e os estados: título, mês inicial e limites por
- * props, seleção com ISO do mês exibido, resumo pronto do contrato, linhas
- * com período, unidade e qualidade, paginação por callback e
- * carregamento/vazio/indisponível/erro, sem rede, cálculo ou persistência.
- * Os dados chegam por props (fixtures até o F06); ausências nunca viram zero
- * e mês sem dados não parece falha.
+ * dia, a lista paginada, os estados e o timezone: título, mês inicial e
+ * limites por props, seleção com ISO do mês exibido, resumo pronto do
+ * contrato, linhas com período, unidade e qualidade, paginação por callback,
+ * carregamento/vazio/indisponível/erro e timezone exibido sem conversão, sem
+ * rede, cálculo ou persistência. Os dados chegam por props (fixtures até o
+ * F06); ausências nunca viram zero, nenhum `Date` local reinterpreta o
+ * período e mês sem dados não parece falha.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -328,5 +329,38 @@ describe('HistoryScreen estados (06e)', () => {
 
     fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('HistoryScreen timezone (06f)', () => {
+  /** Exibe o timezone do contrato sem conversão. */
+  it('exibe o timezone do contrato sem converter', () => {
+    const { getByTestId, getByText } = render(
+      <HistoryScreen timeZone="America/Sao_Paulo" />,
+    );
+
+    expect(getByTestId('history-timezone')).toBeTruthy();
+    expect(getByText('Fuso horário: America/Sao_Paulo')).toBeTruthy();
+  });
+
+  /** Omite o rótulo sem timezone, sem mudar o padrão. */
+  it('omite o rótulo sem timezone', () => {
+    const { queryByTestId } = render(<HistoryScreen />);
+
+    expect(queryByTestId('history-timezone')).toBeNull();
+  });
+
+  /** Preserva o rótulo do período sem reinterpretar com `Date` local. */
+  it('preserva o período sem reinterpretar', () => {
+    const { getByText } = render(
+      <HistoryScreen
+        summary={{
+          dateLabel: '2025-04-24T00:00:00-03:00',
+          recoveredEnergyWh: 12.5,
+        }}
+      />,
+    );
+
+    expect(getByText('2025-04-24T00:00:00-03:00')).toBeTruthy();
   });
 });

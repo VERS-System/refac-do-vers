@@ -4,8 +4,8 @@
 
 ## Objetivo e estado
 
-**Lotes 01–04 implementados e validados; lote 05 ainda não iniciado.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register` e `/auth/login` estão
-registrado. Implementar as seis rotas `/auth/*` contratadas, sessões em cookies
+**Lotes 01–05 implementados e validados; lote 06 ainda não iniciado.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register`, `/auth/login` e `/auth/refresh` estão
+registrados. Implementar as rotas `/auth/*` contratadas, sessões em cookies
 e proteção das rotas que forem entregues nas fases seguintes. Cada lote produz
 um diff pequeno, testes antes do código e revisão do programador. A IA não faz
 commits, acessa `.env`, Neon ou serviços externos sem autorização específica.
@@ -231,6 +231,15 @@ real impedir a operação atômica.
 **RED → GREEN:** cookie ausente, expirado, revogado, duas renovações simultâneas
 e uso posterior do token antigo. **Saída:** `/auth/refresh` retorna `204`,
 cookies novos e nenhum body; nunca persiste token bruto.
+
+**Execução em 29/09/2026:** a rota valida JWT, tipo, usuário, hash e prazo da
+sessão; uma atualização condicional no banco garante que só uma chamada possa
+rotacionar o token. A sessão sucessora guarda apenas o hash e fica encadeada à
+anterior na mesma transação. O uso posterior de um token antigo revoga os
+sucessores da cadeia. Testes cobrem ausência, assinatura inválida, expiração,
+conta pendente, concorrência e replay; o teste HTTP cobre CSRF, cookies e
+resposta `204` vazia. `test:unit` passou com 18 suítes e 77 testes usando
+Prisma simulado. O cliente deve renovar o token CSRF após o refresh.
 
 ### 06 — Logout
 

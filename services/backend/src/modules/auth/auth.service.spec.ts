@@ -6,6 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { LoginAttemptsService } from './login-attempts.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { createHash } from 'crypto';
 
 describe('AuthService.register', () => {
   const create = jest.fn();
@@ -43,6 +44,75 @@ describe('AuthService.register', () => {
     create.mockRejectedValueOnce({ code: 'P2002', meta: { target: ['email'] } });
     await expect(Promise.all([service.register(input), service.register(input)])).resolves.toEqual([undefined, undefined]);
     expect(create).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('AuthService.refresh', () => {
+  const oldToken = 'old-refresh';
+  const oldHash = createHash('sha256').update(oldToken).digest('hex');
+  const old = { id: 'old-id', userId: 'user-id', tokenHash: oldHash, expiresAt: new Date(Date.now() + 60_000), revokedAt: null, replacedBySessionId: null };
+  const user = { id: 'user-id', status: 'ACTIVE' };
+  const sessions = new Map<string, typeof old>();
+  const refreshSession = {
+    findUnique: jest.fn(async ({ where }: { where: { id: string } }) => sessions.get(where.id) ?? null),
+    updateMany: jest.fn(async ({ where, data }: { where: { id: string; revokedAt?: null }; data: Partial<typeof old> }) => {
+      const session = sessions.get(where.id);
+      if (!session || (where.revokedAt === null && session.revokedAt !== null)) return { count: 0 };
+      Object.assign(session, data);
+      return { count: 1 };
+    }),
+    create: jest.fn(async ({ data }: { data: typeof old }) => { sessions.set(data.id, { ...data, revokedAt: null, replacedBySessionId: null }); return data; }),
+    update: jest.fn(async ({ where, data }: { where: { id: string }; data: Partial<typeof old> }) => {
+      Object.assign(sessions.get(where.id)!, data); return sessions.get(where.id);
+    }),
+  };
+  const prisma = {
+    refreshSession, user: { findUnique: jest.fn(async () => user) },
+    $transaction: jest.fn(async (run: (tx: unknown) => Promise<unknown>) => run(prisma)),
+  } as unknown as PrismaService;
+  const jwt = {
+    verifyAsync: jest.fn(async () => ({ sub: 'user-id', sid: 'old-id', typ: 'refresh' })),
+    signAsync: jest.fn(async (payload: { typ: string; sid: string }) => `${payload.typ}-${payload.sid}`),
+  } as unknown as JwtService;
+  const config = { getOrThrow: jest.fn((key: string) => ({
+    'auth.accessSecret': 'access-secret', 'auth.refreshSecret': 'refresh-secret',
+    'auth.accessExpiration': '15m', 'auth.refreshExpiration': '7d',
+  })[key]) } as unknown as ConfigService;
+  const service = new AuthService(prisma, {} as LoginAttemptsService, jwt, config);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessions.clear();
+    sessions.set(old.id, { ...old });
+  });
+
+  it('rotaciona uma vez, persiste só o hash e recusa a segunda chamada concorrente', async () => {
+    const results = await Promise.allSettled([service.refresh(oldToken), service.refresh(oldToken)]);
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
+    const successor = [...sessions.values()].find((session) => session.id !== old.id)!;
+    expect(successor.tokenHash).toBe(createHash('sha256').update('refresh-' + successor.id).digest('hex'));
+    expect(sessions.get(old.id)?.replacedBySessionId).toBe(successor.id);
+    expect(refreshSession.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: old.id, revokedAt: null }) }));
+  });
+
+  it('revoga a cadeia no replay de token antigo', async () => {
+    await service.refresh(oldToken);
+    const successor = [...sessions.values()].find((session) => session.id !== old.id)!;
+    await expect(service.refresh(oldToken)).rejects.toMatchObject({ status: 401 });
+    expect(successor.revokedAt).toBeInstanceOf(Date);
+  });
+
+  it('recusa cookie ausente, assinatura inválida, sessão expirada e conta pendente', async () => {
+    await expect(service.refresh(undefined)).rejects.toMatchObject({ status: 401 });
+    (jwt.verifyAsync as jest.Mock).mockRejectedValueOnce(new Error('invalid'));
+    await expect(service.refresh(oldToken)).rejects.toMatchObject({ status: 401 });
+    sessions.get(old.id)!.expiresAt = new Date(0);
+    await expect(service.refresh(oldToken)).rejects.toMatchObject({ status: 401 });
+    sessions.get(old.id)!.expiresAt = new Date(Date.now() + 60_000);
+    user.status = 'PENDING_VERIFICATION';
+    await expect(service.refresh(oldToken)).rejects.toMatchObject({ status: 401 });
+    user.status = 'ACTIVE';
   });
 });
 

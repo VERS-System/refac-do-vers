@@ -1,6 +1,6 @@
-// Publica CSRF, cadastro e login HTTP do backend VERS.
+// Publica CSRF, cadastro, login e renovação de sessão HTTP do backend VERS.
 
-import { Body, Controller, ForbiddenException, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { Request, Response } from 'express';
@@ -55,5 +55,22 @@ export class AuthController {
       this.config.getOrThrow<string>('API_PREFIX'),
     );
     return { user };
+  }
+
+  /** Renova os cookies após rotação do refresh token, sem retornar credenciais no corpo. */
+  @Post('refresh')
+  @HttpCode(204)
+  async refresh(@Req() request: Request, @Res() response: Response): Promise<void> {
+    const token = readCookie(request.header('cookie'), 'vers_refresh');
+    if (token === null) throw new UnauthorizedException();
+    const { accessToken, refreshToken } = await this.auth.refresh(token);
+    setSessionCookies(
+      response, accessToken, refreshToken,
+      this.config.getOrThrow<string>('NODE_ENV') === 'production',
+      this.config.getOrThrow<string>('auth.accessExpiration'),
+      this.config.getOrThrow<string>('auth.refreshExpiration'),
+      this.config.getOrThrow<string>('API_PREFIX'),
+    );
+    response.status(204).end();
   }
 }

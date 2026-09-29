@@ -100,6 +100,8 @@ HTTPS. Domínios finais de produção seguem pendentes.
 Após o login, o cliente deve chamar novamente `GET /auth/csrf`: o novo token
 fica vinculado ao cookie de sessão. O token obtido antes do login deixa de
 servir para mutações autenticadas.
+Após `POST /auth/refresh`, o cliente também deve renovar o token CSRF antes
+da próxima mutação, pois os cookies de sessão foram trocados.
 
 ### Cadastro
 

@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { configureApplication } from './main';
 import { PrismaService } from './prisma/prisma.service';
 import { LoginAttemptsService } from './modules/auth/login-attempts.service';
+import { AuthService } from './modules/auth/auth.service';
 import {
   PaginationQueryDto,
   UtcDateRangeQueryDto,
@@ -288,6 +289,21 @@ describe('fundacao HTTP da aplicacao', () => {
     expect(response.headers.get('set-cookie')).toContain('vers_access=');
     expect(response.headers.get('set-cookie')).toContain('vers_refresh=');
     expect(createSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('renova a sessão com CSRF vinculado e responde 204 sem corpo', async () => {
+    const refresh = jest.spyOn(app.get(AuthService), 'refresh').mockResolvedValueOnce({ accessToken: 'new-access', refreshToken: 'new-refresh' });
+    const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`, { headers: { Cookie: 'vers_refresh=old-refresh' } });
+    const { data } = (await csrf.json()) as { data: { csrfToken: string } };
+    const csrfCookie = (csrf.headers.get('set-cookie') ?? '').split(';')[0];
+    const response = await fetch(`${baseUrl}/api/v1/auth/refresh`, { method: 'POST', headers: {
+      Origin: 'http://localhost:3001', Cookie: `${csrfCookie}; vers_refresh=old-refresh`, 'X-CSRF-Token': data.csrfToken,
+    } });
+    expect(response.status).toBe(204);
+    expect(await response.text()).toBe('');
+    expect(response.headers.get('set-cookie')).toContain('vers_refresh=new-refresh');
+    expect(refresh).toHaveBeenCalledWith('old-refresh');
+    refresh.mockRestore();
   });
 
   it('responde sem sessão para credencial inválida e conta pendente', async () => {

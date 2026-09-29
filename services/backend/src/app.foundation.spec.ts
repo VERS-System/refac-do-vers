@@ -1,6 +1,6 @@
 // Testes HTTP da fundacao REST versionada do backend.
 
-import { ConflictException, Controller, Get, HttpException, HttpStatus, INestApplication, Logger, Param, Query } from '@nestjs/common';
+import { ConflictException, Controller, Get, HttpException, HttpStatus, INestApplication, Logger, Param, Post, Query } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { Server } from 'http';
@@ -17,6 +17,11 @@ import {
 /** Expõe DTOs comuns apenas no harness HTTP para verificar a validação global. */
 @Controller('foundation-fixture')
 class FoundationFixtureController {
+  /** Exercita a proteção CSRF sobre uma mutação sem dados reais. */
+  @Post('mutation')
+  mutation(): object {
+    return { ok: true };
+  }
   /** Responde sem dependências para verificar o limite HTTP real. */
   @Get('throttle')
   throttle(): object {
@@ -80,7 +85,8 @@ describe('fundacao HTTP da aplicacao', () => {
   beforeAll(async () => {
     process.env.DATABASE_URL =
       'postgresql://user:password@localhost:5432/vers_test';
-    process.env.JWT_SECRET = 'segredo-sintetico-com-mais-de-16-caracteres';
+    process.env.JWT_ACCESS_SECRET = 'segredo-access-sintetico-com-mais-de-16-caracteres';
+    process.env.JWT_REFRESH_SECRET = 'segredo-refresh-sintetico-com-mais-de-16-caracteres';
     process.env.CORS_ORIGINS = 'http://localhost:3001';
     process.env.NODE_ENV = 'test';
     process.env.API_PREFIX = 'api/v1';
@@ -149,6 +155,29 @@ describe('fundacao HTTP da aplicacao', () => {
       data: { dependencies: { database: 'ok', redis: 'ok' } },
       requestId: 'integration-ready',
     });
+  });
+
+  it('emite CSRF e exige cookie, header e origem permitida nas mutações', async () => {
+    const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
+    expect(csrf.status).toBe(200);
+    const body = (await csrf.json()) as { data: { csrfToken: string } };
+    const cookie = csrf.headers.get('set-cookie') ?? '';
+    expect(body.data.csrfToken).toMatch(/^[a-f0-9]{64}$/);
+    expect(cookie).toContain('vers_csrf=');
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('SameSite=Lax');
+
+    const url = `${baseUrl}/api/v1/foundation-fixture/mutation`;
+    const headers = {
+      Origin: 'http://localhost:3001',
+      Cookie: cookie.split(';')[0],
+      'X-CSRF-Token': body.data.csrfToken,
+    };
+    expect((await fetch(url, { method: 'POST', headers })).status).toBe(201);
+    expect((await fetch(url, { method: 'POST', headers: { ...headers, 'X-CSRF-Token': 'wrong' } })).status).toBe(403);
+    expect((await fetch(url, { method: 'POST', headers: { ...headers, Origin: 'https://denied.example' } })).status).toBe(403);
+    expect((await fetch(url, { method: 'POST', headers: { ...headers, Cookie: '' } })).status).toBe(403);
+    expect((await fetch(url, { method: 'POST', headers: { ...headers, Origin: '' } })).status).toBe(403);
   });
 
   it('mantém live disponível e recupera ready após falha do banco', async () => {

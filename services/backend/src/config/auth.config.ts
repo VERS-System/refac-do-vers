@@ -3,8 +3,10 @@
 import { registerAs } from '@nestjs/config';
 
 export interface AuthConfiguration {
-  jwtSecret: string;
-  jwtExpiration: string;
+  accessSecret: string;
+  refreshSecret: string;
+  accessExpiration: string;
+  refreshExpiration: string;
 }
 
 /**
@@ -12,18 +14,24 @@ export interface AuthConfiguration {
  * A fábrica mantém os nomes de ambiente fora dos módulos que emitem tokens.
  */
 export function createAuthConfig(
-  jwtSecret: string,
-  jwtExpiration: string,
+  accessSecret: string,
+  refreshSecret: string,
+  accessExpiration: string,
+  refreshExpiration: string,
 ): AuthConfiguration {
   return {
-    jwtSecret,
-    jwtExpiration,
+    accessSecret,
+    refreshSecret,
+    accessExpiration,
+    refreshExpiration,
   };
 }
 
 export const authConfig = registerAs('auth', () =>
   createAuthConfig(
-    process.env.JWT_SECRET ?? '',
-    process.env.JWT_EXPIRATION ?? '7d',
+    process.env.JWT_ACCESS_SECRET ?? '',
+    process.env.JWT_REFRESH_SECRET ?? '',
+    process.env.JWT_ACCESS_EXPIRATION ?? '15m',
+    process.env.JWT_REFRESH_EXPIRATION ?? '7d',
   ),
 );

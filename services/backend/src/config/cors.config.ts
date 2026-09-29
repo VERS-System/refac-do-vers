@@ -23,7 +23,7 @@ export function createCorsConfig(originsValue: string): CorsOptions {
   return {
     origin: origins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['content-type', 'authorization', 'x-request-id'],
+    allowedHeaders: ['content-type', 'authorization', 'x-request-id', 'x-csrf-token'],
     exposedHeaders: ['x-request-id'],
     credentials: true,
   };

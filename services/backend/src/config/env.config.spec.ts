@@ -4,7 +4,8 @@ import { envValidationSchema } from './env.config';
 
 const requiredEnvironment = {
   DATABASE_URL: 'postgresql://user:password@localhost:5432/vers',
-  JWT_SECRET: 'segredo-com-mais-de-16-caracteres',
+  JWT_ACCESS_SECRET: 'segredo-access-com-mais-de-16-caracteres',
+  JWT_REFRESH_SECRET: 'segredo-refresh-com-mais-de-16-caracteres',
 };
 
 describe('envValidationSchema', () => {
@@ -18,7 +19,8 @@ describe('envValidationSchema', () => {
       API_PREFIX: 'api/v1',
       REDIS_HOST: 'localhost',
       REDIS_PORT: 6379,
-      JWT_EXPIRATION: '7d',
+      JWT_ACCESS_EXPIRATION: '15m',
+      JWT_REFRESH_EXPIRATION: '7d',
       CORS_ORIGINS:
         'http://localhost:3001,http://localhost:3050,http://localhost:5173,http://localhost:5174,http://localhost:8081,http://localhost:8080',
       RATE_LIMIT_TTL_SECONDS: 60,
@@ -33,7 +35,8 @@ describe('envValidationSchema', () => {
       PORT: 8080,
       API_PREFIX: 'api/v1',
       REDIS_PORT: 6380,
-      JWT_EXPIRATION: '15m',
+      JWT_ACCESS_EXPIRATION: '20m',
+      JWT_REFRESH_EXPIRATION: '8d',
       CORS_ORIGINS: 'https://app.vers.dev',
       RATE_LIMIT_TTL_SECONDS: 30,
       RATE_LIMIT_MAX_REQUESTS: 50,
@@ -45,7 +48,8 @@ describe('envValidationSchema', () => {
       PORT: 8080,
       API_PREFIX: 'api/v1',
       REDIS_PORT: 6380,
-      JWT_EXPIRATION: '15m',
+      JWT_ACCESS_EXPIRATION: '20m',
+      JWT_REFRESH_EXPIRATION: '8d',
       CORS_ORIGINS: 'https://app.vers.dev',
       RATE_LIMIT_TTL_SECONDS: 30,
       RATE_LIMIT_MAX_REQUESTS: 50,
@@ -59,7 +63,7 @@ describe('envValidationSchema', () => {
         PORT: 70000,
         API_PREFIX: '/api/',
         REDIS_PORT: 0,
-        JWT_EXPIRATION: 'amanhã',
+        JWT_ACCESS_EXPIRATION: 'amanhã',
         CORS_ORIGINS: '',
         RATE_LIMIT_TTL_SECONDS: 0,
         RATE_LIMIT_MAX_REQUESTS: -1,
@@ -72,7 +76,7 @@ describe('envValidationSchema', () => {
         'PORT',
         'API_PREFIX',
         'REDIS_PORT',
-        'JWT_EXPIRATION',
+        'JWT_ACCESS_EXPIRATION',
         'CORS_ORIGINS',
         'RATE_LIMIT_TTL_SECONDS',
         'RATE_LIMIT_MAX_REQUESTS',
@@ -84,13 +88,22 @@ describe('envValidationSchema', () => {
     const { error } = envValidationSchema.validate(
       {
         DATABASE_URL: 'mysql://localhost/vers',
-        JWT_SECRET: 'curto',
+        JWT_ACCESS_SECRET: 'curto',
+        JWT_REFRESH_SECRET: 'curto',
       },
       { abortEarly: false },
     );
 
     expect(error?.details.map((detail) => detail.path[0])).toEqual(
-      expect.arrayContaining(['DATABASE_URL', 'JWT_SECRET']),
+      expect.arrayContaining(['DATABASE_URL', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET']),
     );
+  });
+
+  it('rejeita segredos iguais para access e refresh', () => {
+    const { error } = envValidationSchema.validate({
+      ...requiredEnvironment,
+      JWT_REFRESH_SECRET: requiredEnvironment.JWT_ACCESS_SECRET,
+    });
+    expect(error).toBeDefined();
   });
 });

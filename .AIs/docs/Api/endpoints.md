@@ -12,8 +12,8 @@
 - Respostas incluem `requestId` para correlação.
 - Nenhuma resposta contém senha, access token ou refresh token.
 
-**Estado em 26/09/2026:** apenas `GET /health/live` e `GET /health/ready` estão
-registrados no backend. As demais rotas deste documento e do OpenAPI são
+**Estado em 29/09/2026:** `GET /health/live`, `GET /health/ready` e
+`GET /auth/csrf` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
 contratos aprovados para fases futuras.
 
 ## Health checks
@@ -35,8 +35,9 @@ ao JavaScript. O access token autentica recursos protegidos. O refresh token é
 aceito apenas na renovação e no encerramento da sessão.
 
 Clientes devem enviar credenciais/cookies nas requisições. CORS aceitará
-credenciais somente das origens permitidas. A política `SameSite` e o mecanismo
-exato de proteção CSRF permanecem pendentes até a definição dos domínios finais.
+credenciais somente das origens permitidas. Cookies usam `SameSite=Lax`;
+mutações exigem `Origin` permitido e token CSRF em cookie e header. A integração
+de clientes nativos depende da definição de `Origin`.
 
 ## Envelopes
 
@@ -92,7 +93,8 @@ Erro:
 `GET /auth/csrf` retorna `data.csrfToken` e define o cookie de vínculo. O
 cliente envia o token em `X-CSRF-Token` nas mutações; o backend valida também
 `Origin`. O token CSRF não é um token de autenticação. Access JWT dura 15
-minutos e refresh JWT sete dias, com chaves distintas configuráveis. Cookies
+minutos e refresh JWT sete dias, com chaves distintas configuráveis. O access
+cookie usa `Path=/` e o refresh cookie usa `Path=/api/v1/auth`. Cookies
 de auth são `HttpOnly`, host-only e `SameSite=Lax`; `Secure` é obrigatório sob
 HTTPS. Domínios finais de produção seguem pendentes.
 
@@ -109,7 +111,8 @@ HTTPS. Domínios finais de produção seguem pendentes.
 A senha deve possuir no mínimo oito caracteres, uma letra maiúscula, um
 caractere especial e nenhum espaço. A resposta é `202` sem corpo e sem cookies
 de sessão, tanto para email novo quanto para email já cadastrado. Uma conta
-nova permanece `PENDING_VERIFICATION` e com acesso restrito; a ativação será
+nova permanece `PENDING_VERIFICATION` e não pode fazer login nem acessar rotas
+autenticadas; a ativação será
 definida em fase futura. Nenhum email pode ser inferido pela resposta pública.
 
 ### Login

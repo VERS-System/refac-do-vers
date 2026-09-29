@@ -4,7 +4,7 @@
 
 ## Objetivo e estado
 
-**Lote 01 inventariado em 26/09/2026; lote 02 ainda não iniciado.** A F03 concluiu a fundação HTTP; apenas health está
+**Lotes 01 e 02 concluídos; lote 03 ainda não iniciado.** A F03 concluiu a fundação HTTP; health e `/auth/csrf` estão
 registrado. Implementar as seis rotas `/auth/*` contratadas, sessões em cookies
 e proteção das rotas que forem entregues nas fases seguintes. Cada lote produz
 um diff pequeno, testes antes do código e revisão do programador. A IA não faz
@@ -42,8 +42,8 @@ iniciou devido à política de execução de `pnpm.ps1` no PowerShell.
 `npm.cmd run lint` e `npm.cmd run build`. Sem Neon, Redis ou `.env` lidos.
 
 **Decisões do programador já recebidas:** produção ainda sem domínios/origens
-definidos, com abertura a sugestões; conta `PENDING_VERIFICATION` terá acesso
-restrito e permanecerá pendente até uma fase futura. O cadastro retorna `202`
+definidos, com abertura a sugestões; conta `PENDING_VERIFICATION` não fará login
+nem acessará rotas autenticadas até ativação futura. O cadastro retorna `202`
 sem body nem sessão tanto para email novo quanto para email existente. Os
 contratos públicos foram atualizados; uma conta recém-cadastrada não poderá
 fazer login até existir ativação. Para desenvolvimento, foi aprovada a política
@@ -56,27 +56,60 @@ Tailwind; a migração é planejada separadamente.
 
 ## Decisões do programador antes de ativar auth
 
-1. Origem e domínio de produção do web/desktop e da API; uso dos cookies no
-   mobile. A política provisória de desenvolvimento está registrada acima;
-   fechar `Domain` e `Path` para access e refresh antes do lote 02.
+1. Produção ainda sem endereço definido. No desenvolvimento, a API usa
+   `localhost:3000` e o frontend pode usar sua própria porta local, já
+   autorizada pelo programador; CORS permite apenas as origens configuradas.
+   Cookies são host-only e usam os paths aprovados no lote 02. O mobile terá
+   integração própria antes de enviar mutações.
 2. Aprovado `Origin` + token CSRF nas mutações. Definir emissão/renovação do
    token, aplicação em `refresh`, `logout`, `logout-all` e clientes nativos.
+   A integração nativa fica para antes de ativar mutações mobile. Após login,
+   o token CSRF deverá ser vinculado à sessão autenticada.
 3. Vida útil de 15 minutos para access e sete dias para refresh, com chaves
-   distintas, aprovadas. Política de rotação de assinatura fica para o lote 02.
-4. Conta `PENDING_VERIFICATION`: acesso restrito aprovado; a lista exata de
-   rotas permitidas será fechada antes de ligar guards. A ativação pertence a
-   uma fase futura.
+   distintas, aprovadas. Os segredos permanecem no ambiente sem rotação
+   planejada nesta fase; a política de troca será decidida quando necessária.
+4. Conta `PENDING_VERIFICATION`: não faz login nem acessa rotas autenticadas
+   até ativação futura, por decisão do programador em 29/09/2026.
 5. Cadastro indistinguível `202` sem sessão aprovado e refletido nos
-   contratos. Definir política de bloqueio/tentativas para login.
+   contratos. Login: após 8 erros, espera de 15 minutos; após mais 4 erros,
+   espera de 1 hora; após mais 2 erros, bloqueio de 24 horas com liberação
+   automática. Login correto zera a contagem. A resposta pública permanece
+   genérica. Decisão aprovada pelo programador em 29/09/2026; implementar
+   e testar no lote 04.
 
-**Pendências para produção:** origens e domínios finais; integração do mobile
-com cookies; valores de `Path` e mecanismo concreto de emissão/vínculo do
-token CSRF no lote 02. Essas definições técnicas devem ser testadas antes de
-ligar qualquer mutação autenticada.
+**Pendências para produção:** origens e domínios finais. Antes de ligar
+mutações autenticadas, vincular o token CSRF à sessão; antes das mutações
+mobile, integrar seus cookies e mecanismo de origem.
 
 **Saída do lote 01:** baseline, matriz contrato × implementação e decisões para
-iniciar o lote 02 registrados. Política de bloqueio de login e permissões exatas
-de `PENDING_VERIFICATION` permanecem para os lotes 04 e 07, respectivamente.
+iniciar o lote 02 registrados. Política de bloqueio de login permanece para o
+lote 04; o acesso de `PENDING_VERIFICATION` foi fechado em 29/09/2026.
+
+**Decisão do lote 02 — 29/09/2026:** o programador aprovou o access cookie em
+`/`, o refresh cookie em `/api/v1/auth` e o token CSRF aleatório em cookie
+host-only, comparado com `X-CSRF-Token`; `GET /auth/csrf` renova o token. A
+guarda global exige `Origin` da allowlist e o par cookie/header em toda mutação
+HTTP. Essa política vale para o web; o envio de `Origin` pelo mobile será
+definido antes de integrar mutações nativas.
+
+**Execução do lote 02:** testes escritos antes da implementação falharam com
+configuração antiga, CORS sem header, rota ausente e helper de cookie ausente.
+Depois, `npm.cmd run test:unit` passou (16 suítes, 58 testes), assim como lint
+e build. Segredos distintos e durações são validados no startup; os JWTs ainda
+não são emitidos porque login/refresh pertencem aos lotes seguintes.
+
+**Decisões adicionais de 29/09/2026:** ainda não há endereço de produção.
+O programador quer o sistema de segurança funcionando localmente, com a API
+em `localhost:3000` e o frontend em sua própria porta; sua origem continua na
+allowlist CORS.
+Domínios de produção serão definidos quando houver hospedagem. A integração
+de cookies e CSRF do app mobile fica para antes de ativar suas mutações; o
+cliente nativo não deve ser enviado à API atual sem essa adaptação. Os segredos
+de assinatura permanecem separados no ambiente; não haverá rotação planejada
+agora. Uma futura troca poderá exigir novo login, a decidir nessa ocasião.
+Conta `PENDING_VERIFICATION` não faz login nem acessa rotas autenticadas até
+ser ativada em fase futura; a ativação não integra a F04. A progressão do
+bloqueio de login foi aprovada nos três estágios descritos acima.
 
 Registrar as respostas neste plano e refletir qualquer mudança de contrato em
 `endpoints.md` e `openapi.yaml` antes do lote afetado. Nenhuma política acima

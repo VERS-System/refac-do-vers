@@ -15,7 +15,7 @@ O arquivo `docker-compose.yml` na raiz define os serviços:
 | Redis      | 6379 → 6379              | Redis 7 Alpine           |
 | Backend    | 3000 → 3000              | NestJS (Node 22)         |
 | Web        | 3001 → 5173              | Vite + React + Tailwind  |
-| Dashboard  | 3050 → 5174              | Vite + React + Electron  |
+| Dashboard  | 3050 → 5174              | Vite + React + Tailwind  |
 | Mobile     | 8080 → 8081              | Expo + React Native      |
 | AI Service | 8000 → 8000              | FastAPI (Python 3.14)    |
 
@@ -42,7 +42,7 @@ docker compose down
 
 - **PostgreSQL não está no Docker.** O banco usado é Neon (nuvem), configurado via `DATABASE_URL` no `.env`.
 - **Redis** roda localmente via Docker para suportar Socket.IO e ioredis.
-- **Electron** (Dashboard) roda nativo no host e consome o Vite server do container `dashboard:3050`.
+- **Dashboard** é servido pelo Vite em `localhost:3050` no Docker ou `localhost:5174` no host. A API usa `/api/v1` pelo proxy Vite em desenvolvimento.
 - **Mobile** (Expo) precisa da variável `EXPO_HOST` com o IP da máquina na rede local para o dispositivo físico conectar.
 
 ---
@@ -76,8 +76,8 @@ Cada serviço também possui seu próprio `.env.example` com as variáveis espec
 - refresh e logout usarão os cookies recebidos, sem token no body;
 - o backend deverá habilitar CORS com credenciais apenas para origens permitidas
   e aplicar proteção CSRF adequada ao modelo de cookies;
-- a política `SameSite` ainda precisa ser definida conforme os clientes e os
-  domínios finais de implantação.
+- a política provisória é `SameSite=Lax`, host-only, com `Origin` e token CSRF
+  nas mutações; domínios finais de implantação ainda serão definidos.
 
 ---
 

@@ -2,6 +2,13 @@
 
 # Fase 03 — Fundação das APIs e rotas
 
+> **Estado em 26/09/2026:** concluída após revisão do programador. Os nove lotes estão registrados
+> no [plano de correções da Fase 03](../backend-f03-correcoes-lote-a-lote-26-09-2026.md).
+> A execução foi dividida em nove lotes
+> no [plano executável da Fase 03](../backend-phase-3-execution-roadmap.md).
+> Este arquivo conserva a visão resumida; o plano por lotes define entregas,
+> dependências, testes e critérios de saída.
+
 ## Objetivo
 
 Transformar os contratos aprovados em uma API NestJS uniforme, observável e

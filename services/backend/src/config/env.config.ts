@@ -35,8 +35,10 @@ export const envValidationSchema = Joi.object({
   PORT: Joi.number().integer().min(1).max(65535).default(3000),
   API_PREFIX: Joi.string()
     .trim()
-    .pattern(/^[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*$/)
-    .default('api'),
+    .pattern(
+      /^[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*(?:\/[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*)*$/,
+    )
+    .default('api/v1'),
 
   // Clientes autorizados a acessar a API no navegador
   CORS_ORIGINS: Joi.string().trim().min(1).default(defaultCorsOrigins),

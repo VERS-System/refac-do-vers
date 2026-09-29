@@ -9,7 +9,7 @@ de sessão.
 
 ## O que precisa ser feito
 
-- criar splash do renderer alinhada à janela Electron;
+- criar estado inicial responsivo no navegador;
 - representar carregamento e indisponibilidade inicial;
 - direcionar para Login ou área autenticada conforme estado recebido;
 - impedir que telas protegidas apareçam antes da decisão de sessão;

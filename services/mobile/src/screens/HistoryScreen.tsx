@@ -1,12 +1,14 @@
 /**
- * Implementa a tela de histórico energético (Task 06, lotes 06a–06d).
+ * Implementa a tela de histórico energético (Task 06, lotes 06a–06e).
  *
  * Existe para dar ao histórico uma rota standalone sem criar aba nova: usa o
  * `ScreenShell` padrão, o `AppHeader` com voltar por callback, reutiliza o
  * `BatteryCalendar` da Task 05 como base de navegação mensal, apresenta o
- * resumo pronto do dia selecionado com acesso aos testes e a lista histórica
- * paginada espelhando o envelope do contrato. Mês inicial e limites chegam
- * por props e apenas travam a navegação fora deles.
+ * resumo pronto do dia selecionado com acesso aos testes, a lista histórica
+ * paginada espelhando o envelope do contrato e os estados visuais por prop.
+ * Mês inicial e limites chegam por props e apenas travam a navegação fora
+ * deles; vazio e indisponível mantêm o calendário (mês sem dados não parece
+ * falha) e só carregamento e erro tomam a tela.
  * Dados chegam por props (fixtures até o F06); nada é calculado, buscado ou
  * persistido aqui e ausências nunca viram zero.
  */
@@ -14,6 +16,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '../components/AppHeader';
+import { AppSkeleton } from '../components/AppSkeleton';
 import { BatteryCalendar, type CalendarMonthLimit } from '../components/BatteryCalendar';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -31,6 +34,14 @@ export type HistoryDaySummary = {
   /** Qualidade dos dados exibidos. */
   qualityLabel?: string;
 };
+
+/** Estados visuais do histórico; a origem dos dados é do backend (F06 futuro). */
+export type HistoryStatus =
+  | 'loading'
+  | 'success'
+  | 'empty'
+  | 'unavailable'
+  | 'error';
 
 /** Linha da lista histórica; vem pronta do contrato (F06 futuro). */
 export type HistoryPeriodItem = {
@@ -76,14 +87,19 @@ type HistoryScreenProps = {
   totalItems?: number;
   /** Troca de página; ausente só exibe o rótulo sem navegar. */
   onPageChange?: (page: number) => void;
+  /** Estado visual atual; `success` exibe calendário, resumo e lista. */
+  status?: HistoryStatus;
+  /** Repete a carga no erro; ausente mantém o botão sem efeito. */
+  onRetry?: () => void;
   onSelectDay?: (isoDate: string) => void;
   onMonthChange?: (month: number, year: number) => void;
 };
 
 /**
  * Apresenta cabeçalho, calendário mensal reutilizado com mês inicial e
- * limites por props, resumo do dia quando houver e lista paginada, delegando
- * voltar, seleção, troca de mês, paginação e acesso aos testes por callbacks.
+ * limites por props, resumo do dia, lista paginada e estados visuais,
+ * delegando voltar, seleção, troca de mês, paginação, nova tentativa e acesso
+ * aos testes por callbacks.
  */
 export function HistoryScreen({
   onTabPress,
@@ -101,6 +117,8 @@ export function HistoryScreen({
   pageSize = 20,
   totalItems,
   onPageChange,
+  status = 'success',
+  onRetry,
   onSelectDay,
   onMonthChange,
 }: HistoryScreenProps) {
@@ -114,6 +132,52 @@ export function HistoryScreen({
     }
 
     onPageChange?.(next);
+  }
+
+  if (status === 'loading') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="battery" onTabPress={onTabPress} />}
+        testID="history-screen"
+      >
+        <View
+          accessibilityLabel="Carregando"
+          accessibilityRole="progressbar"
+          style={styles.stateBlock}
+          testID="history-loading"
+        >
+          <AppSkeleton height={220} />
+          <AppSkeleton height={140} />
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="battery" onTabPress={onTabPress} />}
+        testID="history-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Não foi possível carregar o histórico. Tente novamente."
+            accessibilityRole="alert"
+            style={styles.stateText}
+            testID="history-error"
+          >
+            Não foi possível carregar o histórico. Tente novamente.
+          </Text>
+          <View style={styles.retryButton}>
+            <PrimaryButton
+              accessibilityLabel="Tentar novamente"
+              label="TENTAR NOVAMENTE"
+              onPress={() => onRetry?.()}
+            />
+          </View>
+        </View>
+      </ScreenShell>
+    );
   }
 
   return (
@@ -210,14 +274,25 @@ export function HistoryScreen({
         ) : null}
 
         {!summary && items.length === 0 ? (
-          <Text
-            accessibilityLabel="Nenhum período disponível."
-            accessibilityRole="alert"
-            style={styles.emptyText}
-            testID="history-empty"
-          >
-            Nenhum período disponível.
-          </Text>
+          status === 'unavailable' ? (
+            <Text
+              accessibilityLabel="Período indisponível para consulta."
+              accessibilityRole="alert"
+              style={styles.stateText}
+              testID="history-unavailable"
+            >
+              Período indisponível para consulta.
+            </Text>
+          ) : (
+            <Text
+              accessibilityLabel="Nenhum período disponível."
+              accessibilityRole="alert"
+              style={styles.emptyText}
+              testID="history-empty"
+            >
+              Nenhum período disponível.
+            </Text>
+          )
         ) : null}
       </View>
     </ScreenShell>
@@ -243,6 +318,22 @@ const styles = StyleSheet.create({
   emptyBlock: {
     alignItems: 'center',
     marginTop: 18,
+    width: '100%',
+  },
+  stateBlock: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 16,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  stateText: {
+    color: theme.colors.white,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  retryButton: {
+    maxWidth: 350,
     width: '100%',
   },
   summaryCard: {

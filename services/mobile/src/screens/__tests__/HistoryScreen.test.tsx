@@ -1,12 +1,13 @@
 /**
- * Testes unitários da tela de histórico energético (Task 06, lotes 06a–06d).
+ * Testes unitários da tela de histórico energético (Task 06, lotes 06a–06e).
  *
  * Existe para travar o scaffold visual, o calendário standalone, o resumo do
- * dia e a lista paginada: título, mês inicial e limites por props, seleção
- * com ISO do mês exibido, resumo pronto do contrato, linhas com período,
- * unidade e qualidade e paginação por callback, sem rede, cálculo ou
- * persistência. Os dados chegam por props (fixtures até o F06); ausências
- * nunca viram zero.
+ * dia, a lista paginada e os estados: título, mês inicial e limites por
+ * props, seleção com ISO do mês exibido, resumo pronto do contrato, linhas
+ * com período, unidade e qualidade, paginação por callback e
+ * carregamento/vazio/indisponível/erro, sem rede, cálculo ou persistência.
+ * Os dados chegam por props (fixtures até o F06); ausências nunca viram zero
+ * e mês sem dados não parece falha.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -247,5 +248,85 @@ describe('HistoryScreen lista histórica (06d)', () => {
 
     fireEvent.press(last.getByRole('button', { name: 'Próxima página' }));
     expect(onPageChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('HistoryScreen estados (06e)', () => {
+  const SUMMARY = {
+    dateLabel: '24/04/2025',
+    energyUnit: 'Wh',
+    qualityLabel: 'dados parciais',
+    recoveredEnergyWh: 12.5,
+  };
+
+  /** Exibe esqueletos sem números, calendário, resumo ou lista. */
+  it('exibe carregamento sem números', () => {
+    const { getByLabelText, queryByTestId, queryByText } = render(
+      <HistoryScreen
+        items={[
+          {
+            energyUnit: 'Wh',
+            id: '2025-04-24',
+            periodLabel: '24/04/2025',
+            recoveredEnergyWh: 12.5,
+          },
+        ]}
+        status="loading"
+        summary={SUMMARY}
+      />,
+    );
+
+    expect(getByLabelText('Carregando')).toBeTruthy();
+    expect(queryByTestId('battery-calendar')).toBeNull();
+    expect(queryByTestId('history-summary')).toBeNull();
+    expect(queryByTestId('history-list')).toBeNull();
+    expect(queryByText('12.5 Wh')).toBeNull();
+  });
+
+  /** Exibe vazio neutro com calendário: mês sem dados não parece falha. */
+  it('exibe vazio neutro com calendário', () => {
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <HistoryScreen status="empty" />,
+    );
+
+    expect(getByTestId('battery-calendar')).toBeTruthy();
+    expect(
+      getByRole('alert', { name: 'Nenhum período disponível.' }),
+    ).toBeTruthy();
+    expect(queryByTestId('history-unavailable')).toBeNull();
+    expect(queryByTestId('history-error')).toBeNull();
+  });
+
+  /** Exibe período indisponível distinto do vazio, com calendário. */
+  it('exibe período indisponível com calendário', () => {
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <HistoryScreen status="unavailable" />,
+    );
+
+    expect(getByTestId('battery-calendar')).toBeTruthy();
+    expect(
+      getByRole('alert', { name: 'Período indisponível para consulta.' }),
+    ).toBeTruthy();
+    expect(queryByTestId('history-empty')).toBeNull();
+    expect(queryByTestId('history-error')).toBeNull();
+  });
+
+  /** Exibe erro sem conteúdo e repete a carga ao tentar de novo. */
+  it('exibe erro e repete a carga ao tentar de novo', () => {
+    const onRetry = jest.fn();
+    const { getByRole, queryByTestId } = render(
+      <HistoryScreen onRetry={onRetry} status="error" summary={SUMMARY} />,
+    );
+
+    expect(
+      getByRole('alert', {
+        name: 'Não foi possível carregar o histórico. Tente novamente.',
+      }),
+    ).toBeTruthy();
+    expect(queryByTestId('battery-calendar')).toBeNull();
+    expect(queryByTestId('history-summary')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

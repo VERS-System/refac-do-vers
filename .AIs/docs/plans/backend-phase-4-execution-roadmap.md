@@ -4,7 +4,7 @@
 
 ## Objetivo e estado
 
-**Lotes 01–03 implementados e validados; lote 04 ainda não iniciado.** A F03 concluiu a fundação HTTP; health, `/auth/csrf` e `/auth/register` estão
+**Lotes 01–04 implementados e validados; lote 05 ainda não iniciado.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register` e `/auth/login` estão
 registrado. Implementar as seis rotas `/auth/*` contratadas, sessões em cookies
 e proteção das rotas que forem entregues nas fases seguintes. Cada lote produz
 um diff pequeno, testes antes do código e revisão do programador. A IA não faz
@@ -187,6 +187,28 @@ documentado como implementado.
 **Escopo:** verificar senha e status segundo a decisão do lote 01; criar sessão
 e cookies. Reutilizar os componentes dos lotes anteriores. Não criar estratégia Local
 se o service existente cobrir o fluxo com menos código.
+
+**Execução planejada:** usar Redis, já exigido pelo readiness, para guardar
+contagem e prazo de espera por email normalizado com chave HMAC (sem email em
+claro). `INCR` mantém a contagem atômica; falha de Redis impede login. Aplicar
+8/15 min, 12/1 h e 14/24 h, com expiração da contagem após 48 h sem erros
+antes do terceiro estágio; no terceiro, a contagem expira junto do bloqueio.
+Consultar bloqueio antes de comparar senha; email ausente e senha errada terão
+resposta pública equivalente. Persistir `RefreshSession` com hash SHA-256 do
+refresh JWT e emitir access/refresh apenas em cookies após a gravação da sessão.
+Conta pendente ou `BLOCKED` recebe erro genérico sem sessão. Testar esses
+fluxos com Prisma e Redis simulados, depois regressão completa.
+
+**Execução em 29/09/2026:** login lê conta por email normalizado, compara
+senha com bcrypt (hash sintético para email ausente), recusa conta não ativa e
+persiste `RefreshSession` com hash do refresh JWT antes de emitir os cookies.
+Access e refresh são assinados com segredos e durações separados; o JSON traz
+apenas o perfil público. Redis aplica a contagem por email em chave HMAC,
+esperas de 15 min/1 h/24 h e falha fechada quando indisponível. O CSRF é
+renovado por `GET /auth/csrf` e vinculado ao cookie de sessão após login;
+cookies duplicados são recusados. Testes RED precederam a implementação.
+`npm.cmd run test:unit` passou (18 suítes/73 testes), lint e build passaram.
+Prisma e Redis foram simulados; não houve teste contra dependências reais.
 
 **Arquivos previstos:** `src/modules/auth/auth.service.ts`,
 `src/modules/auth/auth.controller.ts`, `src/modules/auth/dto/login.dto.ts` e

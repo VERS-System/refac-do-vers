@@ -1,13 +1,15 @@
 // Testes HTTP da fundacao REST versionada do backend.
 
-import { ConflictException, Controller, Get, HttpException, HttpStatus, INestApplication, Logger, Param, Post, Query } from '@nestjs/common';
+import { ConflictException, Controller, Get, HttpException, HttpStatus, INestApplication, Logger, Param, Post, Query, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { Server } from 'http';
 import { AddressInfo } from 'net';
 import Redis from 'ioredis';
+import * as bcrypt from 'bcrypt';
 import { configureApplication } from './main';
 import { PrismaService } from './prisma/prisma.service';
+import { LoginAttemptsService } from './modules/auth/login-attempts.service';
 import {
   PaginationQueryDto,
   UtcDateRangeQueryDto,
@@ -82,6 +84,13 @@ describe('fundacao HTTP da aplicacao', () => {
   let prismaConnect: jest.SpyInstance;
   let redisPing: jest.SpyInstance;
   let createUser: jest.SpyInstance;
+  let findUser: jest.SpyInstance;
+  let createSession: jest.SpyInstance;
+  const loginAttempts = {
+    assertAllowed: jest.fn(),
+    recordFailure: jest.fn().mockResolvedValue(0),
+    clear: jest.fn(),
+  };
 
   beforeAll(async () => {
     process.env.DATABASE_URL =
@@ -98,6 +107,8 @@ describe('fundacao HTTP da aplicacao', () => {
     prismaConnect = jest.spyOn(prisma, '$connect').mockRejectedValue(new Error('database unavailable'));
     prismaQuery = jest.spyOn(prisma, '$queryRawUnsafe').mockResolvedValue([{ ok: 1 }]);
     createUser = jest.spyOn(prisma.user, 'create').mockResolvedValue({ id: 'user-id' } as never);
+    findUser = jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(null);
+    createSession = jest.spyOn(prisma.refreshSession, 'create').mockResolvedValue({ id: 'session-id' } as never);
     jest.spyOn(prisma, '$disconnect').mockResolvedValue(undefined);
 
     const { AppModule } = await import('./app.module');
@@ -107,6 +118,8 @@ describe('fundacao HTTP da aplicacao', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(prisma)
+      .overrideProvider(LoginAttemptsService)
+      .useValue(loginAttempts)
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -182,6 +195,30 @@ describe('fundacao HTTP da aplicacao', () => {
     expect((await fetch(url, { method: 'POST', headers: { ...headers, Origin: '' } })).status).toBe(403);
   });
 
+  it('vincula o CSRF ao cookie de sessão após login', async () => {
+    const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`, {
+      headers: { Cookie: 'vers_access=synthetic-access' },
+    });
+    const token = ((await csrf.json()) as { data: { csrfToken: string } }).data.csrfToken;
+    const csrfCookie = (csrf.headers.get('set-cookie') ?? '').split(';')[0];
+    const nonce = csrfCookie.split('=')[1];
+    expect(token).not.toBe(nonce);
+    const url = `${baseUrl}/api/v1/foundation-fixture/mutation`;
+    const headers = {
+      Origin: 'http://localhost:3001',
+      Cookie: `vers_access=synthetic-access; ${csrfCookie}`,
+      'X-CSRF-Token': token,
+    };
+    expect((await fetch(url, { method: 'POST', headers })).status).toBe(201);
+    expect((await fetch(url, { method: 'POST', headers: { ...headers, 'X-CSRF-Token': nonce } })).status).toBe(403);
+    expect((await fetch(url, { method: 'POST', headers: { ...headers, Cookie: `vers_access=another-access; ${csrfCookie}` } })).status).toBe(403);
+    expect((await fetch(url, { method: 'POST', headers: {
+      ...headers,
+      Cookie: `vers_access=synthetic-access; vers_access=another-access; ${csrfCookie}`,
+      'X-CSRF-Token': nonce,
+    } })).status).toBe(403);
+  });
+
   it('cadastra sem sessão e responde igual para email novo ou existente', async () => {
     const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
     const { data } = (await csrf.json()) as { data: { csrfToken: string } };
@@ -223,6 +260,81 @@ describe('fundacao HTTP da aplicacao', () => {
         method: 'POST', headers, body: JSON.stringify(payload),
       })).status).toBe(400);
     }
+  });
+
+  it('faz login de conta ativa com perfil público e JWTs só em cookies', async () => {
+    const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
+    const { data } = (await csrf.json()) as { data: { csrfToken: string } };
+    findUser.mockResolvedValueOnce({
+      id: '0a168912-d4e4-4f79-b50f-c129038c725e', email: 'ana@example.com',
+      passwordHash: await bcrypt.hash('Senha@123', 4), status: 'ACTIVE',
+      displayName: 'Ana', avatarUrl: null, emailVerifiedAt: new Date(),
+      createdAt: new Date(), updatedAt: new Date(), roles: [{ role: 'USER' }],
+    });
+    const response = await fetch(`${baseUrl}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost:3001',
+        Cookie: (csrf.headers.get('set-cookie') ?? '').split(';')[0],
+        'X-CSRF-Token': data.csrfToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: 'ANA@EXAMPLE.COM', password: 'Senha@123' }),
+    });
+    const body = (await response.json()) as { data: { user: { email: string } } };
+    expect(response.status).toBe(200);
+    expect(body.data.user.email).toBe('ana@example.com');
+    expect(JSON.stringify(body)).not.toMatch(/passwordHash|accessToken|refreshToken/);
+    expect(response.headers.get('set-cookie')).toContain('vers_access=');
+    expect(response.headers.get('set-cookie')).toContain('vers_refresh=');
+    expect(createSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('responde sem sessão para credencial inválida e conta pendente', async () => {
+    const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
+    const { data } = (await csrf.json()) as { data: { csrfToken: string } };
+    const headers = {
+      Origin: 'http://localhost:3001',
+      Cookie: (csrf.headers.get('set-cookie') ?? '').split(';')[0],
+      'X-CSRF-Token': data.csrfToken,
+      'Content-Type': 'application/json',
+    };
+    const url = `${baseUrl}/api/v1/auth/login`;
+    const payload = JSON.stringify({ email: 'ana@example.com', password: 'Senha@123' });
+    const absent = await fetch(url, { method: 'POST', headers, body: payload });
+    findUser.mockResolvedValueOnce({
+      id: 'user-id', email: 'ana@example.com', passwordHash: await bcrypt.hash('Senha@123', 4),
+      status: 'PENDING_VERIFICATION', roles: [],
+    });
+    const pending = await fetch(url, { method: 'POST', headers, body: payload });
+    expect(absent.status).toBe(401);
+    expect(pending.status).toBe(401);
+    expect(((await absent.json()) as { error: object }).error).toEqual(((await pending.json()) as { error: object }).error);
+    expect(absent.headers.get('set-cookie')).toBeNull();
+    expect(pending.headers.get('set-cookie')).toBeNull();
+  });
+
+  it('nega login com 429 durante espera e 503 sem Redis, sem emitir cookies', async () => {
+    const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
+    const { data } = (await csrf.json()) as { data: { csrfToken: string } };
+    const options = {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost:3001',
+        Cookie: (csrf.headers.get('set-cookie') ?? '').split(';')[0],
+        'X-CSRF-Token': data.csrfToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: 'ana@example.com', password: 'Senha@123' }),
+    };
+    loginAttempts.recordFailure.mockResolvedValueOnce(900_000);
+    const limited = await fetch(`${baseUrl}/api/v1/auth/login`, options);
+    loginAttempts.assertAllowed.mockRejectedValueOnce(new ServiceUnavailableException());
+    const unavailable = await fetch(`${baseUrl}/api/v1/auth/login`, options);
+    expect(limited.status).toBe(429);
+    expect(unavailable.status).toBe(503);
+    expect(limited.headers.get('set-cookie')).toBeNull();
+    expect(unavailable.headers.get('set-cookie')).toBeNull();
   });
 
   it('mantém live disponível e recupera ready após falha do banco', async () => {

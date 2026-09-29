@@ -106,6 +106,14 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          description: Espera temporária após tentativas incorretas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
   /auth/refresh:
     post:
       tags: [Auth]

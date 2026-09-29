@@ -4,13 +4,20 @@ import { CookieOptions, Response } from 'express';
 
 const access = { httpOnly: true, sameSite: 'lax' as const, path: '/' };
 
+/** Lê um cookie único; null indica duplicidade e undefined indica ausência. */
+export function readCookie(header: string | undefined, name: string): string | null | undefined {
+  const matches = (header ?? '').split(';').map((part) => part.trim()).filter((part) => part.startsWith(`${name}=`));
+  if (matches.length > 1) return null;
+  return matches.length === 1 ? matches[0].slice(name.length + 1) : undefined;
+}
+
 /** Escopa o refresh ao prefixo efetivo da API. */
 function refreshOptions(apiPrefix: string): CookieOptions {
   return { httpOnly: true, sameSite: 'lax' as const, path: `/${apiPrefix}/auth` };
 }
 
 /** Converte a duração JWT validada em milissegundos para o cookie. */
-function durationMs(value: string): number {
+export function durationMs(value: string): number {
   const match = /^(\d+)([smhd])$/.exec(value);
   if (!match) throw new Error('Duração JWT inválida');
   const duration = Number(match[1]) * { s: 1_000, m: 60_000, h: 3_600_000, d: 86_400_000 }[match[2] as 's' | 'm' | 'h' | 'd'];

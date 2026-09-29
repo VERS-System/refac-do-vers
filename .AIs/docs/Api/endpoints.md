@@ -13,7 +13,7 @@
 - Nenhuma resposta contém senha, access token ou refresh token.
 
 **Estado em 29/09/2026:** `GET /health/live`, `GET /health/ready`,
-`GET /auth/csrf` e `POST /auth/register` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
+`GET /auth/csrf`, `POST /auth/register` e `POST /auth/login` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
 contratos aprovados para fases futuras.
 
 ## Health checks
@@ -97,6 +97,9 @@ minutos e refresh JWT sete dias, com chaves distintas configuráveis. O access
 cookie usa `Path=/` e o refresh cookie usa `Path=/api/v1/auth`. Cookies
 de auth são `HttpOnly`, host-only e `SameSite=Lax`; `Secure` é obrigatório sob
 HTTPS. Domínios finais de produção seguem pendentes.
+Após o login, o cliente deve chamar novamente `GET /auth/csrf`: o novo token
+fica vinculado ao cookie de sessão. O token obtido antes do login deixa de
+servir para mutações autenticadas.
 
 ### Cadastro
 
@@ -126,6 +129,11 @@ definida em fase futura. Nenhum email pode ser inferido pela resposta pública.
 
 Credenciais inválidas usam uma mensagem genérica e não confirmam se o email
 existe.
+Contas `PENDING_VERIFICATION` ou `BLOCKED` também não recebem sessão e usam
+erro público genérico. Após 8 senhas erradas, o login espera 15 minutos;
+após mais 4, espera 1 hora; após mais 2, bloqueia por 24 horas e libera
+automaticamente. Um login correto zera a contagem. Durante a espera, a API
+retorna `429`; se Redis estiver indisponível, retorna `503` sem iniciar sessão.
 
 ## Perfil
 

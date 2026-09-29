@@ -1,21 +1,35 @@
 /**
- * Implementa a tela de histórico energético (Task 06, lotes 06a–06b).
+ * Implementa a tela de histórico energético (Task 06, lotes 06a–06c).
  *
  * Existe para dar ao histórico uma rota standalone sem criar aba nova: usa o
- * `ScreenShell` padrão, o `AppHeader` com voltar por callback e reutiliza o
- * `BatteryCalendar` da Task 05 como base de navegação mensal. Mês inicial e
- * limites chegam por props e apenas trava a navegação fora deles; a lista de
- * períodos entra nos lotes seguintes e aqui há só o vazio inicial.
+ * `ScreenShell` padrão, o `AppHeader` com voltar por callback, reutiliza o
+ * `BatteryCalendar` da Task 05 como base de navegação mensal e apresenta o
+ * resumo pronto do dia selecionado com acesso aos testes por callback. Mês
+ * inicial e limites chegam por props e apenas travam a navegação fora deles;
+ * a lista de períodos entra nos lotes seguintes e aparece só o vazio inicial.
  * Dados chegam por props (fixtures até o F06); nada é calculado, buscado ou
- * persistido aqui.
+ * persistido aqui e ausências nunca viram zero.
  */
 
 import { StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
 import { BatteryCalendar, type CalendarMonthLimit } from '../components/BatteryCalendar';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
+
+/** Resumo do dia selecionado; vem pronto do contrato (F06 futuro). */
+export type HistoryDaySummary = {
+  /** Rótulo do dia como veio do contrato; sem formatação local. */
+  dateLabel: string;
+  /** Energia recuperada em Wh; `null` é ausência, nunca vira zero. */
+  recoveredEnergyWh: number | null;
+  /** Unidade exibida. */
+  energyUnit?: string;
+  /** Qualidade dos dados exibidos. */
+  qualityLabel?: string;
+};
 
 type HistoryScreenProps = {
   onTabPress?: (tab: MainTab) => void;
@@ -33,14 +47,18 @@ type HistoryScreenProps = {
   minMonth?: CalendarMonthLimit;
   /** Mês máximo navegável; ausente significa sem limite. */
   maxMonth?: CalendarMonthLimit;
+  /** Resumo do dia selecionado; ausente mantém o vazio inicial. */
+  summary?: HistoryDaySummary | null;
+  /** Abre os testes relacionados ao resumo; ausente omite o atalho. */
+  onOpenTests?: () => void;
   onSelectDay?: (isoDate: string) => void;
   onMonthChange?: (month: number, year: number) => void;
 };
 
 /**
  * Apresenta cabeçalho, calendário mensal reutilizado com mês inicial e
- * limites por props e vazio inicial da lista, delegando voltar, seleção e
- * troca de mês por callbacks puros.
+ * limites por props, resumo do dia quando houver e vazio inicial da lista,
+ * delegando voltar, seleção, troca de mês e acesso aos testes por callbacks.
  */
 export function HistoryScreen({
   onTabPress,
@@ -51,6 +69,8 @@ export function HistoryScreen({
   daysWithData = [],
   minMonth,
   maxMonth,
+  summary = null,
+  onOpenTests,
   onSelectDay,
   onMonthChange,
 }: HistoryScreenProps) {
@@ -81,14 +101,37 @@ export function HistoryScreen({
       </View>
 
       <View style={styles.emptyBlock}>
-        <Text
-          accessibilityLabel="Nenhum período disponível."
-          accessibilityRole="alert"
-          style={styles.emptyText}
-          testID="history-empty"
-        >
-          Nenhum período disponível.
-        </Text>
+        {summary ? (
+          <View style={styles.summaryCard} testID="history-summary">
+            <Text style={styles.summaryDate}>{summary.dateLabel}</Text>
+            {summary.recoveredEnergyWh != null && (
+              <Text style={styles.summaryValue}>
+                {`${summary.recoveredEnergyWh} ${summary.energyUnit ?? 'Wh'}`}
+              </Text>
+            )}
+            {summary.qualityLabel ? (
+              <Text style={styles.summaryQuality}>{summary.qualityLabel}</Text>
+            ) : null}
+            {onOpenTests && (
+              <View style={styles.testsButton}>
+                <PrimaryButton
+                  accessibilityLabel="Ver testes do dia"
+                  label="VER TESTES"
+                  onPress={() => onOpenTests?.()}
+                />
+              </View>
+            )}
+          </View>
+        ) : (
+          <Text
+            accessibilityLabel="Nenhum período disponível."
+            accessibilityRole="alert"
+            style={styles.emptyText}
+            testID="history-empty"
+          >
+            Nenhum período disponível.
+          </Text>
+        )}
       </View>
     </ScreenShell>
   );
@@ -113,6 +156,36 @@ const styles = StyleSheet.create({
   emptyBlock: {
     alignItems: 'center',
     marginTop: 18,
+    width: '100%',
+  },
+  summaryCard: {
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 16,
+    width: '100%',
+  },
+  summaryDate: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  summaryValue: {
+    color: theme.colors.primary,
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  summaryQuality: {
+    color: theme.colors.gray,
+    fontSize: 11,
+    marginTop: 4,
+  },
+  testsButton: {
+    marginTop: 12,
+    maxWidth: 350,
     width: '100%',
   },
   emptyText: {

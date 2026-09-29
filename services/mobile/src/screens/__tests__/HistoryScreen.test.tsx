@@ -1,10 +1,11 @@
 /**
- * Testes unitários da tela de histórico energético (Task 06, lotes 06a–06b).
+ * Testes unitários da tela de histórico energético (Task 06, lotes 06a–06c).
  *
- * Existe para travar o scaffold visual e o calendário standalone: título,
- * calendário reutilizado com mês inicial e limites por props, seleção com ISO
- * do mês exibido e lista vazia inicial, sem rede, cálculo ou persistência.
- * Os dados chegam por props (fixtures até o F06).
+ * Existe para travar o scaffold visual, o calendário standalone e o resumo do
+ * dia: título, mês inicial e limites por props, seleção com ISO do mês
+ * exibido, resumo pronto do contrato e acesso aos testes por callback, sem
+ * rede, cálculo ou persistência. Os dados chegam por props (fixtures até o
+ * F06); ausências nunca viram zero.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -96,5 +97,60 @@ describe('HistoryScreen calendário standalone (06b)', () => {
     fireEvent.press(getByRole('button', { name: 'Próximo mês' }));
 
     expect(onMonthChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('HistoryScreen resumo do dia (06c)', () => {
+  const SUMMARY = {
+    dateLabel: '24/04/2025',
+    energyUnit: 'Wh',
+    qualityLabel: 'dados parciais',
+    recoveredEnergyWh: 12.5,
+  };
+
+  /** Exibe o resumo pronto do contrato e esconde o vazio. */
+  it('exibe o resumo do dia selecionado', () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <HistoryScreen summary={SUMMARY} />,
+    );
+
+    expect(getByTestId('history-summary')).toBeTruthy();
+    expect(getByText('24/04/2025')).toBeTruthy();
+    expect(getByText('12.5 Wh')).toBeTruthy();
+    expect(getByText('dados parciais')).toBeTruthy();
+    expect(queryByTestId('history-empty')).toBeNull();
+  });
+
+  /** Omite o valor sem zerar quando a energia está ausente. */
+  it('omite o valor sem zerar quando a energia está ausente', () => {
+    const { getByTestId, queryByText } = render(
+      <HistoryScreen summary={{ ...SUMMARY, recoveredEnergyWh: null }} />,
+    );
+
+    expect(getByTestId('history-summary')).toBeTruthy();
+    expect(queryByText('12.5 Wh')).toBeNull();
+    expect(queryByText('0 Wh')).toBeNull();
+  });
+
+  /** Abre os testes relacionados por callback puro. */
+  it('abre os testes relacionados por callback', () => {
+    const onOpenTests = jest.fn();
+    const { getByRole } = render(
+      <HistoryScreen onOpenTests={onOpenTests} summary={SUMMARY} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Ver testes do dia' }));
+
+    expect(onOpenTests).toHaveBeenCalledTimes(1);
+  });
+
+  /** Omite o atalho de testes sem callback, sem mudar o resumo. */
+  it('omite o atalho de testes sem callback', () => {
+    const { getByTestId, queryByRole } = render(
+      <HistoryScreen summary={SUMMARY} />,
+    );
+
+    expect(getByTestId('history-summary')).toBeTruthy();
+    expect(queryByRole('button', { name: 'Ver testes do dia' })).toBeNull();
   });
 });

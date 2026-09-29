@@ -68,6 +68,14 @@ type BatteryScreenProps = {
   hourlyData?: HourlyPoint[];
   /** Série de economia exibida no modo expandido. */
   moneyData?: HourlyPoint[];
+  /** Moeda da economia; ausente omite o Money economy. */
+  currencyCode?: string | null;
+  /** Tarifa usada no cálculo; ausente omite o Money economy. */
+  energyTariffPerKwh?: number | null;
+  /** Energia usada só com fonte confiável; ausente omite o bloco. */
+  vehicleEnergyUsedWh?: number | null;
+  /** Rótulo da fonte da energia usada. */
+  energySourceLabel?: string;
   /** Dias com dados no formato `YYYY-MM-DD`. */
   daysWithData?: string[];
 };
@@ -85,6 +93,10 @@ export function BatteryScreen({
   recoveredPercentage = 65,
   hourlyData = DEFAULT_HOURLY,
   moneyData = DEFAULT_MONEY,
+  currencyCode = 'BRL',
+  energyTariffPerKwh = 0.0875,
+  vehicleEnergyUsedWh = null,
+  energySourceLabel = '',
   daysWithData = [],
 }: BatteryScreenProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -92,6 +104,8 @@ export function BatteryScreen({
   /** Pontos válidos; indisponíveis saem da série sem virar zero. */
   const visibleHourly = hourlyData.filter((point) => point.origin !== 'unavailable');
   const coverageLabel = `cobertura ${visibleHourly.length} de ${hourlyData.length} horas`;
+  const hasMoneyPremises = currencyCode != null && energyTariffPerKwh != null;
+  const hasUsedSource = vehicleEnergyUsedWh != null;
 
   /** Alterna o modo expandido e notifica o chamador. */
   function toggleExpanded() {
@@ -245,9 +259,12 @@ export function BatteryScreen({
         </View>
         <Text style={styles.coverageText}>{coverageLabel}</Text>
 
-        {isExpanded && (
+        {isExpanded && hasMoneyPremises && (
           <View style={styles.moneySection}>
             <Text style={styles.cardTitle}>Money economy</Text>
+            <Text style={styles.tariffCaption}>
+              {currencyCode} {energyTariffPerKwh}/kWh
+            </Text>
             <EnergyBarChart
               height={150}
               values={moneyData.map((point) => point.value)}
@@ -255,6 +272,16 @@ export function BatteryScreen({
           </View>
         )}
       </View>
+
+      {hasUsedSource && (
+        <View style={styles.usedBlock}>
+          <Text style={styles.usedLabel}>Bateria usada</Text>
+          <Text style={styles.usedValue}>
+            {vehicleEnergyUsedWh} Wh
+          </Text>
+          <Text style={styles.usedSource}>fonte: {energySourceLabel}</Text>
+        </View>
+      )}
 
       {!isExpanded && (
         <View style={styles.card}>
@@ -367,5 +394,29 @@ const styles = StyleSheet.create({
   },
   moneySection: {
     marginTop: 24,
+  },
+  tariffCaption: {
+    color: theme.colors.gray,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  usedBlock: {
+    alignItems: 'center',
+    marginTop: 18,
+  },
+  usedLabel: {
+    color: theme.colors.white,
+    fontSize: 12,
+  },
+  usedValue: {
+    color: theme.colors.primary,
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  usedSource: {
+    color: theme.colors.gray,
+    fontSize: 10,
+    marginTop: 2,
   },
 });

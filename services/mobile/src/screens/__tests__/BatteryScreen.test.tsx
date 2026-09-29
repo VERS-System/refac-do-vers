@@ -145,6 +145,29 @@ describe('BatteryScreen', () => {
     }
   });
 
+  /** Garante economia só com moeda e tarifa (05h). */
+  it('omite Money economy sem moeda e tarifa', () => {
+    const { getByRole, queryByText } = render(
+      <BatteryScreen currencyCode={null} energyTariffPerKwh={null} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Expandir gráfico do dia' }));
+    expect(queryByText('Money economy')).toBeNull();
+  });
+
+  /** Garante bateria usada só com fonte confiável (05h). */
+  it('exibe bateria usada somente com fonte confiável', () => {
+    const { queryByText, rerender } = render(<BatteryScreen />);
+
+    expect(queryByText('4.2 Wh')).toBeNull();
+
+    rerender(
+      <BatteryScreen energySourceLabel="sensor INA219" vehicleEnergyUsedWh={4.2} />,
+    );
+    expect(queryByText('4.2 Wh')).toBeTruthy();
+    expect(queryByText('fonte: sensor INA219')).toBeTruthy();
+  });
+
   /** Garante legenda de origem e cobertura da série (05g). */
   it('distingue medido, calculado e indisponível com cobertura', () => {
     const { getByText } = render(<BatteryScreen />);

@@ -81,6 +81,7 @@ describe('fundacao HTTP da aplicacao', () => {
   let prismaQuery: jest.SpyInstance;
   let prismaConnect: jest.SpyInstance;
   let redisPing: jest.SpyInstance;
+  let createUser: jest.SpyInstance;
 
   beforeAll(async () => {
     process.env.DATABASE_URL =
@@ -96,6 +97,7 @@ describe('fundacao HTTP da aplicacao', () => {
     const prisma = new PrismaService();
     prismaConnect = jest.spyOn(prisma, '$connect').mockRejectedValue(new Error('database unavailable'));
     prismaQuery = jest.spyOn(prisma, '$queryRawUnsafe').mockResolvedValue([{ ok: 1 }]);
+    createUser = jest.spyOn(prisma.user, 'create').mockResolvedValue({ id: 'user-id' } as never);
     jest.spyOn(prisma, '$disconnect').mockResolvedValue(undefined);
 
     const { AppModule } = await import('./app.module');
@@ -178,6 +180,49 @@ describe('fundacao HTTP da aplicacao', () => {
     expect((await fetch(url, { method: 'POST', headers: { ...headers, Origin: 'https://denied.example' } })).status).toBe(403);
     expect((await fetch(url, { method: 'POST', headers: { ...headers, Cookie: '' } })).status).toBe(403);
     expect((await fetch(url, { method: 'POST', headers: { ...headers, Origin: '' } })).status).toBe(403);
+  });
+
+  it('cadastra sem sessão e responde igual para email novo ou existente', async () => {
+    const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
+    const { data } = (await csrf.json()) as { data: { csrfToken: string } };
+    const headers = {
+      Origin: 'http://localhost:3001',
+      Cookie: (csrf.headers.get('set-cookie') ?? '').split(';')[0],
+      'X-CSRF-Token': data.csrfToken,
+      'Content-Type': 'application/json',
+    };
+    const url = `${baseUrl}/api/v1/auth/register`;
+    const body = JSON.stringify({ email: 'Ana@Example.com', password: 'Senha@123' });
+    const first = await fetch(url, { method: 'POST', headers, body });
+    expect(first.status).toBe(202);
+    expect(await first.text()).toBe('');
+    expect(first.headers.get('set-cookie')).toBeNull();
+
+    createUser.mockRejectedValueOnce({ code: 'P2002', meta: { target: ['email'] } });
+    const duplicate = await fetch(url, { method: 'POST', headers, body });
+    expect(duplicate.status).toBe(202);
+    expect(await duplicate.text()).toBe('');
+    expect(duplicate.headers.get('set-cookie')).toBeNull();
+  });
+
+  it('rejeita cadastro com senha inválida ou campo extra', async () => {
+    const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
+    const { data } = (await csrf.json()) as { data: { csrfToken: string } };
+    const headers = {
+      Origin: 'http://localhost:3001',
+      Cookie: (csrf.headers.get('set-cookie') ?? '').split(';')[0],
+      'X-CSRF-Token': data.csrfToken,
+      'Content-Type': 'application/json',
+    };
+    for (const payload of [
+      { email: 'ana@example.com', password: 'fraca' },
+      { email: 'ana@example.com', password: 'Senha@123', admin: true },
+      { email: 'invalido', password: 'Senha@123' },
+    ]) {
+      expect((await fetch(`${baseUrl}/api/v1/auth/register`, {
+        method: 'POST', headers, body: JSON.stringify(payload),
+      })).status).toBe(400);
+    }
   });
 
   it('mantém live disponível e recupera ready após falha do banco', async () => {

@@ -12,8 +12,8 @@
 - Respostas incluem `requestId` para correlação.
 - Nenhuma resposta contém senha, access token ou refresh token.
 
-**Estado em 29/09/2026:** `GET /health/live`, `GET /health/ready` e
-`GET /auth/csrf` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
+**Estado em 29/09/2026:** `GET /health/live`, `GET /health/ready`,
+`GET /auth/csrf` e `POST /auth/register` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
 contratos aprovados para fases futuras.
 
 ## Health checks

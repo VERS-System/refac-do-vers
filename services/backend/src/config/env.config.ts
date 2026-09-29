@@ -51,11 +51,11 @@ export const envValidationSchema = Joi.object({
   JWT_REFRESH_SECRET: Joi.string().min(16).required(),
   JWT_ACCESS_EXPIRATION: Joi.string()
     .trim()
-    .pattern(/^\d+[smhd]$/)
+    .pattern(/^[1-9]\d*[smhd]$/)
     .default('15m'),
   JWT_REFRESH_EXPIRATION: Joi.string()
     .trim()
-    .pattern(/^\d+[smhd]$/)
+    .pattern(/^[1-9]\d*[smhd]$/)
     .default('7d'),
 
   // Proteção básica contra excesso de requisições

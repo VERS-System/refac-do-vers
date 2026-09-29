@@ -4,7 +4,7 @@
 
 ## Objetivo e estado
 
-**Lotes 01 e 02 concluídos; lote 03 ainda não iniciado.** A F03 concluiu a fundação HTTP; health e `/auth/csrf` estão
+**Lotes 01–03 implementados e validados; lote 04 ainda não iniciado.** A F03 concluiu a fundação HTTP; health, `/auth/csrf` e `/auth/register` estão
 registrado. Implementar as seis rotas `/auth/*` contratadas, sessões em cookies
 e proteção das rotas que forem entregues nas fases seguintes. Cada lote produz
 um diff pequeno, testes antes do código e revisão do programador. A IA não faz
@@ -98,6 +98,18 @@ Depois, `npm.cmd run test:unit` passou (16 suítes, 58 testes), assim como lint
 e build. Segredos distintos e durações são validados no startup; os JWTs ainda
 não são emitidos porque login/refresh pertencem aos lotes seguintes.
 
+**Revisão do lote 02 e execução do lote 03 — 29/09/2026:** testes RED expuseram
+duração JWT zero aceita e refresh cookie preso a `/api/v1/auth` mesmo com
+`API_PREFIX` configurável. Ambos foram corrigidos. O cadastro foi criado com
+DTO allowlist, email normalizado, hash bcrypt, `USER` e estado
+`PENDING_VERIFICATION` na mesma operação Prisma. Conflito único de email
+(`P2002`) responde como cadastro novo, inclusive em tentativas simultâneas;
+outras falhas continuam como erro interno genérico. Resposta HTTP `202` não
+contém body nem cookie de sessão. Testes HTTP cobrem payload inválido, campo
+extra e duplicidade. `npm.cmd run test:unit`: 17 suítes/63 testes; lint e
+build passaram. O lote 04 precisa implementar a política de tentativas
+aprovada antes de ativar login.
+
 **Decisões adicionais de 29/09/2026:** ainda não há endereço de produção.
 O programador quer o sistema de segurança funcionando localmente, com a API
 em `localhost:3000` e o frontend em sua própria porta; sua origem continua na
@@ -167,7 +179,8 @@ corrida concorrente, sem revelar se a conta já existe.
 **RED → GREEN:** payload válido/inválido, campo extra, email com caixa distinta,
 duplicidade concorrente, hash no banco, `202` sem body nem cookies de sessão.
 **Saída:**
-somente `/auth/register` é ligado e documentado como implementado.
+`/auth/register` foi ligado, além de `/auth/csrf` do lote anterior, e
+documentado como implementado.
 
 ### 04 — Login
 

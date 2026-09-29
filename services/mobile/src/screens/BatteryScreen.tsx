@@ -20,6 +20,8 @@ import { theme } from '../constants/theme';
 export type HourlyPoint = {
   label: string;
   value: number;
+  /** Origem do ponto; `unavailable` omite a barra sem zerar. */
+  origin?: 'measured' | 'calculated' | 'unavailable';
 };
 
 const DEFAULT_HOURLY: HourlyPoint[] = [
@@ -86,6 +88,10 @@ export function BatteryScreen({
   daysWithData = [],
 }: BatteryScreenProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  /** Pontos válidos; indisponíveis saem da série sem virar zero. */
+  const visibleHourly = hourlyData.filter((point) => point.origin !== 'unavailable');
+  const coverageLabel = `cobertura ${visibleHourly.length} de ${hourlyData.length} horas`;
 
   /** Alterna o modo expandido e notifica o chamador. */
   function toggleExpanded() {
@@ -223,15 +229,21 @@ export function BatteryScreen({
         </View>
         <EnergyBarChart
           height={isExpanded ? 180 : 96}
-          values={hourlyData.map((point) => point.value)}
+          values={visibleHourly.map((point) => point.value)}
         />
         <View style={styles.hourLabels}>
-          {hourlyData.map((point) => (
+          {visibleHourly.map((point) => (
             <Text key={point.label} style={styles.hourLabel}>
               {point.label}
             </Text>
           ))}
         </View>
+        <View style={styles.originRow}>
+          <Text style={styles.originText}>● Medido</Text>
+          <Text style={styles.originText}>● Calculado</Text>
+          <Text style={styles.originText}>○ Indisponível</Text>
+        </View>
+        <Text style={styles.coverageText}>{coverageLabel}</Text>
 
         {isExpanded && (
           <View style={styles.moneySection}>
@@ -336,6 +348,22 @@ const styles = StyleSheet.create({
   hourLabel: {
     color: theme.colors.primary,
     fontSize: 10,
+  },
+  originRow: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  originText: {
+    color: theme.colors.gray,
+    fontSize: 10,
+  },
+  coverageText: {
+    color: theme.colors.gray,
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: 'center',
   },
   moneySection: {
     marginTop: 24,

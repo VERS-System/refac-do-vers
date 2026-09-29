@@ -144,4 +144,30 @@ describe('BatteryScreen', () => {
       expect(button.props.accessibilityRole).toBe('button');
     }
   });
+
+  /** Garante legenda de origem e cobertura da série (05g). */
+  it('distingue medido, calculado e indisponível com cobertura', () => {
+    const { getByText } = render(<BatteryScreen />);
+
+    expect(getByText('● Medido')).toBeTruthy();
+    expect(getByText('● Calculado')).toBeTruthy();
+    expect(getByText('○ Indisponível')).toBeTruthy();
+    expect(getByText('cobertura 6 de 6 horas')).toBeTruthy();
+  });
+
+  /** Garante que hora indisponível não vira zero (05g). */
+  it('omite hora indisponível sem zerar', () => {
+    const { getAllByTestId, getByText, queryByText } = render(
+      <BatteryScreen
+        hourlyData={[
+          ...HOURLY.slice(0, 5),
+          { label: '4 PM', origin: 'unavailable', value: 0 },
+        ]}
+      />,
+    );
+
+    expect(getAllByTestId('energy-bar')).toHaveLength(5);
+    expect(queryByText('4 PM')).toBeNull();
+    expect(getByText('cobertura 5 de 6 horas')).toBeTruthy();
+  });
 });

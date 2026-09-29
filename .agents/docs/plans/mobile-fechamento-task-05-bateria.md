@@ -44,33 +44,31 @@ Nenhum cálculo no cliente (potência, energia, economia); valores ausentes são
 - Testes: alterna compacto/expandido; gráficos respondem aos dados.
 - Aceite: fidelidade ao battery2.
 
-## 05e — Medição, calculado, indisponível + qualidade
-
-- Distinguir por rótulo: valor medido, calculado e indisponível; cobertura e
-  qualidade dos dados junto à série.
-- Testes: cada tipo tem rótulo próprio; indisponível não mostra número.
-- Aceite: nenhuma ambiguidade sobre a origem do número.
-
-## 05f — Bateria usada e economia condicionais
-
-- `vehicleEnergyUsedWh` só quando prop de fonte confiável presente;
-  economia só quando moeda + tarifa + premissas presentes (props).
-- Testes: ausentes sem fonte/premissas; presentes com elas.
-- Aceite: sem estimativa inventada.
-
-## 05g — Estados (vazio, parcial, inválido, carregamento, erro)
+## 05e — Estados (vazio, parcial, inválido, carregamento, erro) ✅
 
 - Prop `status: BatteryStatus`; `loading` sem números, `invalid` sem
   agregados, erro com nova tentativa (`onRetry`).
 - Testes: cada estado; inválido nunca entra como energia válida.
 - Aceite: mesmos padrões das Tasks 02–04.
 
-## 05h — Acessibilidade e validação final da Task 05
+## 05f — Acessibilidade e validação parcial ✅
 
-- Nome+papel em controles/gráficos, ordem de leitura, responsividade;
-  regressão total.
-- Aceite (critério de saída da Task 05): indicadores consultáveis sem nova
-  interpretação dos dados; `test:unit` e `tsc --noEmit` verdes.
+- Nome+papel em botões e atalhos; regressão total.
+
+## 05g — Medição, calculado, indisponível + qualidade
+
+- Distinguir por rótulo: valor medido, calculado e indisponível; cobertura e
+  qualidade dos dados junto à série.
+- Testes: cada tipo tem rótulo próprio; indisponível não mostra número.
+- Aceite: nenhuma ambiguidade sobre a origem do número.
+
+## 05h — Bateria usada e economia condicionais + validação final
+
+- `vehicleEnergyUsedWh` só quando prop de fonte confiável presente;
+  economia só quando moeda + tarifa + premissas presentes (props).
+- Testes: ausentes sem fonte/premissas; presentes com elas.
+- Aceite: sem estimativa inventada; critério de saída da Task 05
+  (`test:unit` e `tsc --noEmit` verdes).
 
 Arquivos: `src/screens/BatteryScreen.tsx`,
 `src/screens/__tests__/BatteryScreen.test.tsx`, navegação

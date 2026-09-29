@@ -1,17 +1,18 @@
 /**
- * Implementa o scaffold da tela de histórico energético (Task 06, lote 06a).
+ * Implementa a tela de histórico energético (Task 06, lotes 06a–06b).
  *
  * Existe para dar ao histórico uma rota standalone sem criar aba nova: usa o
  * `ScreenShell` padrão, o `AppHeader` com voltar por callback e reutiliza o
- * `BatteryCalendar` da Task 05 como base de navegação mensal. A lista de
- * períodos entra nos lotes seguintes; aqui há só o vazio inicial.
+ * `BatteryCalendar` da Task 05 como base de navegação mensal. Mês inicial e
+ * limites chegam por props e apenas trava a navegação fora deles; a lista de
+ * períodos entra nos lotes seguintes e aqui há só o vazio inicial.
  * Dados chegam por props (fixtures até o F06); nada é calculado, buscado ou
  * persistido aqui.
  */
 
 import { StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
-import { BatteryCalendar } from '../components/BatteryCalendar';
+import { BatteryCalendar, type CalendarMonthLimit } from '../components/BatteryCalendar';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
 import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
@@ -20,23 +21,36 @@ type HistoryScreenProps = {
   onTabPress?: (tab: MainTab) => void;
   /** Volta ao fluxo anterior; rota interna, sem regra de sessão. */
   onBack?: () => void;
+  /** Mês inicial do calendário (0–11); padrão é o mês atual. */
+  month?: number;
+  /** Ano inicial do calendário; padrão é o ano atual. */
+  year?: number;
   /** Dia selecionado no formato `YYYY-MM-DD`. */
   selectedDate?: string | null;
   /** Dias com resumo, em destaque, no formato `YYYY-MM-DD`. */
   daysWithData?: string[];
+  /** Mês mínimo navegável; ausente significa sem limite. */
+  minMonth?: CalendarMonthLimit;
+  /** Mês máximo navegável; ausente significa sem limite. */
+  maxMonth?: CalendarMonthLimit;
   onSelectDay?: (isoDate: string) => void;
   onMonthChange?: (month: number, year: number) => void;
 };
 
 /**
- * Apresenta cabeçalho, calendário mensal reutilizado e vazio inicial da
- * lista, delegando voltar, seleção e troca de mês por callbacks puros.
+ * Apresenta cabeçalho, calendário mensal reutilizado com mês inicial e
+ * limites por props e vazio inicial da lista, delegando voltar, seleção e
+ * troca de mês por callbacks puros.
  */
 export function HistoryScreen({
   onTabPress,
   onBack,
+  month,
+  year,
   selectedDate,
   daysWithData = [],
+  minMonth,
+  maxMonth,
   onSelectDay,
   onMonthChange,
 }: HistoryScreenProps) {
@@ -56,9 +70,13 @@ export function HistoryScreen({
       <View style={styles.calendarCard}>
         <BatteryCalendar
           daysWithData={daysWithData}
+          maxMonth={maxMonth}
+          minMonth={minMonth}
+          month={month}
           onMonthChange={onMonthChange}
           onSelectDay={onSelectDay}
           selectedDate={selectedDate}
+          year={year}
         />
       </View>
 

@@ -43,4 +43,23 @@ describe('BatteryCalendar', () => {
     fireEvent.press(getByRole('button', { name: '24' }));
     expect(onSelectDay).toHaveBeenCalledWith('2025-04-24');
   });
+
+  /** Trava a navegação nos limites sem notificar (base da Task 06). */
+  it('trava a navegação nos limites sem notificar', () => {
+    const onMonthChange = jest.fn();
+    const { getByRole } = render(
+      <BatteryCalendar
+        maxMonth={{ month: 3, year: 2025 }}
+        minMonth={{ month: 3, year: 2025 }}
+        month={3}
+        onMonthChange={onMonthChange}
+        year={2025}
+      />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Mês anterior' }));
+    fireEvent.press(getByRole('button', { name: 'Próximo mês' }));
+
+    expect(onMonthChange).not.toHaveBeenCalled();
+  });
 });

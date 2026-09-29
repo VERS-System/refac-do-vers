@@ -16,7 +16,7 @@ negócio, segurança, persistência, cálculos e autorização pertencem ao back
 | 03 | [Cadastro](03-tela-cadastro.md) | Concluída | Task 02 |
 | 04 | [Home](04-tela-home.md) | Concluída | Tasks 00–03 |
 | 05 | [Bateria e energia](05-tela-bateria-energia.md) | Implementada | Task 04 |
-| 06 | [Calendário e histórico](06-tela-calendario-historico.md) | Planejada | Task 05 |
+| 06 | [Calendário e histórico](06-tela-calendario-historico.md) | Concluída | Task 05 |
 | 07 | [Sistema VERS](07-tela-sistema-vers.md) | Planejada | Task 04 |
 | 08 | [Testes experimentais](08-telas-testes.md) | Planejada | Tasks 05 e 07 |
 | 09 | [Perfil](09-tela-perfil.md) | Planejada | Task 04 |

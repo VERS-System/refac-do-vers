@@ -1,14 +1,15 @@
 /**
- * Testes unitários da tela de histórico energético (Task 06, lotes 06a–06f).
+ * Testes unitários da tela de histórico energético (Task 06, lotes 06a–06g).
  *
  * Existe para travar o scaffold visual, o calendário standalone, o resumo do
- * dia, a lista paginada, os estados e o timezone: título, mês inicial e
- * limites por props, seleção com ISO do mês exibido, resumo pronto do
- * contrato, linhas com período, unidade e qualidade, paginação por callback,
- * carregamento/vazio/indisponível/erro e timezone exibido sem conversão, sem
- * rede, cálculo ou persistência. Os dados chegam por props (fixtures até o
- * F06); ausências nunca viram zero, nenhum `Date` local reinterpreta o
- * período e mês sem dados não parece falha.
+ * dia, a lista paginada, os estados, o timezone e a acessibilidade: título,
+ * mês inicial e limites por props, seleção com ISO do mês exibido, resumo
+ * pronto do contrato, linhas com período, unidade e qualidade, paginação por
+ * callback, carregamento/vazio/indisponível/erro, timezone sem conversão e
+ * nome+papel+selected em todos os botões, sem rede, cálculo ou persistência.
+ * Os dados chegam por props (fixtures até o F06); ausências nunca viram zero,
+ * nenhum `Date` local reinterpreta o período e mês sem dados não parece
+ * falha.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -362,5 +363,63 @@ describe('HistoryScreen timezone (06f)', () => {
     );
 
     expect(getByText('2025-04-24T00:00:00-03:00')).toBeTruthy();
+  });
+});
+
+describe('HistoryScreen acessibilidade (06g)', () => {
+  /** Expõe nome+papel em todos os botões: nav, voltar, testes, paginação e abas. */
+  it('expõe nome acessível em botões e atalhos', () => {
+    const { getAllByRole } = render(
+      <HistoryScreen
+        items={[
+          {
+            energyUnit: 'Wh',
+            id: '2025-04-24',
+            periodLabel: '24/04/2025',
+            qualityLabel: 'dados parciais',
+            recoveredEnergyWh: 12.5,
+          },
+        ]}
+        onBack={jest.fn()}
+        onOpenTests={jest.fn()}
+        onPageChange={jest.fn()}
+        page={1}
+        pageSize={1}
+        summary={{
+          dateLabel: '24/04/2025',
+          energyUnit: 'Wh',
+          qualityLabel: 'dados parciais',
+          recoveredEnergyWh: 12.5,
+        }}
+        totalItems={2}
+      />,
+    );
+
+    const buttons = getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(9);
+
+    for (const button of buttons) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+  });
+
+  /** Informa o dia selecionado ao leitor de tela. */
+  it('informa o dia selecionado ao leitor de tela', () => {
+    const { getByRole } = render(
+      <HistoryScreen
+        daysWithData={['2025-04-24']}
+        month={3}
+        selectedDate="2025-04-24"
+        year={2025}
+      />,
+    );
+
+    expect(
+      getByRole('button', { name: '24' }).props.accessibilityState,
+    ).toEqual(expect.objectContaining({ selected: true }));
+    expect(
+      getByRole('button', { name: '23' }).props.accessibilityState,
+    ).toEqual(expect.objectContaining({ selected: false }));
   });
 });

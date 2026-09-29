@@ -37,6 +37,18 @@ describe('RootNavigator (Task 00 - Item 4b)', () => {
     expect(queryByTestId('login-screen')).toBeNull();
   });
 
+  /** Troca para a bateria pela aba sem mudar a estrutura (05a). */
+  it('renderiza a bateria ao trocar de aba', () => {
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <RootNavigator isAuthenticated isSplashVisible={false} onAuthenticated={jest.fn()} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Bateria' }));
+
+    expect(getByTestId('battery-screen')).toBeTruthy();
+    expect(queryByTestId('home-screen')).toBeNull();
+  });
+
   /** Encaminha a autenticação sem decidir sessão. */
   it('repasa o login ao callback sem regra de sessão', () => {
     const onAuthenticated = jest.fn();

@@ -49,6 +49,24 @@ describe('RootNavigator (Task 00 - Item 4b)', () => {
     expect(queryByTestId('home-screen')).toBeNull();
   });
 
+  /** Abre o histórico pela bateria sem criar aba nova (06a). */
+  it('abre o histórico pela bateria e volta sem mudar as abas', () => {
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <RootNavigator isAuthenticated isSplashVisible={false} onAuthenticated={jest.fn()} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Bateria' }));
+    fireEvent.press(getByRole('button', { name: 'Ver histórico' }));
+
+    expect(getByTestId('history-screen')).toBeTruthy();
+    expect(queryByTestId('battery-screen')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Voltar' }));
+
+    expect(getByTestId('battery-screen')).toBeTruthy();
+    expect(queryByTestId('history-screen')).toBeNull();
+  });
+
   /** Encaminha a autenticação sem decidir sessão. */
   it('repasa o login ao callback sem regra de sessão', () => {
     const onAuthenticated = jest.fn();

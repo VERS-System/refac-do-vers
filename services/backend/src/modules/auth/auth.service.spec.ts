@@ -171,3 +171,129 @@ describe('AuthService.login', () => {
     expect(createSession).not.toHaveBeenCalled();
   });
 });
+
+describe('AuthService.logout', () => {
+  const jwt = new JwtService();
+  const config = { getOrThrow: (key: string) => ({
+    'auth.accessSecret': 'access-secret', 'auth.refreshSecret': 'refresh-secret',
+    'auth.accessExpiration': '15m', 'auth.refreshExpiration': '7d',
+  })[key] } as unknown as ConfigService;
+  const findSession = jest.fn();
+  const listSessions = jest.fn();
+  const updateSessions = jest.fn();
+  const findUser = jest.fn();
+  const prisma = {
+    refreshSession: { findUnique: findSession, findMany: listSessions, updateMany: updateSessions },
+    user: { findUnique: findUser },
+    $transaction: jest.fn(async (run: (tx: unknown) => Promise<unknown>) => run(prisma)),
+  } as unknown as PrismaService;
+  const service = new AuthService(prisma, {} as LoginAttemptsService, jwt, config);
+  let refreshToken: string;
+  let accessToken: string;
+  let session: { id: string; userId: string; tokenHash: string; expiresAt: Date; revokedAt: Date | null; replacedBySessionId: string | null };
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    refreshToken = await jwt.signAsync({ sub: 'user-id', sid: 'session-id', typ: 'refresh' }, { secret: 'refresh-secret', expiresIn: '7d' });
+    accessToken = await jwt.signAsync({ sub: 'user-id', sid: 'session-id', typ: 'access' }, { secret: 'access-secret', expiresIn: '15m' });
+    session = { id: 'session-id', userId: 'user-id', tokenHash: createHash('sha256').update(refreshToken).digest('hex'), expiresAt: new Date(Date.now() + 60_000), revokedAt: null, replacedBySessionId: null };
+    findSession.mockImplementation(async () => session);
+    listSessions.mockImplementation(async () => [{ id: session.id }]);
+    findUser.mockResolvedValue({ id: 'user-id', status: 'ACTIVE' });
+    updateSessions.mockImplementation(async ({ data }: { data: { revokedAt: Date } }) => { session.revokedAt = data.revokedAt; return { count: 1 }; });
+  });
+
+  it('revoga somente a sessão validada, aceita repetição e impede refresh posterior', async () => {
+    await expect(service.logout(refreshToken)).resolves.toBeUndefined();
+    await expect(service.logout(refreshToken)).resolves.toBeUndefined();
+    expect(updateSessions).toHaveBeenCalledWith(expect.objectContaining({ where: { id: session.id, userId: session.userId, tokenHash: session.tokenHash } }));
+    expect(session.revokedAt).toBeInstanceOf(Date);
+    await expect(service.refresh(refreshToken)).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('revoga o sucessor quando o logout recebe um refresh já rotacionado', async () => {
+    session.revokedAt = new Date();
+    session.replacedBySessionId = 'successor-id';
+    const successor = { ...session, id: 'successor-id', revokedAt: null, replacedBySessionId: null };
+    findSession.mockImplementation(async ({ where }: { where: { id: string } }) => where.id === session.id ? session : successor);
+    await service.logout(refreshToken);
+    expect(updateSessions).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: 'successor-id' }) }));
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('nega token ausente, adulterado, expirado ou de tipo incorreto sem revogar', async () => {
+    const expired = await jwt.signAsync({ sub: 'user-id', sid: 'session-id', typ: 'refresh' }, { secret: 'refresh-secret', expiresIn: -1 });
+    const wrongType = await jwt.signAsync({ sub: 'user-id', sid: 'session-id', typ: 'access' }, { secret: 'refresh-secret' });
+    for (const token of [undefined, refreshToken + 'alterado', expired, accessToken, wrongType]) {
+      await expect(service.logout(token)).rejects.toMatchObject({ status: 401 });
+    }
+    expect(updateSessions).not.toHaveBeenCalled();
+  });
+
+  it('nega sessão alheia, inexistente, expirada ou com hash inválido', async () => {
+    const original = { ...session };
+    for (const change of [{ userId: 'another-user' }, { expiresAt: new Date(0) }, { tokenHash: 'hash-invalido' }]) {
+      Object.assign(session, original, change);
+      await expect(service.logout(refreshToken)).rejects.toMatchObject({ status: 401 });
+    }
+    findSession.mockResolvedValueOnce(null);
+    await expect(service.logout(refreshToken)).rejects.toMatchObject({ status: 401 });
+    expect(updateSessions).not.toHaveBeenCalled();
+  });
+
+  it('logout-all revoga apenas as sessões do usuário do access validado', async () => {
+    const second = { ...session, id: 'second-id' };
+    const foreign = { ...session, id: 'foreign-id', userId: 'other-user' };
+    const rows = new Map([session, second, foreign].map((row) => [row.id, row]));
+    listSessions.mockResolvedValueOnce([{ id: session.id }, { id: second.id }]);
+    findSession.mockImplementation(async ({ where }: { where: { id: string } }) => rows.get(where.id));
+    updateSessions.mockImplementation(async ({ where, data }: { where: { id: string }; data: { revokedAt: Date } }) => {
+      rows.get(where.id)!.revokedAt = data.revokedAt;
+      return { count: 1 };
+    });
+    await service.logoutAll(accessToken);
+    expect(listSessions).toHaveBeenCalledWith({ where: { userId: session.userId }, select: { id: true } });
+    expect(second.revokedAt).toBeInstanceOf(Date);
+    expect(foreign.revokedAt).toBeNull();
+    await expect(service.refresh(refreshToken)).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('logout-all acompanha o sucessor criado enquanto a revogação aguarda a sessão', async () => {
+    const successor = { ...session, id: 'new-id', replacedBySessionId: null };
+    findSession.mockImplementation(async ({ where }: { where: { id: string } }) => where.id === session.id ? session : successor);
+    updateSessions.mockImplementation(async ({ where, data }: { where: { id: string }; data: { revokedAt: Date } }) => {
+      if (where.id === session.id) session.replacedBySessionId = successor.id;
+      (where.id === session.id ? session : successor).revokedAt = data.revokedAt;
+      return { count: 1 };
+    });
+    await service.logoutAll(accessToken);
+    expect(successor.revokedAt).toBeInstanceOf(Date);
+    expect(updateSessions).toHaveBeenCalledWith(expect.objectContaining({ where: { id: session.id } }));
+    expect(updateSessions).toHaveBeenCalledWith(expect.objectContaining({ where: { id: successor.id } }));
+  });
+
+  it('nega logout-all para refresh, conta pendente/bloqueada ou sessão revogada', async () => {
+    await expect(service.logoutAll(refreshToken)).rejects.toMatchObject({ status: 401 });
+    for (const status of ['PENDING_VERIFICATION', 'BLOCKED']) {
+      findUser.mockResolvedValueOnce({ status });
+      await expect(service.logoutAll(accessToken)).rejects.toMatchObject({ status: 401 });
+    }
+    session.revokedAt = new Date();
+    await expect(service.logoutAll(accessToken)).rejects.toMatchObject({ status: 401 });
+    expect(updateSessions).not.toHaveBeenCalled();
+  });
+
+  it('nega logout-all com token inválido ou vínculo alheio sem revogar terceiros', async () => {
+    for (const token of [undefined, accessToken + 'alterado']) {
+      await expect(service.logoutAll(token)).rejects.toMatchObject({ status: 401 });
+    }
+    session.userId = 'other-user';
+    await expect(service.logoutAll(accessToken)).rejects.toMatchObject({ status: 401 });
+    expect(updateSessions).not.toHaveBeenCalled();
+  });
+
+  it('propaga falha de revogação para não confirmar logout sem persistência', async () => {
+    updateSessions.mockRejectedValueOnce(new Error('storage unavailable'));
+    await expect(service.logout(refreshToken)).rejects.toThrow('storage unavailable');
+  });
+});

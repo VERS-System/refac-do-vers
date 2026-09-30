@@ -12,8 +12,9 @@
 - Respostas incluem `requestId` para correlação.
 - Nenhuma resposta contém senha, access token ou refresh token.
 
-**Estado em 29/09/2026:** `GET /health/live`, `GET /health/ready`,
-`GET /auth/csrf`, `POST /auth/register` e `POST /auth/login` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
+**Estado em 30/09/2026:** `GET /health/live`, `GET /health/ready`,
+`GET /auth/csrf`, `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`,
+`POST /auth/logout` e `POST /auth/logout-all` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
 contratos aprovados para fases futuras.
 
 ## Health checks
@@ -102,6 +103,18 @@ fica vinculado ao cookie de sessão. O token obtido antes do login deixa de
 servir para mutações autenticadas.
 Após `POST /auth/refresh`, o cliente também deve renovar o token CSRF antes
 da próxima mutação, pois os cookies de sessão foram trocados.
+
+Os cookies de autenticação se chamam `vers_access` e `vers_refresh`.
+Logout valida o refresh JWT e seu hash antes de revogar a sessão e seus
+sucessores. Repetir a chamada com o mesmo refresh ainda não expirado responde
+`204`; cookie ausente, token inválido/expirado ou sessão alheia responde `401`.
+Logout-all exige access JWT de conta ativa e sessão não revogada, e encerra as
+sessões dessa conta, incluindo sucessores de rotações concorrentes. Um novo
+login iniciado em paralelo não pertence necessariamente a esse conjunto.
+Ambas as rotas exigem Origin/CSRF e respondem `204` sem corpo, expirando
+os cookies com os mesmos paths e atributos da emissão. Falha de persistência
+não confirma logout nem emite cookies de limpeza. A verificação de revogação
+nas futuras rotas protegidas será ligada pelos guards do lote 07.
 
 ### Cadastro
 

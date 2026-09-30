@@ -1,10 +1,11 @@
-// Cria contas, inicia sessões e rotaciona refresh tokens com detecção de replay.
+// Cria contas, inicia, renova e encerra sessões com revogação persistente.
 
 import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { createHash, randomUUID, timingSafeEqual } from 'crypto';
 import * as bcrypt from 'bcrypt';
+import { Prisma, RefreshSession } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthResponse } from '../../../../../packages/shared-types/src/auth';
 import { durationMs } from './auth.cookies';
@@ -15,7 +16,7 @@ import { LoginAttemptsService } from './login-attempts.service';
 const DUMMY_HASH = '$2b$12$JgDN2CSA0FYYGIxtI3dQOusmGIJZ/T8LFZeNUWCAqrEEzUPZm3H5S';
 
 export type LoginResult = AuthResponse & { accessToken: string; refreshToken: string };
-type RefreshClaims = { sub?: string; sid?: string; typ?: string };
+type SessionClaims = { sub?: string; sid?: string; typ?: string };
 
 @Injectable()
 export class AuthService {
@@ -98,26 +99,13 @@ export class AuthService {
 
   /** Rotaciona uma sessão válida uma única vez e revoga seus sucessores após replay. */
   async refresh(token: string | undefined): Promise<{ accessToken: string; refreshToken: string }> {
-    if (!token) throw new UnauthorizedException();
-    let claims: RefreshClaims;
-    try {
-      claims = await this.jwt.verifyAsync<RefreshClaims>(token, {
-        secret: this.config.getOrThrow<string>('auth.refreshSecret'),
-      });
-    } catch {
-      throw new UnauthorizedException();
-    }
-    if (claims.typ !== 'refresh' || !claims.sub || !claims.sid) throw new UnauthorizedException();
-    const hash = createHash('sha256').update(token).digest('hex');
-    const session = await this.prisma.refreshSession.findUnique({ where: { id: claims.sid } });
-    if (!session || session.userId !== claims.sub ||
-      !timingSafeEqual(Buffer.from(hash), Buffer.from(session.tokenHash)) ||
-      session.expiresAt <= new Date()) throw new UnauthorizedException();
+    const session = await this.validateSession(token, 'refresh');
+    const hash = session.tokenHash;
     if (session.revokedAt || session.replacedBySessionId) {
       await this.revokeChain(session.replacedBySessionId);
       throw new UnauthorizedException();
     }
-    const user = await this.prisma.user.findUnique({ where: { id: claims.sub } });
+    const user = await this.prisma.user.findUnique({ where: { id: session.userId } });
     if (user?.status !== 'ACTIVE') throw new UnauthorizedException();
 
     const nextId = randomUUID();
@@ -155,15 +143,63 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  /** Valida JWT e vínculo persistido para impedir revogação de uma sessão alheia. */
+  private async validateSession(token: string | undefined, type: 'access' | 'refresh'): Promise<RefreshSession> {
+    if (!token) throw new UnauthorizedException();
+    let claims: SessionClaims;
+    try {
+      claims = await this.jwt.verifyAsync<SessionClaims>(token, {
+        secret: this.config.getOrThrow<string>(`auth.${type}Secret`), algorithms: ['HS256'],
+      });
+    } catch {
+      throw new UnauthorizedException();
+    }
+    if (!claims || claims.typ !== type || typeof claims.sub !== 'string' || !claims.sub ||
+      typeof claims.sid !== 'string' || !claims.sid) throw new UnauthorizedException();
+    const session = await this.prisma.refreshSession.findUnique({ where: { id: claims.sid } });
+    if (!session || session.userId !== claims.sub || session.expiresAt <= new Date()) throw new UnauthorizedException();
+    if (type === 'refresh') {
+      const hash = createHash('sha256').update(token).digest('hex');
+      if (!/^[a-f0-9]{64}$/.test(session.tokenHash) ||
+        !timingSafeEqual(Buffer.from(hash), Buffer.from(session.tokenHash))) throw new UnauthorizedException();
+    }
+    return session;
+  }
+
+  /** Revoga a sessão e seus sucessores na transação; repetir um logout válido é seguro. */
+  async logout(token: string | undefined): Promise<void> {
+    const session = await this.validateSession(token, 'refresh');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.refreshSession.updateMany({
+        where: { id: session.id, userId: session.userId, tokenHash: session.tokenHash },
+        data: { revokedAt: new Date() },
+      });
+      const current = await tx.refreshSession.findUnique({ where: { id: session.id } });
+      await this.revokeChain(current?.replacedBySessionId, tx);
+    });
+  }
+
+  /** Encerra todas as sessões da conta ativa identificada pelo access cookie validado. */
+  async logoutAll(token: string | undefined): Promise<void> {
+    const session = await this.validateSession(token, 'access');
+    if (session.revokedAt || session.replacedBySessionId) throw new UnauthorizedException();
+    const user = await this.prisma.user.findUnique({ where: { id: session.userId } });
+    if (user?.status !== 'ACTIVE') throw new UnauthorizedException();
+    await this.prisma.$transaction(async (tx) => {
+      const sessions = await tx.refreshSession.findMany({ where: { userId: session.userId }, select: { id: true } });
+      for (const current of sessions) await this.revokeChain(current.id, tx);
+    });
+  }
+
   /** Percorre somente a cadeia da sessão comprometida e invalida seus sucessores. */
-  private async revokeChain(nextId: string | null | undefined): Promise<void> {
+  private async revokeChain(nextId: string | null | undefined, db: Prisma.TransactionClient = this.prisma): Promise<void> {
     const seen = new Set<string>();
     while (nextId && !seen.has(nextId)) {
       seen.add(nextId);
-      const session = await this.prisma.refreshSession.findUnique({ where: { id: nextId } });
-      if (!session) break;
-      await this.prisma.refreshSession.updateMany({ where: { id: nextId, revokedAt: null }, data: { revokedAt: new Date() } });
-      nextId = session.replacedBySessionId;
+      const updated = await db.refreshSession.updateMany({ where: { id: nextId }, data: { revokedAt: new Date() } });
+      if (updated.count !== 1) break;
+      const current = await db.refreshSession.findUnique({ where: { id: nextId } });
+      nextId = current?.replacedBySessionId;
     }
   }
 }

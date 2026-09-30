@@ -1,4 +1,4 @@
-// Publica CSRF, cadastro, login e renovação de sessão HTTP do backend VERS.
+// Publica CSRF, cadastro, login, renovação e encerramento de sessões HTTP.
 
 import { Body, Controller, ForbiddenException, Get, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -7,8 +7,7 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { setSessionCookies } from './auth.cookies';
-import { readCookie } from './auth.cookies';
+import { clearSessionCookies, readCookie, setSessionCookies } from './auth.cookies';
 import { csrfToken as createCsrfToken } from './csrf.guard';
 
 @Controller('auth')
@@ -71,6 +70,28 @@ export class AuthController {
       this.config.getOrThrow<string>('auth.refreshExpiration'),
       this.config.getOrThrow<string>('API_PREFIX'),
     );
+    response.status(204).end();
+  }
+
+  /** Revoga pelo refresh cookie e só confirma o logout após persistir a revogação. */
+  @Post('logout')
+  @HttpCode(204)
+  async logout(@Req() request: Request, @Res() response: Response): Promise<void> {
+    const token = readCookie(request.header('cookie'), 'vers_refresh');
+    if (token === null) throw new UnauthorizedException();
+    await this.auth.logout(token);
+    clearSessionCookies(response, this.config.getOrThrow<string>('NODE_ENV') === 'production', this.config.getOrThrow<string>('API_PREFIX'));
+    response.status(204).end();
+  }
+
+  /** Revoga todas as sessões pelo access cookie e expira os cookies da requisição. */
+  @Post('logout-all')
+  @HttpCode(204)
+  async logoutAll(@Req() request: Request, @Res() response: Response): Promise<void> {
+    const token = readCookie(request.header('cookie'), 'vers_access');
+    if (token === null) throw new UnauthorizedException();
+    await this.auth.logoutAll(token);
+    clearSessionCookies(response, this.config.getOrThrow<string>('NODE_ENV') === 'production', this.config.getOrThrow<string>('API_PREFIX'));
     response.status(204).end();
   }
 }

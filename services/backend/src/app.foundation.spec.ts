@@ -7,6 +7,8 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import Redis from 'ioredis';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
+import { createHash } from 'crypto';
 import { configureApplication } from './main';
 import { PrismaService } from './prisma/prisma.service';
 import { LoginAttemptsService } from './modules/auth/login-attempts.service';
@@ -304,6 +306,90 @@ describe('fundacao HTTP da aplicacao', () => {
     expect(response.headers.get('set-cookie')).toContain('vers_refresh=new-refresh');
     expect(refresh).toHaveBeenCalledWith('old-refresh');
     refresh.mockRestore();
+  });
+
+  it('revoga por HTTP e limpa cookies em logout e logout-all, com 204 vazio', async () => {
+    const prisma = app.get(PrismaService);
+    const findSession = jest.spyOn(prisma.refreshSession, 'findUnique');
+    const listSessions = jest.spyOn(prisma.refreshSession, 'findMany').mockResolvedValue([{ id: 'session-id' }] as never);
+    const updateSessions = jest.spyOn(prisma.refreshSession, 'updateMany').mockResolvedValue({ count: 1 });
+    const transaction = jest.spyOn(prisma, '$transaction').mockImplementation(async (run: unknown) =>
+      (run as (tx: PrismaService) => Promise<void>)(prisma));
+    try {
+      for (const [route, typ, cookieName, secret] of [
+        ['logout', 'refresh', 'vers_refresh', process.env.JWT_REFRESH_SECRET],
+        ['logout-all', 'access', 'vers_access', process.env.JWT_ACCESS_SECRET],
+      ]) {
+        const token = await app.get(JwtService).signAsync({ sub: 'user-id', sid: 'session-id', typ }, { secret, expiresIn: '15m' });
+        findSession.mockResolvedValue({
+          id: 'session-id', userId: 'user-id', tokenHash: createHash('sha256').update(token).digest('hex'),
+          expiresAt: new Date(Date.now() + 60_000), revokedAt: null, replacedBySessionId: null,
+        } as never);
+        findUser.mockResolvedValueOnce({ id: 'user-id', status: 'ACTIVE' });
+        const authCookie = `${cookieName}=${token}`;
+        const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`, { headers: { Cookie: authCookie } });
+        const { data } = (await csrf.json()) as { data: { csrfToken: string } };
+        const headers = {
+          Origin: 'http://localhost:3001', 'X-CSRF-Token': data.csrfToken,
+          Cookie: `${authCookie}; ${(csrf.headers.get('set-cookie') ?? '').split(';')[0]}`,
+        };
+        const denied = await fetch(`${baseUrl}/api/v1/auth/${route}`, { method: 'POST', headers: { ...headers, 'X-CSRF-Token': 'wrong' } });
+        expect(denied.status).toBe(403);
+        const response = await fetch(`${baseUrl}/api/v1/auth/${route}`, { method: 'POST', headers });
+        expect(response.status).toBe(204);
+        expect(await response.text()).toBe('');
+        const cookies = response.headers.getSetCookie();
+        expect(cookies).toHaveLength(2);
+        expect(cookies[0]).toMatch(/vers_access=; Path=\/;/);
+        expect(cookies[1]).toMatch(/vers_refresh=; Path=\/api\/v1\/auth;/);
+        for (const cookie of cookies) {
+          expect(cookie).toContain('Expires=Thu, 01 Jan 1970');
+          expect(cookie).toContain('HttpOnly');
+          expect(cookie).toContain('SameSite=Lax');
+          expect(cookie).not.toContain(token);
+        }
+      }
+      expect(listSessions).toHaveBeenCalledWith({ where: { userId: 'user-id' }, select: { id: true } });
+    } finally {
+      findSession.mockRestore();
+      listSessions.mockRestore();
+      updateSessions.mockRestore();
+      transaction.mockRestore();
+      findUser.mockReset().mockResolvedValue(null);
+    }
+  });
+
+  it('nega logout sem autenticação apesar do CSRF válido, sem expirar cookies', async () => {
+    const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
+    const { data } = (await csrf.json()) as { data: { csrfToken: string } };
+    for (const route of ['logout', 'logout-all']) {
+      const response = await fetch(`${baseUrl}/api/v1/auth/${route}`, { method: 'POST', headers: {
+        Origin: 'http://localhost:3001', 'X-CSRF-Token': data.csrfToken,
+        Cookie: (csrf.headers.get('set-cookie') ?? '').split(';')[0],
+      } });
+      expect(response.status).toBe(401);
+      expect(response.headers.get('set-cookie')).toBeNull();
+      expect((await response.json()) as object).toMatchObject({ error: { code: 'AUTH_UNAUTHORIZED' } });
+    }
+  });
+
+  it('não confirma nem limpa cookies se a persistência do logout falhar', async () => {
+    const logout = jest.spyOn(app.get(AuthService), 'logout').mockRejectedValueOnce(new Error('postgresql://segredo-sintetico'));
+    try {
+      const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`, { headers: { Cookie: 'vers_refresh=synthetic-refresh' } });
+      const { data } = (await csrf.json()) as { data: { csrfToken: string } };
+      const response = await fetch(`${baseUrl}/api/v1/auth/logout`, { method: 'POST', headers: {
+        Origin: 'http://localhost:3001', 'X-CSRF-Token': data.csrfToken,
+        Cookie: `vers_refresh=synthetic-refresh; ${(csrf.headers.get('set-cookie') ?? '').split(';')[0]}`,
+      } });
+      expect(response.status).toBe(500);
+      expect(response.headers.get('set-cookie')).toBeNull();
+      const body = await response.json();
+      expect(body).toMatchObject({ error: { code: 'INTERNAL_SERVER_ERROR' } });
+      expect(JSON.stringify(body)).not.toContain('segredo-sintetico');
+    } finally {
+      logout.mockRestore();
+    }
   });
 
   it('responde sem sessão para credencial inválida e conta pendente', async () => {

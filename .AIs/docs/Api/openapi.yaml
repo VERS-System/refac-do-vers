@@ -132,6 +132,7 @@ paths:
     post:
       tags: [Auth]
       summary: Revoga a sessão atual e limpa os cookies
+      description: Exige Origin e X-CSRF-Token. Repetição com refresh ainda válido é aceita; sucessores também são revogados.
       security:
         - refreshCookie: []
       responses:
@@ -146,6 +147,7 @@ paths:
     post:
       tags: [Auth]
       summary: Revoga todas as sessões do usuário
+      description: Exige Origin, X-CSRF-Token e access cookie de conta ativa com sessão não revogada.
       security:
         - accessCookie: []
       responses:
@@ -716,12 +718,12 @@ components:
     accessCookie:
       type: apiKey
       in: cookie
-      name: vers_access_token
+      name: vers_access
       description: JWT em cookie HttpOnly; Secure em produção.
     refreshCookie:
       type: apiKey
       in: cookie
-      name: vers_refresh_token
+      name: vers_refresh
       description: JWT rotativo em cookie HttpOnly; Secure em produção.
   headers:
     AuthenticationCookies:

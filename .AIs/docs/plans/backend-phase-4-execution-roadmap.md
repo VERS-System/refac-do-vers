@@ -4,7 +4,7 @@
 
 ## Objetivo e estado
 
-**Lotes 01–05 implementados e validados; lote 06 ainda não iniciado.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register`, `/auth/login` e `/auth/refresh` estão
+**Lotes 01–06 implementados e validados; lote 06 pronto para revisão do programador.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` e `/auth/logout-all` estão
 registrados. Implementar as rotas `/auth/*` contratadas, sessões em cookies
 e proteção das rotas que forem entregues nas fases seguintes. Cada lote produz
 um diff pequeno, testes antes do código e revisão do programador. A IA não faz
@@ -243,6 +243,15 @@ Prisma simulado. O cliente deve renovar o token CSRF após o refresh.
 
 ### 06 — Logout
 
+**Plano de execução — 30/09/2026:** reutilizar leitura e limpeza dos cookies.
+Validar assinatura, tipo e vínculo com a sessão antes de revogar. Logout atual
+aceita repetição de uma sessão já revogada e invalida seus sucessores; logout-all
+exige access JWT de conta ativa e sessão válida e revoga somente suas sessões.
+Serializar revogação com a rotação pela atualização da mesma linha na transação.
+Testar primeiro revogação, repetição, tokens inválidos/alheios, falha de banco,
+refresh posterior e HTTP 204 com CSRF e cookies expirados. Executar baseline,
+RED, GREEN, lint e build sem serviços externos; revisar este lote antes do 07.
+
 **Escopo:** revogar a sessão do refresh cookie ou todas as sessões do usuário
 autenticado, conforme a rota; limpar cookies com os atributos do lote 02.
 
@@ -252,6 +261,20 @@ autenticado, conforme a rota; limpar cookies com os atributos do lote 02.
 **RED → GREEN:** logout atual, logout-all, repetição, sessão de outro usuário,
 refresh após revogação e cookies expirados. **Saída:** ambas as rotas retornam
 `204` sem body e não deixam sessão utilizável.
+
+**Execução do lote 06 — 30/09/2026:** logout e logout-all registrados com
+Origin/CSRF, resposta `204` vazia e limpeza dos cookies existentes. Validação de
+JWT e sessão foi compartilhada com refresh; hash inválido retorna `401` sem
+erro de comparação. Logout atual aceita repetição e percorre sucessores.
+Logout-all valida access, conta ativa e sessão, lista apenas suas sessões e
+revoga cada cadeia em transação. A leitura do sucessor ocorre depois da
+atualização que bloqueia a linha, para acompanhar uma rotação concorrente.
+Novo login concorrente não é necessariamente parte do conjunto revogado.
+Testes RED comprovaram métodos e rotas ausentes; testes usam JWT real e Prisma
+simulado. Baseline: 77 testes. Validação final: 18 suítes/89 testes, lint e build
+aprovados via `npm.cmd`, além de `git diff --check`. Não houve banco real,
+migration, Docker, acesso a `.env` ou commit. Concorrência foi simulada;
+ensaio com PostgreSQL real segue pendente. Guards e fechamento são lotes 07–08.
 
 ### 07 — Guards e autorização
 

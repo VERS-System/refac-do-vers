@@ -17,6 +17,19 @@ pelo backend de forma compreensível e comparável.
 - apresentar economia somente quando moeda, tarifa e premissas vierem no contrato;
 - criar estados vazio, parcial, inválido, carregando e erro.
 
+## Layout de referência (implementado)
+
+Mockups em `services/mobile/src/assets/battery1.png` (padrão) e
+`battery2.png` (expandido):
+
+- "MONTHLY RECORD" com donut + legenda
+  ("Battery Recovered"/"Battery Used");
+- card "Today" com série horária e rótulos de hora; botão de expandir
+  alterna o modo compacto/expandido (expandido esconde o calendário e mostra
+  gráficos altos + "Money economy");
+- card do calendário mensal funcional (seleção de dia de referência);
+- semana implementada D–S correta (o mockup omite TUE e repete SUN).
+
 ## Integração esperada
 
 Consome séries e resumos calculados pelo backend. O mobile não calcula potência,

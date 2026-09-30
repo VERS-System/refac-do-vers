@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import { AuthNavigator } from './AuthNavigator';
 import { BatteryScreen } from '../screens/BatteryScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import type { MainTab } from '../components/BottomNavigation';
 import { SplashScreen } from '../screens/SplashScreen';
@@ -30,14 +31,19 @@ type RootNavigatorProps = {
  */
 export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticated }: RootNavigatorProps) {
   const [activeTab, setActiveTab] = useState<MainTab>('home');
+  const [isHistoryVisible, setHistoryVisible] = useState(false);
 
   if (isSplashVisible) {
     return <SplashScreen />;
   }
 
   if (isAuthenticated) {
+    if (isHistoryVisible) {
+      return <HistoryScreen onBack={() => setHistoryVisible(false)} onTabPress={setActiveTab} />;
+    }
+
     if (activeTab === 'battery') {
-      return <BatteryScreen onTabPress={setActiveTab} />;
+      return <BatteryScreen onOpenHistory={() => setHistoryVisible(true)} onTabPress={setActiveTab} />;
     }
 
     return <HomeScreen onTabPress={setActiveTab} />;

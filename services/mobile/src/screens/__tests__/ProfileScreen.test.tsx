@@ -1,11 +1,12 @@
 /**
- * Testes unitários da tela de perfil (Task 09, lotes 09a–09f).
+ * Testes unitários da tela de perfil (Task 09, lotes 09a–09g).
  *
  * Existe para travar o scaffold visual, a rota na aba profile, os dados em
- * leitura, a edição, os estados, os atalhos e a saída: título, vazio, nome,
- * email, avatar, modo de edição, confirmação de saída e callbacks, sem rede,
- * cálculo ou persistência. Os dados chegam por props (fixtures até F01/F05);
- * só `displayName` é enviado; o encerramento efetivo pertence ao backend.
+ * leitura, a edição, os estados, os atalhos, a saída e a acessibilidade:
+ * título, vazio, nome, email, avatar, modo de edição, confirmação de saída
+ * e callbacks, sem rede, cálculo ou persistência. Os dados chegam por props
+ * (fixtures até F01/F05); só `displayName` é enviado; o encerramento efetivo
+ * pertence ao backend.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -251,5 +252,49 @@ describe('ProfileScreen sair (09f)', () => {
     expect(onCancelLogout).toHaveBeenCalledTimes(1);
     expect(onConfirmLogout).not.toHaveBeenCalled();
     expect(queryByText('Deseja sair?')).toBeNull();
+  });
+});
+
+describe('ProfileScreen acessibilidade (09g)', () => {
+  const PROFILE = { displayName: 'Anna Newman', email: 'anna@vers.com' };
+
+  /** Expõe nome+papel em todos os botões: voltar, editar, atalhos, sair e abas. */
+  it('expõe nome acessível em botões e atalhos', () => {
+    const { getAllByRole } = render(
+      <ProfileScreen
+        onBack={jest.fn()}
+        onOpenSupport={jest.fn()}
+        onOpenVehicles={jest.fn()}
+        profile={PROFILE}
+      />,
+    );
+
+    const buttons = getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(9);
+
+    for (const button of buttons) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+  });
+
+  /** Expõe nome+papel nos botões do modo de edição. */
+  it('expõe nome acessível no modo de edição', () => {
+    const { getByRole } = render(<ProfileScreen editing profile={PROFILE} />);
+
+    expect(getByRole('button', { name: 'Salvar perfil' })).toBeTruthy();
+    expect(getByRole('button', { name: 'Cancelar edição' })).toBeTruthy();
+  });
+
+  /** Informa a aba profile selecionada ao leitor de tela. */
+  it('informa a aba profile selecionada ao leitor de tela', () => {
+    const { getByRole } = render(<ProfileScreen profile={PROFILE} />);
+
+    expect(
+      getByRole('button', { name: 'Perfil' }).props.accessibilityState,
+    ).toEqual(expect.objectContaining({ selected: true }));
+    expect(
+      getByRole('button', { name: 'Início' }).props.accessibilityState,
+    ).toEqual(expect.objectContaining({ selected: false }));
   });
 });

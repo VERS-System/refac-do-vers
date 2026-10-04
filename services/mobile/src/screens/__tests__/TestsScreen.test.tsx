@@ -1,11 +1,11 @@
 /**
- * Testes unitários da tela de testes experimentais (Task 08, lotes 08a–08c).
+ * Testes unitários da tela de testes experimentais (Task 08, lotes 08a–08d).
  *
- * Existe para travar o scaffold visual, a rota interna, a listagem paginada
- * e os filtros visuais: título, vazio inicial, linhas com nome, status e
- * período crus, paginação e filtros por callback, sem rede, cálculo ou
- * persistência. Os dados chegam por props (fixtures até F01/F05); transições
- * nunca são presumidas e nenhum comando MQTT passa por aqui.
+ * Existe para travar o scaffold visual, a rota interna, a listagem paginada,
+ * os filtros visuais e os detalhes: título, vazio inicial, linhas com nome,
+ * status e período crus, paginação, filtros e detalhes por props, sem rede,
+ * cálculo ou persistência. Os dados chegam por props (fixtures até F01/F05);
+ * transições nunca são presumidas e nenhum comando MQTT passa por aqui.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -103,5 +103,43 @@ describe('TestsScreen filtros (08c)', () => {
       installationFilter: null,
       statusFilter: 'RUNNING',
     });
+  });
+});
+
+describe('TestsScreen detalhes (08d)', () => {
+  const SELECTED = {
+    name: 'Asfalto seco',
+    notes: 'Pista plana sem vento',
+    outcome: 'SATISFACTORY' as const,
+    snapshot: {
+      activePiezoCount: 12,
+      configurationVersion: 3,
+      testLocation: 'Pista A',
+      vehicleModel: 'Modelo Exemplo',
+    },
+    startedAt: '2026-03-14T12:00:00.000Z',
+    status: 'COMPLETED' as const,
+    terrain: 'HIGHWAY' as const,
+    testLocation: 'Pista A',
+  };
+
+  /** Exibe o detalhe com contexto, snapshot, período e resultado crus. */
+  it('exibe o detalhe quando informado', () => {
+    const { getAllByText, getByTestId, getByText } = render(<TestsScreen selectedTest={SELECTED} />);
+
+    expect(getByTestId('tests-detail')).toBeTruthy();
+    expect(getByText('Asfalto seco')).toBeTruthy();
+    expect(getByText('Rodovia')).toBeTruthy();
+    expect(getAllByText('Pista A').length).toBeGreaterThanOrEqual(1);
+    expect(getByText('12 piezos')).toBeTruthy();
+    expect(getByText('Satisfatório')).toBeTruthy();
+  });
+
+  /** Omite o detalhe sem seleção sem parecer falha. */
+  it('omite o detalhe sem seleção', () => {
+    const { getByTestId, queryByTestId } = render(<TestsScreen />);
+
+    expect(getByTestId('tests-filters')).toBeTruthy();
+    expect(queryByTestId('tests-detail')).toBeNull();
   });
 });

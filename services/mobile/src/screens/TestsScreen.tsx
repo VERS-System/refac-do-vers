@@ -1,10 +1,10 @@
 /**
- * Implementa a tela de testes experimentais (Task 08, lotes 08a–08c).
+ * Implementa a tela de testes experimentais (Task 08, lotes 08a–08d).
  *
  * Existe para dar aos testes uma rota interna sem criar aba nova: usa o
  * `ScreenShell` padrão, o `AppHeader` com voltar por callback e a
- * `BottomNavigation` com a aba de origem. A listagem paginada e os filtros
- * visuais chegam prontos por props (fixtures até F01/F05); detalhes,
+ * `BottomNavigation` com a aba de origem. A listagem paginada, os filtros
+ * visuais e os detalhes chegam prontos por props (fixtures até F01/F05);
  * planejamento e confirmações vêm nos lotes seguintes. Nada é calculado,
  * buscado, persistido ou presumido aqui e nenhuma transição é concluída
  * localmente. Nenhum comando MQTT passa por esta tela.
@@ -41,6 +41,8 @@ type TestsScreenProps = {
   installationFilter?: string | null;
   /** Troca de filtro; ausente só exibe os rótulos sem notificar. */
   onFilterChange?: (filter: TestFilter) => void;
+  /** Detalhe do teste selecionado; ausente mantém só lista e filtros. */
+  selectedTest?: TestDetail | null;
 };
 
 /** Filtro visual da lista; só representa o filtro do contrato. */
@@ -83,11 +85,68 @@ const TEST_STATUS_LABELS: Record<TestListStatus, string> = {
   CANCELLED: 'Cancelado',
 };
 
+/** Terreno do teste, como no contrato (F05 futuro). */
+export type TestTerrain = 'HIGHWAY' | 'CITY' | 'OFFROAD' | 'MIXED' | 'OTHER';
+
+/** Resultado do teste, como no contrato (F05 futuro). */
+export type TestOutcome = 'SATISFACTORY' | 'UNSATISFACTORY' | 'INCONCLUSIVE';
+
+/** Retrato da montagem no teste; vem pronto do contrato. */
+export type TestSnapshot = {
+  /** Modelo do veículo no teste; `null` omite a linha. */
+  vehicleModel?: string | null;
+  /** Local informado; `null` omite a linha. */
+  testLocation?: string | null;
+  /** Piezos no teste; `null` omite a linha. */
+  activePiezoCount?: number | null;
+  /** Versão da configuração; `null` omite a linha. */
+  configurationVersion?: number | null;
+};
+
+/** Detalhe do teste selecionado; vem pronto do contrato. */
+export type TestDetail = {
+  /** Nome do teste. */
+  name: string;
+  /** Estado público. */
+  status: TestListStatus;
+  /** Terreno; `null` omite a linha. */
+  terrain?: TestTerrain | null;
+  /** Local informado; `null` omite a linha. */
+  testLocation?: string | null;
+  /** Retrato da montagem; `null` omite o bloco. */
+  snapshot?: TestSnapshot | null;
+  /** Início em UTC cru; `null` omite a linha. */
+  startedAt?: string | null;
+  /** Fim em UTC cru; `null` omite a linha. */
+  endedAt?: string | null;
+  /** Resultado; `null` omite a linha. */
+  outcome?: TestOutcome | null;
+  /** Observações; `null` omite a linha. */
+  notes?: string | null;
+};
+
+/** Rótulos públicos de terreno; o código cru nunca é exibido. */
+const TERRAIN_LABELS: Record<TestTerrain, string> = {
+  HIGHWAY: 'Rodovia',
+  CITY: 'Cidade',
+  OFFROAD: 'Fora de estrada',
+  MIXED: 'Misto',
+  OTHER: 'Outro',
+};
+
+/** Rótulos públicos de resultado; o código cru nunca é exibido. */
+const OUTCOME_LABELS: Record<TestOutcome, string> = {
+  SATISFACTORY: 'Satisfatório',
+  UNSATISFACTORY: 'Insatisfatório',
+  INCONCLUSIVE: 'Inconclusivo',
+};
+
 /**
- * Apresenta cabeçalho, filtros visuais e listagem paginada dos testes,
- * delegando voltar, filtro, seleção, paginação e troca de aba por callbacks.
+ * Apresenta cabeçalho, filtros visuais, listagem paginada e detalhes dos
+ * testes, delegando voltar, filtro, seleção, paginação e troca de aba por
+ * callbacks.
  */
-export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items = [], page = 1, pageSize = 20, totalItems, onPageChange, onSelectTest, statusFilter = 'ALL', installationFilter = null, onFilterChange }: TestsScreenProps) {
+export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items = [], page = 1, pageSize = 20, totalItems, onPageChange, onSelectTest, statusFilter = 'ALL', installationFilter = null, onFilterChange, selectedTest = null }: TestsScreenProps) {
   const total = totalItems ?? items.length;
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
   const currentStatus: TestListStatus | 'ALL' = statusFilter ?? 'ALL';
@@ -198,6 +257,40 @@ export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items =
             Nenhum teste disponível.
           </Text>
         )}
+
+        {selectedTest ? (
+          <View style={styles.listCard} testID="tests-detail">
+            <Text style={styles.rowName}>{selectedTest.name}</Text>
+            <Text style={styles.rowStatus}>{TEST_STATUS_LABELS[selectedTest.status]}</Text>
+            {selectedTest.terrain ? (
+              <Text style={styles.rowPeriod}>{TERRAIN_LABELS[selectedTest.terrain]}</Text>
+            ) : null}
+            {selectedTest.testLocation ? (
+              <Text style={styles.rowPeriod}>{selectedTest.testLocation}</Text>
+            ) : null}
+            {selectedTest.snapshot?.vehicleModel ? (
+              <Text style={styles.rowPeriod}>{selectedTest.snapshot.vehicleModel}</Text>
+            ) : null}
+            {selectedTest.snapshot?.activePiezoCount != null ? (
+              <Text style={styles.rowPeriod}>{`${selectedTest.snapshot.activePiezoCount} piezos`}</Text>
+            ) : null}
+            {selectedTest.snapshot?.configurationVersion != null ? (
+              <Text style={styles.rowPeriod}>{`v${selectedTest.snapshot.configurationVersion}`}</Text>
+            ) : null}
+            {selectedTest.startedAt ? (
+              <Text style={styles.rowPeriod}>{selectedTest.startedAt}</Text>
+            ) : null}
+            {selectedTest.endedAt ? (
+              <Text style={styles.rowPeriod}>{selectedTest.endedAt}</Text>
+            ) : null}
+            {selectedTest.outcome ? (
+              <Text style={styles.rowPeriod}>{OUTCOME_LABELS[selectedTest.outcome]}</Text>
+            ) : null}
+            {selectedTest.notes ? (
+              <Text style={styles.rowPeriod}>{selectedTest.notes}</Text>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </ScreenShell>
   );

@@ -13,6 +13,7 @@ import { AuthNavigator } from './AuthNavigator';
 import { BatteryScreen } from '../screens/BatteryScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { TestsScreen } from '../screens/TestsScreen';
 import { VersSystemScreen } from '../screens/VersSystemScreen';
 import type { MainTab } from '../components/BottomNavigation';
 import { SplashScreen } from '../screens/SplashScreen';
@@ -33,14 +34,25 @@ type RootNavigatorProps = {
 export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticated }: RootNavigatorProps) {
   const [activeTab, setActiveTab] = useState<MainTab>('home');
   const [isHistoryVisible, setHistoryVisible] = useState(false);
+  const [isTestsVisible, setTestsVisible] = useState(false);
 
   if (isSplashVisible) {
     return <SplashScreen />;
   }
 
   if (isAuthenticated) {
+    if (isTestsVisible) {
+      return <TestsScreen activeTab={activeTab} onBack={() => setTestsVisible(false)} onTabPress={setActiveTab} />;
+    }
+
     if (isHistoryVisible) {
-      return <HistoryScreen onBack={() => setHistoryVisible(false)} onTabPress={setActiveTab} />;
+      return (
+        <HistoryScreen
+          onBack={() => setHistoryVisible(false)}
+          onOpenTests={() => setTestsVisible(true)}
+          onTabPress={setActiveTab}
+        />
+      );
     }
 
     if (activeTab === 'battery') {
@@ -48,7 +60,7 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
     }
 
     if (activeTab === 'vers') {
-      return <VersSystemScreen onTabPress={setActiveTab} />;
+      return <VersSystemScreen onOpenTests={() => setTestsVisible(true)} onTabPress={setActiveTab} />;
     }
 
     return <HomeScreen onOpenVersSystem={() => setActiveTab('vers')} onTabPress={setActiveTab} />;

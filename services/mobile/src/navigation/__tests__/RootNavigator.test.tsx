@@ -90,6 +90,24 @@ describe('RootNavigator (Task 00 - Item 4b)', () => {
     expect(getByTestId('vers-system-screen')).toBeTruthy();
   });
 
+  /** Abre os testes pelo VERS sem criar aba nova (08a). */
+  it('abre os testes pelo VERS e volta sem mudar as abas', () => {
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <RootNavigator isAuthenticated isSplashVisible={false} onAuthenticated={jest.fn()} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'VERS' }));
+    fireEvent.press(getByRole('button', { name: 'Ver testes do sistema' }));
+
+    expect(getByTestId('tests-screen')).toBeTruthy();
+    expect(queryByTestId('vers-system-screen')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Voltar' }));
+
+    expect(getByTestId('vers-system-screen')).toBeTruthy();
+    expect(queryByTestId('tests-screen')).toBeNull();
+  });
+
   /** Encaminha a autenticação sem decidir sessão. */
   it('repasa o login ao callback sem regra de sessão', () => {
     const onAuthenticated = jest.fn();

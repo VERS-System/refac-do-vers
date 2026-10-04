@@ -108,6 +108,31 @@ describe('RootNavigator (Task 00 - Item 4b)', () => {
     expect(queryByTestId('tests-screen')).toBeNull();
   });
 
+  /** Renderiza o perfil ao trocar para a aba profile sem mudar a estrutura (09a). */
+  it('renderiza o perfil ao trocar para a aba profile', () => {
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <RootNavigator isAuthenticated isSplashVisible={false} onAuthenticated={jest.fn()} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Perfil' }));
+
+    expect(getByTestId('profile-screen')).toBeTruthy();
+    expect(queryByTestId('home-screen')).toBeNull();
+  });
+
+  /** Exibe a fixture demo do perfil na rota sem backend (09b). */
+  it('exibe os dados demo do perfil na rota', () => {
+    const { getByRole, getByTestId, getByText, queryByTestId } = render(
+      <RootNavigator isAuthenticated isSplashVisible={false} onAuthenticated={jest.fn()} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Perfil' }));
+
+    expect(getByTestId('profile-data')).toBeTruthy();
+    expect(getByText('Anna Newman')).toBeTruthy();
+    expect(queryByTestId('profile-empty')).toBeNull();
+  });
+
   /** Encaminha a autenticação sem decidir sessão. */
   it('repasa o login ao callback sem regra de sessão', () => {
     const onAuthenticated = jest.fn();

@@ -13,6 +13,7 @@ import { AuthNavigator } from './AuthNavigator';
 import { BatteryScreen } from '../screens/BatteryScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 import { TestsScreen } from '../screens/TestsScreen';
 import { VersSystemScreen } from '../screens/VersSystemScreen';
 import type { MainTab } from '../components/BottomNavigation';
@@ -25,6 +26,13 @@ type RootNavigatorProps = {
   isAuthenticated: boolean;
   /** Chamado pelo fluxo público ao concluir o login local. */
   onAuthenticated: () => void;
+};
+
+/** Fixture demo do perfil até o backend (F01/F05); nunca dado real. */
+const DEMO_PROFILE = {
+  avatarUrl: null,
+  displayName: 'Anna Newman',
+  email: 'anna@vers.com',
 };
 
 /**
@@ -61,6 +69,10 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
 
     if (activeTab === 'vers') {
       return <VersSystemScreen onOpenTests={() => setTestsVisible(true)} onTabPress={setActiveTab} />;
+    }
+
+    if (activeTab === 'profile') {
+      return <ProfileScreen onTabPress={setActiveTab} profile={DEMO_PROFILE} />;
     }
 
     return <HomeScreen onOpenVersSystem={() => setActiveTab('vers')} onTabPress={setActiveTab} />;

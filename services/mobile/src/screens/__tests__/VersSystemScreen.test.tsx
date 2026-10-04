@@ -1,11 +1,11 @@
 /**
- * Testes unitários da tela do sistema VERS (Task 07, lotes 07a–07f).
+ * Testes unitários da tela do sistema VERS (Task 07, lotes 07a–07g).
  *
  * Existe para travar o scaffold visual, a identificação da instalação, a
- * configuração ativa, o dispositivo público, os estados e os atalhos:
- * título, aba vers ativa, vazio inicial e cards com valores crus do
- * contrato, sem rede, cálculo ou persistência. Os dados chegam por props
- * (fixtures até F01/F05); ausências nunca viram zero e nenhum segredo
+ * configuração ativa, o dispositivo público, os estados, os atalhos e a
+ * acessibilidade: título, aba vers ativa, vazio inicial e cards com valores
+ * crus do contrato, sem rede, cálculo ou persistência. Os dados chegam por
+ * props (fixtures até F01/F05); ausências nunca viram zero e nenhum segredo
  * (deviceUid, MQTT, tópicos, série) é exibido.
  */
 
@@ -258,5 +258,43 @@ describe('VersSystemScreen atalhos (07f)', () => {
     expect(getByTestId('vers-installation')).toBeTruthy();
     expect(queryByRole('button', { name: 'Ver testes do sistema' })).toBeNull();
     expect(queryByRole('button', { name: 'Solicitar revisão do sistema' })).toBeNull();
+  });
+});
+
+describe('VersSystemScreen acessibilidade (07g)', () => {
+  /** Expõe nome+papel em todos os botões: voltar, atalhos e abas. */
+  it('expõe nome acessível em botões e atalhos', () => {
+    const { getAllByRole } = render(
+      <VersSystemScreen
+        configuration={{ activePiezoCount: 12 }}
+        device={{ status: 'ONLINE' }}
+        installation={{ status: 'ACTIVE', systemModel: 'VERS Urban v1' }}
+        onBack={jest.fn()}
+        onOpenSupport={jest.fn()}
+        onOpenTests={jest.fn()}
+      />,
+    );
+
+    const buttons = getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(7);
+
+    for (const button of buttons) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+  });
+
+  /** Informa a aba vers selecionada ao leitor de tela. */
+  it('informa a aba vers selecionada ao leitor de tela', () => {
+    const { getByRole } = render(
+      <VersSystemScreen installation={{ status: 'ACTIVE' }} />,
+    );
+
+    expect(
+      getByRole('button', { name: 'VERS' }).props.accessibilityState,
+    ).toEqual(expect.objectContaining({ selected: true }));
+    expect(
+      getByRole('button', { name: 'Início' }).props.accessibilityState,
+    ).toEqual(expect.objectContaining({ selected: false }));
   });
 });

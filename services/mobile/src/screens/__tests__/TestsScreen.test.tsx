@@ -1,11 +1,11 @@
 /**
- * Testes unitários da tela de testes experimentais (Task 08, lotes 08a–08b).
+ * Testes unitários da tela de testes experimentais (Task 08, lotes 08a–08c).
  *
- * Existe para travar o scaffold visual, a rota interna e a listagem
- * paginada: título, vazio inicial, linhas com nome, status e período crus e
- * paginação por callback, sem rede, cálculo ou persistência. Os dados chegam
- * por props (fixtures até F01/F05); transições nunca são presumidas e nenhum
- * comando MQTT passa por aqui.
+ * Existe para travar o scaffold visual, a rota interna, a listagem paginada
+ * e os filtros visuais: título, vazio inicial, linhas com nome, status e
+ * período crus, paginação e filtros por callback, sem rede, cálculo ou
+ * persistência. Os dados chegam por props (fixtures até F01/F05); transições
+ * nunca são presumidas e nenhum comando MQTT passa por aqui.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -40,14 +40,14 @@ describe('TestsScreen listagem (08b)', () => {
 
   /** Exibe linhas com nome, status traduzido e período cru, sem vazio. */
   it('exibe a listagem quando informada', () => {
-    const { getByTestId, getByText, queryByTestId } = render(
+    const { getAllByText, getByTestId, getByText, queryByTestId } = render(
       <TestsScreen items={ITEMS} />,
     );
 
     expect(getByTestId('tests-list')).toBeTruthy();
     expect(getByText('Asfalto seco')).toBeTruthy();
-    expect(getByText('Concluído')).toBeTruthy();
-    expect(getByText('Em execução')).toBeTruthy();
+    expect(getAllByText('Concluído').length).toBeGreaterThanOrEqual(1);
+    expect(getAllByText('Em execução').length).toBeGreaterThanOrEqual(1);
     expect(queryByTestId('tests-empty')).toBeNull();
   });
 
@@ -77,5 +77,31 @@ describe('TestsScreen listagem (08b)', () => {
 
     fireEvent.press(getByRole('button', { name: 'Página anterior' }));
     expect(onPageChange).not.toHaveBeenCalledWith(0);
+  });
+});
+
+describe('TestsScreen filtros (08c)', () => {
+  /** Exibe o filtro atual sem filtrar localmente. */
+  it('exibe o filtro atual informado', () => {
+    const { getByTestId, getByText } = render(
+      <TestsScreen installationFilter="inst-123" statusFilter="RUNNING" />,
+    );
+
+    expect(getByTestId('tests-filters')).toBeTruthy();
+    expect(getByText('Em execução')).toBeTruthy();
+    expect(getByText('inst-123')).toBeTruthy();
+  });
+
+  /** Notifica a troca de filtro sem aplicar regra local. */
+  it('notifica a troca de filtro por callback', () => {
+    const onFilterChange = jest.fn();
+    const { getByRole } = render(<TestsScreen onFilterChange={onFilterChange} />);
+
+    fireEvent.press(getByRole('button', { name: 'Filtrar: Em execução' }));
+
+    expect(onFilterChange).toHaveBeenCalledWith({
+      installationFilter: null,
+      statusFilter: 'RUNNING',
+    });
   });
 });

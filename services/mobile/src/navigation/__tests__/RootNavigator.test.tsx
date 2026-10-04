@@ -67,6 +67,29 @@ describe('RootNavigator (Task 00 - Item 4b)', () => {
     expect(queryByTestId('history-screen')).toBeNull();
   });
 
+  /** Abre o sistema VERS pela aba sem mudar a estrutura (07a). */
+  it('renderiza o sistema VERS ao trocar para a aba vers', () => {
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <RootNavigator isAuthenticated isSplashVisible={false} onAuthenticated={jest.fn()} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'VERS' }));
+
+    expect(getByTestId('vers-system-screen')).toBeTruthy();
+    expect(queryByTestId('home-screen')).toBeNull();
+  });
+
+  /** Abre o sistema VERS pelo atalho da Home (07a). */
+  it('abre o sistema VERS pelo atalho da Home', () => {
+    const { getByRole, getByTestId } = render(
+      <RootNavigator isAuthenticated isSplashVisible={false} onAuthenticated={jest.fn()} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Abrir sistema VERS' }));
+
+    expect(getByTestId('vers-system-screen')).toBeTruthy();
+  });
+
   /** Encaminha a autenticação sem decidir sessão. */
   it('repasa o login ao callback sem regra de sessão', () => {
     const onAuthenticated = jest.fn();

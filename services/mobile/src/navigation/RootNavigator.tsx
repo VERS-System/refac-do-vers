@@ -13,6 +13,7 @@ import { AuthNavigator } from './AuthNavigator';
 import { BatteryScreen } from '../screens/BatteryScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { VersSystemScreen } from '../screens/VersSystemScreen';
 import type { MainTab } from '../components/BottomNavigation';
 import { SplashScreen } from '../screens/SplashScreen';
 
@@ -46,7 +47,11 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
       return <BatteryScreen onOpenHistory={() => setHistoryVisible(true)} onTabPress={setActiveTab} />;
     }
 
-    return <HomeScreen onTabPress={setActiveTab} />;
+    if (activeTab === 'vers') {
+      return <VersSystemScreen onTabPress={setActiveTab} />;
+    }
+
+    return <HomeScreen onOpenVersSystem={() => setActiveTab('vers')} onTabPress={setActiveTab} />;
   }
 
   return <AuthNavigator onAuthenticated={onAuthenticated} />;

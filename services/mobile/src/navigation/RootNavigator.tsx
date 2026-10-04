@@ -28,6 +28,13 @@ type RootNavigatorProps = {
   onAuthenticated: () => void;
 };
 
+/** Fixture demo do perfil até o backend (F01/F05); nunca dado real. */
+const DEMO_PROFILE = {
+  avatarUrl: null,
+  displayName: 'Anna Newman',
+  email: 'anna@vers.com',
+};
+
 /**
  * Renderiza splash, autenticação ou a aba ativa da área autenticada conforme
  * o estado recebido, sem conter temporizador, sessão ou regra de acesso.
@@ -65,7 +72,7 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
     }
 
     if (activeTab === 'profile') {
-      return <ProfileScreen onTabPress={setActiveTab} />;
+      return <ProfileScreen onTabPress={setActiveTab} profile={DEMO_PROFILE} />;
     }
 
     return <HomeScreen onOpenVersSystem={() => setActiveTab('vers')} onTabPress={setActiveTab} />;

@@ -1,18 +1,22 @@
 /**
- * Implementa a tela de perfil (Task 09, lotes 09a–09b).
+ * Implementa a tela de perfil (Task 09, lotes 09a–09c).
  *
  * Existe para dar ao perfil uma rota própria na aba `profile` sem criar
  * pilha nova: usa o `ScreenShell` padrão, o `AppHeader` com voltar por
- * callback e a `BottomNavigation` com a aba profile ativa. Os dados em
- * leitura chegam prontos por props (fixtures até F01/F05); edição, estados,
- * atalhos e saída vêm nos lotes seguintes. Nada é calculado, buscado,
- * persistido ou decidido aqui. Papéis, permissões e encerramento efetivo da
- * sessão pertencem ao backend.
+ * callback e a `BottomNavigation` com a aba profile ativa. Leitura e edição
+ * chegam por props (fixtures até F01/F05); sem props de controle, o modo de
+ * edição e o rascunho usam estado visual interno para não travar a rota. Só
+ * `displayName` é enviado; nada é calculado, buscado, persistido ou decidido
+ * aqui. Papéis, permissões e encerramento efetivo da sessão pertencem ao
+ * backend.
  */
 
+import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
+import { AuthTextField } from '../components/AuthTextField';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
 
@@ -22,6 +26,18 @@ type ProfileScreenProps = {
   onBack?: () => void;
   /** Dados públicos da conta; ausente mantém o vazio. */
   profile?: UserProfile | null;
+  /** Modo de edição; ausente usa estado visual interno. */
+  editing?: boolean | null;
+  /** Rascunho do nome; ausente usa estado visual interno. */
+  draftName?: string | null;
+  /** Abre a edição; ausente só alterna o modo interno. */
+  onEdit?: () => void;
+  /** Cancela a edição e descarta o rascunho. */
+  onCancelEdit?: () => void;
+  /** Edição do rascunho; ausente só atualiza o modo interno. */
+  onDraftChange?: (name: string) => void;
+  /** Salva repassando só o `displayName`. */
+  onSave?: (displayName: string) => void;
 };
 
 /** Dados públicos da conta; vêm prontos do contrato. */
@@ -46,10 +62,55 @@ function getInitials(displayName?: string | null) {
 }
 
 /**
- * Apresenta cabeçalho e dados do perfil em leitura, delegando voltar e
- * troca de aba por callbacks.
+ * Apresenta cabeçalho, dados e edição do perfil, delegando voltar, edição,
+ * salvamento e troca de aba por callbacks.
  */
-export function ProfileScreen({ onTabPress, onBack, profile = null }: ProfileScreenProps) {
+export function ProfileScreen({ onTabPress, onBack, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave }: ProfileScreenProps) {
+  const [internalEditing, setInternalEditing] = useState(false);
+  const [internalDraft, setInternalDraft] = useState<string | null>(null);
+  const [internalSaved, setInternalSaved] = useState<string | null>(null);
+  const isEditing = editing ?? internalEditing;
+  const currentName = internalSaved ?? profile?.displayName ?? null;
+  const draft = draftName ?? internalDraft ?? currentName ?? '';
+
+  /** Abre o modo de edição sem validar nada. */
+  function openEdit() {
+    if (editing == null) {
+      setInternalEditing(true);
+    }
+
+    onEdit?.();
+  }
+
+  /** Repassa a digitação sem validar domínio. */
+  function changeDraft(name: string) {
+    if (draftName == null) {
+      setInternalDraft(name);
+    }
+
+    onDraftChange?.(name);
+  }
+
+  /** Cancela e descarta o rascunho, sem salvar nada. */
+  function cancelEdit() {
+    if (editing == null) {
+      setInternalEditing(false);
+      setInternalDraft(null);
+    }
+
+    onCancelEdit?.();
+  }
+
+  /** Salva repassando só o `displayName`. */
+  function saveProfile() {
+    if (editing == null) {
+      setInternalSaved(draft);
+      setInternalEditing(false);
+      setInternalDraft(null);
+    }
+
+    onSave?.(draft);
+  }
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -75,15 +136,49 @@ export function ProfileScreen({ onTabPress, onBack, profile = null }: ProfileScr
               />
             ) : (
               <View style={styles.avatarFallback} testID="profile-avatar-initials">
-                <Text style={styles.initialsText}>{getInitials(profile.displayName)}</Text>
+                <Text style={styles.initialsText}>{getInitials(currentName)}</Text>
               </View>
             )}
-            <Text style={styles.nameText}>
-              {profile.displayName ? profile.displayName : 'Sem nome definido'}
-            </Text>
-            {profile.email ? (
-              <Text style={styles.emailText}>{profile.email}</Text>
-            ) : null}
+            {isEditing ? (
+              <View style={styles.editBlock}>
+                <AuthTextField
+                  label="Nome:"
+                  onChangeText={changeDraft}
+                  placeholder="Nome exibido"
+                  value={draft}
+                />
+                <View style={styles.actionButton}>
+                  <PrimaryButton
+                    accessibilityLabel="Salvar perfil"
+                    label="SALVAR"
+                    onPress={saveProfile}
+                  />
+                </View>
+                <View style={styles.actionButton}>
+                  <PrimaryButton
+                    accessibilityLabel="Cancelar edição"
+                    label="CANCELAR"
+                    onPress={cancelEdit}
+                  />
+                </View>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.nameText}>
+                  {currentName ? currentName : 'Sem nome definido'}
+                </Text>
+                {profile.email ? (
+                  <Text style={styles.emailText}>{profile.email}</Text>
+                ) : null}
+                <View style={styles.actionButton}>
+                  <PrimaryButton
+                    accessibilityLabel="Editar perfil"
+                    label="EDITAR"
+                    onPress={openEdit}
+                  />
+                </View>
+              </>
+            )}
           </View>
         ) : (
           <Text
@@ -146,6 +241,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginTop: 8,
+  },
+  editBlock: {
+    gap: 12,
+    marginTop: 8,
+    width: '100%',
+  },
+  actionButton: {
+    maxWidth: 350,
+    width: '100%',
   },
   emailText: {
     color: theme.colors.gray,

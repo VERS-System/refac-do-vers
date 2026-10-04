@@ -1,10 +1,11 @@
 /**
- * Testes unitários da tela de perfil (Task 09, lotes 09a–09b).
+ * Testes unitários da tela de perfil (Task 09, lotes 09a–09c).
  *
- * Existe para travar o scaffold visual, a rota na aba profile e os dados em
- * leitura: título, vazio inicial, nome, email e avatar crus, sem rede,
- * cálculo ou persistência. Os dados chegam por props (fixtures até F01/F05);
- * papéis, permissões e encerramento de sessão pertencem ao backend.
+ * Existe para travar o scaffold visual, a rota na aba profile, os dados em
+ * leitura e a edição: título, vazio, nome, email, avatar e modo de edição
+ * com rascunho, sem rede, cálculo ou persistência. Os dados chegam por props
+ * (fixtures até F01/F05); só `displayName` é enviado; papéis, permissões e
+ * encerramento de sessão pertencem ao backend.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -69,5 +70,50 @@ describe('ProfileScreen leitura (09b)', () => {
     );
 
     expect(getByText('Sem nome definido')).toBeTruthy();
+  });
+});
+
+describe('ProfileScreen edição (09c)', () => {
+  const PROFILE = { displayName: 'Anna Newman', email: 'anna@vers.com' };
+
+  /** Abre o modo de edição com o nome atual no rascunho. */
+  it('abre a edição ao acionar Editar', () => {
+    const onEdit = jest.fn();
+    const { getByDisplayValue, getByRole } = render(
+      <ProfileScreen onEdit={onEdit} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Editar perfil' }));
+
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(getByDisplayValue('Anna Newman')).toBeTruthy();
+  });
+
+  /** Salva repassando só o displayName, sem email ou avatar. */
+  it('salva repassando só o displayName', () => {
+    const onSave = jest.fn();
+    const { getByLabelText, getByRole } = render(
+      <ProfileScreen editing onSave={onSave} profile={PROFILE} />,
+    );
+
+    fireEvent.changeText(getByLabelText('Nome'), 'Anna Silva');
+    fireEvent.press(getByRole('button', { name: 'Salvar perfil' }));
+
+    expect(onSave).toHaveBeenCalledWith('Anna Silva');
+    expect(onSave).not.toHaveBeenCalledWith(expect.objectContaining({ email: expect.anything() }));
+  });
+
+  /** Cancela sem salvar e avisa o chamador. */
+  it('cancela a edição sem salvar', () => {
+    const onCancelEdit = jest.fn();
+    const onSave = jest.fn();
+    const { getByRole } = render(
+      <ProfileScreen editing onCancelEdit={onCancelEdit} onSave={onSave} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Cancelar edição' }));
+
+    expect(onCancelEdit).toHaveBeenCalledTimes(1);
+    expect(onSave).not.toHaveBeenCalled();
   });
 });

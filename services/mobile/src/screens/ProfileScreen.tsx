@@ -1,19 +1,20 @@
 /**
- * Implementa a tela de perfil (Task 09, lotes 09a–09c).
+ * Implementa a tela de perfil (Task 09, lotes 09a–09d).
  *
  * Existe para dar ao perfil uma rota própria na aba `profile` sem criar
  * pilha nova: usa o `ScreenShell` padrão, o `AppHeader` com voltar por
- * callback e a `BottomNavigation` com a aba profile ativa. Leitura e edição
- * chegam por props (fixtures até F01/F05); sem props de controle, o modo de
- * edição e o rascunho usam estado visual interno para não travar a rota. Só
- * `displayName` é enviado; nada é calculado, buscado, persistido ou decidido
- * aqui. Papéis, permissões e encerramento efetivo da sessão pertencem ao
- * backend.
+ * callback e a `BottomNavigation` com a aba profile ativa. Leitura, edição e
+ * estados chegam por props (fixtures até F01/F05); sem props de controle, o
+ * modo de edição e o rascunho usam estado visual interno para não travar a
+ * rota. O rascunho nunca é limpo pelo erro. Só `displayName` é enviado; nada
+ * é calculado, buscado, persistido ou decidido aqui. Papéis, permissões e
+ * encerramento efetivo da sessão pertencem ao backend.
  */
 
 import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
+import { AppSkeleton } from '../components/AppSkeleton';
 import { AuthTextField } from '../components/AuthTextField';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -38,7 +39,16 @@ type ProfileScreenProps = {
   onDraftChange?: (name: string) => void;
   /** Salva repassando só o `displayName`. */
   onSave?: (displayName: string) => void;
+  /** Estado visual atual; `success` exibe os dados. */
+  status?: ProfileStatus;
+  /** Repete a carga no erro; ausente mantém o botão sem efeito. */
+  onRetry?: () => void;
+  /** Volta ao Login na expiração; rota do fluxo público. */
+  onOpenLogin?: () => void;
 };
+
+/** Estados visuais do perfil; a origem dos dados é do backend (F05 futuro). */
+export type ProfileStatus = 'loading' | 'success' | 'empty' | 'error' | 'sessionExpired';
 
 /** Dados públicos da conta; vêm prontos do contrato. */
 export type UserProfile = {
@@ -62,10 +72,11 @@ function getInitials(displayName?: string | null) {
 }
 
 /**
- * Apresenta cabeçalho, dados e edição do perfil, delegando voltar, edição,
- * salvamento e troca de aba por callbacks.
+ * Apresenta cabeçalho, dados, edição e estados do perfil, delegando voltar,
+ * edição, salvamento, nova tentativa, retorno ao Login e troca de aba por
+ * callbacks.
  */
-export function ProfileScreen({ onTabPress, onBack, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave }: ProfileScreenProps) {
+export function ProfileScreen({ onTabPress, onBack, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave, status = 'success', onRetry, onOpenLogin }: ProfileScreenProps) {
   const [internalEditing, setInternalEditing] = useState(false);
   const [internalDraft, setInternalDraft] = useState<string | null>(null);
   const [internalSaved, setInternalSaved] = useState<string | null>(null);
@@ -111,6 +122,80 @@ export function ProfileScreen({ onTabPress, onBack, profile = null, editing = nu
 
     onSave?.(draft);
   }
+
+  if (status === 'loading') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="profile" onTabPress={onTabPress} />}
+        testID="profile-screen"
+      >
+        <View
+          accessibilityLabel="Carregando"
+          accessibilityRole="progressbar"
+          style={styles.stateBlock}
+          testID="profile-loading"
+        >
+          <AppSkeleton height={120} />
+          <AppSkeleton height={80} />
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="profile" onTabPress={onTabPress} />}
+        testID="profile-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Não foi possível carregar o perfil. Tente novamente."
+            accessibilityRole="alert"
+            style={styles.emptyText}
+            testID="profile-error"
+          >
+            Não foi possível carregar o perfil. Tente novamente.
+          </Text>
+          <View style={styles.actionButton}>
+            <PrimaryButton
+              accessibilityLabel="Tentar novamente"
+              label="TENTAR NOVAMENTE"
+              onPress={() => onRetry?.()}
+            />
+          </View>
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'sessionExpired') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="profile" onTabPress={onTabPress} />}
+        testID="profile-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Sessão expirada. Entre novamente para continuar."
+            accessibilityRole="alert"
+            style={styles.emptyText}
+            testID="profile-session-expired"
+          >
+            Sessão expirada. Entre novamente para continuar.
+          </Text>
+          <View style={styles.actionButton}>
+            <PrimaryButton
+              accessibilityLabel="Ir para o Login"
+              label="IR PARA O LOGIN"
+              onPress={() => onOpenLogin?.()}
+            />
+          </View>
+        </View>
+      </ScreenShell>
+    );
+  }
+
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -125,7 +210,7 @@ export function ProfileScreen({ onTabPress, onBack, profile = null, editing = nu
       />
 
       <View style={styles.emptyBlock}>
-        {profile ? (
+        {profile && status !== 'empty' ? (
           <View style={styles.card} testID="profile-data">
             {profile.avatarUrl ? (
               <Image
@@ -206,6 +291,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 18,
     width: '100%',
+  },
+  stateBlock: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 16,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   card: {
     alignItems: 'center',

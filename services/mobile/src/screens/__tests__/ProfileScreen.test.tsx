@@ -1,11 +1,11 @@
 /**
- * Testes unitários da tela de perfil (Task 09, lotes 09a–09c).
+ * Testes unitários da tela de perfil (Task 09, lotes 09a–09d).
  *
  * Existe para travar o scaffold visual, a rota na aba profile, os dados em
- * leitura e a edição: título, vazio, nome, email, avatar e modo de edição
- * com rascunho, sem rede, cálculo ou persistência. Os dados chegam por props
- * (fixtures até F01/F05); só `displayName` é enviado; papéis, permissões e
- * encerramento de sessão pertencem ao backend.
+ * leitura, a edição e os estados: título, vazio, nome, email, avatar, modo
+ * de edição e estados visuais, sem rede, cálculo ou persistência. Os dados
+ * chegam por props (fixtures até F01/F05); só `displayName` é enviado;
+ * papéis, permissões e encerramento de sessão pertencem ao backend.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -115,5 +115,58 @@ describe('ProfileScreen edição (09c)', () => {
 
     expect(onCancelEdit).toHaveBeenCalledTimes(1);
     expect(onSave).not.toHaveBeenCalled();
+  });
+});
+
+describe('ProfileScreen estados (09d)', () => {
+  const PROFILE = { displayName: 'Anna Newman', email: 'anna@vers.com' };
+
+  /** Exibe skeleton sem dados no carregamento. */
+  it('exibe carregamento sem dados', () => {
+    const { getByTestId, queryByTestId, queryByText } = render(
+      <ProfileScreen profile={PROFILE} status="loading" />,
+    );
+
+    expect(getByTestId('profile-loading')).toBeTruthy();
+    expect(queryByTestId('profile-data')).toBeNull();
+    expect(queryByText('Anna Newman')).toBeNull();
+  });
+
+  /** Exibe erro com nova tentativa sem dados. */
+  it('exibe erro e repete a carga ao tentar de novo', () => {
+    const onRetry = jest.fn();
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <ProfileScreen onRetry={onRetry} profile={PROFILE} status="error" />,
+    );
+
+    expect(getByTestId('profile-error')).toBeTruthy();
+    expect(queryByTestId('profile-data')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  /** Representa a expiração no padrão do Login com retorno. */
+  it('exibe sessão expirada com retorno ao Login', () => {
+    const onOpenLogin = jest.fn();
+    const { getByRole, getByTestId } = render(
+      <ProfileScreen onOpenLogin={onOpenLogin} status="sessionExpired" />,
+    );
+
+    expect(getByTestId('profile-session-expired')).toBeTruthy();
+
+    fireEvent.press(getByRole('button', { name: 'Ir para o Login' }));
+    expect(onOpenLogin).toHaveBeenCalledTimes(1);
+  });
+
+  /** Mantém o rascunho ao voltar do erro. */
+  it('mantém o rascunho ao voltar do erro', () => {
+    const { getByDisplayValue, rerender } = render(
+      <ProfileScreen draftName="Anna Silva" editing profile={PROFILE} status="error" />,
+    );
+
+    rerender(<ProfileScreen draftName="Anna Silva" editing profile={PROFILE} status="success" />);
+
+    expect(getByDisplayValue('Anna Silva')).toBeTruthy();
   });
 });

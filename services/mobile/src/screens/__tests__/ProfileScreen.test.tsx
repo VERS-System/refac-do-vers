@@ -170,3 +170,40 @@ describe('ProfileScreen estados (09d)', () => {
     expect(getByDisplayValue('Anna Silva')).toBeTruthy();
   });
 });
+
+describe('ProfileScreen atalhos (09e)', () => {
+  const PROFILE = { displayName: 'Anna Newman', email: 'anna@vers.com' };
+
+  /** Abre os veículos por callback puro. */
+  it('abre os veículos ao acionar o atalho', () => {
+    const onOpenVehicles = jest.fn();
+    const { getByRole } = render(
+      <ProfileScreen onOpenVehicles={onOpenVehicles} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Meus veículos' }));
+
+    expect(onOpenVehicles).toHaveBeenCalledTimes(1);
+  });
+
+  /** Abre o suporte por callback puro. */
+  it('abre o suporte ao acionar o atalho', () => {
+    const onOpenSupport = jest.fn();
+    const { getByRole } = render(
+      <ProfileScreen onOpenSupport={onOpenSupport} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Ajuda e suporte' }));
+
+    expect(onOpenSupport).toHaveBeenCalledTimes(1);
+  });
+
+  /** Omite os atalhos sem callbacks sem quebrar o layout. */
+  it('omite os atalhos sem callbacks', () => {
+    const { getByTestId, queryByRole } = render(<ProfileScreen profile={PROFILE} />);
+
+    expect(getByTestId('profile-data')).toBeTruthy();
+    expect(queryByRole('button', { name: 'Meus veículos' })).toBeNull();
+    expect(queryByRole('button', { name: 'Ajuda e suporte' })).toBeNull();
+  });
+});

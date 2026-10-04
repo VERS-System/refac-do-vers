@@ -45,6 +45,10 @@ type ProfileScreenProps = {
   onRetry?: () => void;
   /** Volta ao Login na expiração; rota do fluxo público. */
   onOpenLogin?: () => void;
+  /** Abre os veículos (Task 10); ausente omite o atalho. */
+  onOpenVehicles?: () => void;
+  /** Abre o suporte (Task 11); ausente omite o atalho. */
+  onOpenSupport?: () => void;
 };
 
 /** Estados visuais do perfil; a origem dos dados é do backend (F05 futuro). */
@@ -72,11 +76,11 @@ function getInitials(displayName?: string | null) {
 }
 
 /**
- * Apresenta cabeçalho, dados, edição e estados do perfil, delegando voltar,
- * edição, salvamento, nova tentativa, retorno ao Login e troca de aba por
- * callbacks.
+ * Apresenta cabeçalho, dados, edição, estados e atalhos do perfil,
+ * delegando voltar, edição, salvamento, nova tentativa, retorno ao Login,
+ * atalhos e troca de aba por callbacks.
  */
-export function ProfileScreen({ onTabPress, onBack, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave, status = 'success', onRetry, onOpenLogin }: ProfileScreenProps) {
+export function ProfileScreen({ onTabPress, onBack, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave, status = 'success', onRetry, onOpenLogin, onOpenVehicles, onOpenSupport }: ProfileScreenProps) {
   const [internalEditing, setInternalEditing] = useState(false);
   const [internalDraft, setInternalDraft] = useState<string | null>(null);
   const [internalSaved, setInternalSaved] = useState<string | null>(null);
@@ -262,6 +266,24 @@ export function ProfileScreen({ onTabPress, onBack, profile = null, editing = nu
                     onPress={openEdit}
                   />
                 </View>
+                {onOpenVehicles ? (
+                  <View style={styles.actionButton}>
+                    <PrimaryButton
+                      accessibilityLabel="Meus veículos"
+                      label="MEUS VEÍCULOS"
+                      onPress={() => onOpenVehicles?.()}
+                    />
+                  </View>
+                ) : null}
+                {onOpenSupport ? (
+                  <View style={styles.actionButton}>
+                    <PrimaryButton
+                      accessibilityLabel="Ajuda e suporte"
+                      label="AJUDA E SUPORTE"
+                      onPress={() => onOpenSupport?.()}
+                    />
+                  </View>
+                ) : null}
               </>
             )}
           </View>
@@ -340,6 +362,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   actionButton: {
+    marginTop: 12,
     maxWidth: 350,
     width: '100%',
   },

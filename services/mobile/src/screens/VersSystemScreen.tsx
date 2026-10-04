@@ -1,13 +1,13 @@
 /**
- * Implementa a tela do sistema VERS (Task 07, lotes 07a–07b).
+ * Implementa a tela do sistema VERS (Task 07, lotes 07a–07c).
  *
  * Existe para dar ao sistema VERS uma rota própria na aba `vers` sem criar
  * pilha nova: usa o `ScreenShell` padrão, o `AppHeader` com voltar por
  * callback e a `BottomNavigation` com a aba vers ativa. A identificação da
- * instalação chega pronta por props (fixtures até F01/F05); nada é
- * calculado, buscado, persistido ou reinterpretado aqui e ausências nunca
- * viram zero. Nenhum segredo operacional (deviceUid, MQTT, tópicos, série)
- * passa por esta tela.
+ * instalação e a configuração ativa chegam prontas por props (fixtures até
+ * F01/F05); nada é calculado, buscado, persistido ou reinterpretado aqui e
+ * ausências nunca viram zero. Nenhum segredo operacional (deviceUid, MQTT,
+ * tópicos, série) passa por esta tela.
  */
 
 import { StyleSheet, Text, View } from 'react-native';
@@ -22,6 +22,8 @@ type VersSystemScreenProps = {
   onBack?: () => void;
   /** Identificação pública da instalação; ausente mantém o vazio. */
   installation?: VersInstallation | null;
+  /** Configuração ativa da montagem; ausente omite o bloco. */
+  configuration?: VersConfiguration | null;
 };
 
 /** Status público da instalação, como no contrato (F05 futuro). */
@@ -45,11 +47,48 @@ const STATUS_LABELS: Record<VersInstallationStatus, string> = {
   FAULT: 'Falha',
 };
 
+/** Associação dos piezos, como no contrato (F05 futuro). */
+export type VersPiezoAssociation = 'SERIES' | 'PARALLEL' | 'MIXED';
+
+/** Armazenamento da montagem, como no contrato (F05 futuro). */
+export type VersStorageType = 'BATTERY' | 'SUPERCAPACITOR' | 'CAPACITOR' | 'NONE';
+
+/** Configuração ativa da montagem; vem pronta do contrato. */
+export type VersConfiguration = {
+  /** Quantidade de piezos ativos; `null` omite a linha. */
+  activePiezoCount?: number | null;
+  /** Associação dos piezos; `null` omite a linha. */
+  piezoAssociation?: VersPiezoAssociation | null;
+  /** Ponto de instalação; `null` omite a linha. */
+  installationPoint?: string | null;
+  /** Tipo de armazenamento; `null` omite a linha. */
+  storageType?: VersStorageType | null;
+  /** Nome da montagem; `null` omite a linha. */
+  name?: string | null;
+  /** Versão da montagem; `null` omite a linha. */
+  version?: number | null;
+};
+
+/** Rótulos públicos de associação; o código cru nunca é exibido. */
+const ASSOCIATION_LABELS: Record<VersPiezoAssociation, string> = {
+  SERIES: 'Série',
+  PARALLEL: 'Paralelo',
+  MIXED: 'Mista',
+};
+
+/** Rótulos públicos de armazenamento; o código cru nunca é exibido. */
+const STORAGE_LABELS: Record<VersStorageType, string> = {
+  BATTERY: 'Bateria',
+  SUPERCAPACITOR: 'Super capacitor',
+  CAPACITOR: 'Capacitor',
+  NONE: 'Nenhum',
+};
+
 /**
- * Apresenta cabeçalho e identificação do sistema VERS, delegando voltar e
- * troca de aba por callbacks.
+ * Apresenta cabeçalho, identificação e configuração do sistema VERS,
+ * delegando voltar e troca de aba por callbacks.
  */
-export function VersSystemScreen({ onTabPress, onBack, installation = null }: VersSystemScreenProps) {
+export function VersSystemScreen({ onTabPress, onBack, installation = null, configuration = null }: VersSystemScreenProps) {
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -86,6 +125,29 @@ export function VersSystemScreen({ onTabPress, onBack, installation = null }: Ve
             Nenhum sistema VERS vinculado.
           </Text>
         )}
+
+        {configuration ? (
+          <View style={styles.card} testID="vers-configuration">
+            {configuration.activePiezoCount != null ? (
+              <Text style={styles.modelText}>{`${configuration.activePiezoCount} piezos`}</Text>
+            ) : null}
+            {configuration.piezoAssociation ? (
+              <Text style={styles.statusText}>{ASSOCIATION_LABELS[configuration.piezoAssociation]}</Text>
+            ) : null}
+            {configuration.installationPoint ? (
+              <Text style={styles.dateText}>{configuration.installationPoint}</Text>
+            ) : null}
+            {configuration.storageType ? (
+              <Text style={styles.dateText}>{STORAGE_LABELS[configuration.storageType]}</Text>
+            ) : null}
+            {configuration.name ? (
+              <Text style={styles.dateText}>{configuration.name}</Text>
+            ) : null}
+            {configuration.version != null ? (
+              <Text style={styles.dateText}>{`v${configuration.version}`}</Text>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </ScreenShell>
   );
@@ -100,6 +162,7 @@ const styles = StyleSheet.create({
   },
   emptyBlock: {
     alignItems: 'center',
+    gap: 16,
     marginTop: 18,
     width: '100%',
   },

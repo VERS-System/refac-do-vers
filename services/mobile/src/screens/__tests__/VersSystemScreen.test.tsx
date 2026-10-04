@@ -1,11 +1,11 @@
 /**
- * Testes unitários da tela do sistema VERS (Task 07, lotes 07a–07b).
+ * Testes unitários da tela do sistema VERS (Task 07, lotes 07a–07c).
  *
- * Existe para travar o scaffold visual e a identificação da instalação:
- * título, aba vers ativa, vazio inicial e card com modelo, status e data
- * crus do contrato, sem rede, cálculo ou persistência. Os dados chegam por
- * props (fixtures até F01/F05); ausências nunca viram zero e nenhum segredo
- * (deviceUid, MQTT, tópicos, série) é exibido.
+ * Existe para travar o scaffold visual, a identificação da instalação e a
+ * configuração ativa: título, aba vers ativa, vazio inicial e cards com
+ * valores crus do contrato, sem rede, cálculo ou persistência. Os dados
+ * chegam por props (fixtures até F01/F05); ausências nunca viram zero e
+ * nenhum segredo (deviceUid, MQTT, tópicos, série) é exibido.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -75,5 +75,54 @@ describe('VersSystemScreen identificação (07b)', () => {
     expect(getByTestId('vers-installation')).toBeTruthy();
     expect(queryByText('VERS Urban v1')).toBeNull();
     expect(queryByText('2026-03-14T12:00:00.000Z')).toBeNull();
+  });
+});
+
+describe('VersSystemScreen configuração ativa (07c)', () => {
+  const CONFIGURATION = {
+    activePiezoCount: 12,
+    installationPoint: 'Amortecedor traseiro',
+    name: 'Montagem padrão',
+    piezoAssociation: 'SERIES' as const,
+    storageType: 'BATTERY' as const,
+    version: 3,
+  };
+
+  /** Exibe o bloco com piezos, associação, ponto, armazenamento e versão. */
+  it('exibe a configuração quando informada', () => {
+    const { getByTestId, getByText } = render(
+      <VersSystemScreen configuration={CONFIGURATION} installation={{ status: 'ACTIVE' }} />,
+    );
+
+    expect(getByTestId('vers-configuration')).toBeTruthy();
+    expect(getByText('12 piezos')).toBeTruthy();
+    expect(getByText('Série')).toBeTruthy();
+    expect(getByText('Amortecedor traseiro')).toBeTruthy();
+    expect(getByText('Bateria')).toBeTruthy();
+    expect(getByText('v3')).toBeTruthy();
+  });
+
+  /** Omite o bloco sem configuração sem parecer falha. */
+  it('omite o bloco sem configuração', () => {
+    const { getByTestId, queryByTestId } = render(
+      <VersSystemScreen installation={{ status: 'ACTIVE' }} />,
+    );
+
+    expect(getByTestId('vers-installation')).toBeTruthy();
+    expect(queryByTestId('vers-configuration')).toBeNull();
+  });
+
+  /** Omite linhas ausentes sem inventar valor e mantém o bloco. */
+  it('omite campos ausentes da configuração sem inventar valor', () => {
+    const { getByTestId, queryByText } = render(
+      <VersSystemScreen
+        configuration={{ activePiezoCount: 12 }}
+        installation={{ status: 'ACTIVE' }}
+      />,
+    );
+
+    expect(getByTestId('vers-configuration')).toBeTruthy();
+    expect(queryByText('Série')).toBeNull();
+    expect(queryByText('Amortecedor traseiro')).toBeNull();
   });
 });

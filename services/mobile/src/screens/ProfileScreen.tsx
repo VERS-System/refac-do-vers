@@ -1,14 +1,14 @@
 /**
- * Implementa a tela de perfil (Task 09, lotes 09a–09d).
+ * Implementa a tela de perfil (Task 09, lotes 09a–09f).
  *
  * Existe para dar ao perfil uma rota própria na aba `profile` sem criar
  * pilha nova: usa o `ScreenShell` padrão, o `AppHeader` com voltar por
- * callback e a `BottomNavigation` com a aba profile ativa. Leitura, edição e
- * estados chegam por props (fixtures até F01/F05); sem props de controle, o
- * modo de edição e o rascunho usam estado visual interno para não travar a
- * rota. O rascunho nunca é limpo pelo erro. Só `displayName` é enviado; nada
- * é calculado, buscado, persistido ou decidido aqui. Papéis, permissões e
- * encerramento efetivo da sessão pertencem ao backend.
+ * callback e a `BottomNavigation` com a aba profile ativa. Leitura, edição,
+ * estados, atalhos e saída chegam por props (fixtures até F01/F05); sem
+ * props de controle, edição, rascunho e confirmação usam estado visual
+ * interno para não travar a rota. Só `displayName` é enviado e nada é
+ * encerrado localmente; papéis, permissões e encerramento efetivo pertencem
+ * ao backend.
  */
 
 import { useState } from 'react';
@@ -49,6 +49,14 @@ type ProfileScreenProps = {
   onOpenVehicles?: () => void;
   /** Abre o suporte (Task 11); ausente omite o atalho. */
   onOpenSupport?: () => void;
+  /** Confirmação de saída; ausente usa estado visual interno. */
+  confirmingLogout?: boolean | null;
+  /** Solicita a saída; ausente só alterna a confirmação interna. */
+  onRequestLogout?: () => void;
+  /** Confirma a saída sem encerrar nada localmente. */
+  onConfirmLogout?: () => void;
+  /** Cancela a saída e fecha a confirmação. */
+  onCancelLogout?: () => void;
 };
 
 /** Estados visuais do perfil; a origem dos dados é do backend (F05 futuro). */
@@ -76,14 +84,16 @@ function getInitials(displayName?: string | null) {
 }
 
 /**
- * Apresenta cabeçalho, dados, edição, estados e atalhos do perfil,
+ * Apresenta cabeçalho, dados, edição, estados, atalhos e saída do perfil,
  * delegando voltar, edição, salvamento, nova tentativa, retorno ao Login,
- * atalhos e troca de aba por callbacks.
+ * atalhos, saída e troca de aba por callbacks.
  */
-export function ProfileScreen({ onTabPress, onBack, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave, status = 'success', onRetry, onOpenLogin, onOpenVehicles, onOpenSupport }: ProfileScreenProps) {
+export function ProfileScreen({ onTabPress, onBack, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave, status = 'success', onRetry, onOpenLogin, onOpenVehicles, onOpenSupport, confirmingLogout = null, onRequestLogout, onConfirmLogout, onCancelLogout }: ProfileScreenProps) {
   const [internalEditing, setInternalEditing] = useState(false);
   const [internalDraft, setInternalDraft] = useState<string | null>(null);
   const [internalSaved, setInternalSaved] = useState<string | null>(null);
+  const [internalConfirming, setInternalConfirming] = useState(false);
+  const isConfirmingLogout = confirmingLogout ?? internalConfirming;
   const isEditing = editing ?? internalEditing;
   const currentName = internalSaved ?? profile?.displayName ?? null;
   const draft = draftName ?? internalDraft ?? currentName ?? '';
@@ -125,6 +135,33 @@ export function ProfileScreen({ onTabPress, onBack, profile = null, editing = nu
     }
 
     onSave?.(draft);
+  }
+
+  /** Abre a confirmação de saída sem encerrar nada. */
+  function requestLogout() {
+    if (confirmingLogout == null) {
+      setInternalConfirming(true);
+    }
+
+    onRequestLogout?.();
+  }
+
+  /** Confirma a saída sem encerrar nada localmente. */
+  function confirmLogout() {
+    if (confirmingLogout == null) {
+      setInternalConfirming(false);
+    }
+
+    onConfirmLogout?.();
+  }
+
+  /** Cancela a saída e fecha a confirmação. */
+  function cancelLogout() {
+    if (confirmingLogout == null) {
+      setInternalConfirming(false);
+    }
+
+    onCancelLogout?.();
   }
 
   if (status === 'loading') {
@@ -284,6 +321,32 @@ export function ProfileScreen({ onTabPress, onBack, profile = null, editing = nu
                     />
                   </View>
                 ) : null}
+                <View style={styles.actionButton}>
+                  <PrimaryButton
+                    accessibilityLabel="Sair"
+                    label="SAIR"
+                    onPress={requestLogout}
+                  />
+                </View>
+                {isConfirmingLogout ? (
+                  <View style={styles.confirmBlock} testID="profile-logout-confirm">
+                    <Text style={styles.confirmText}>Deseja sair?</Text>
+                    <View style={styles.actionButton}>
+                      <PrimaryButton
+                        accessibilityLabel="Confirmar saída"
+                        label="SAIR"
+                        onPress={confirmLogout}
+                      />
+                    </View>
+                    <View style={styles.actionButton}>
+                      <PrimaryButton
+                        accessibilityLabel="Cancelar saída"
+                        label="CANCELAR"
+                        onPress={cancelLogout}
+                      />
+                    </View>
+                  </View>
+                ) : null}
               </>
             )}
           </View>
@@ -365,6 +428,17 @@ const styles = StyleSheet.create({
     marginTop: 12,
     maxWidth: 350,
     width: '100%',
+  },
+  confirmBlock: {
+    gap: 8,
+    marginTop: 12,
+    width: '100%',
+  },
+  confirmText: {
+    color: theme.colors.white,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   emailText: {
     color: theme.colors.gray,

@@ -1,11 +1,11 @@
 /**
- * Testes unitários da tela de perfil (Task 09, lotes 09a–09d).
+ * Testes unitários da tela de perfil (Task 09, lotes 09a–09f).
  *
  * Existe para travar o scaffold visual, a rota na aba profile, os dados em
- * leitura, a edição e os estados: título, vazio, nome, email, avatar, modo
- * de edição e estados visuais, sem rede, cálculo ou persistência. Os dados
- * chegam por props (fixtures até F01/F05); só `displayName` é enviado;
- * papéis, permissões e encerramento de sessão pertencem ao backend.
+ * leitura, a edição, os estados, os atalhos e a saída: título, vazio, nome,
+ * email, avatar, modo de edição, confirmação de saída e callbacks, sem rede,
+ * cálculo ou persistência. Os dados chegam por props (fixtures até F01/F05);
+ * só `displayName` é enviado; o encerramento efetivo pertence ao backend.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -205,5 +205,51 @@ describe('ProfileScreen atalhos (09e)', () => {
     expect(getByTestId('profile-data')).toBeTruthy();
     expect(queryByRole('button', { name: 'Meus veículos' })).toBeNull();
     expect(queryByRole('button', { name: 'Ajuda e suporte' })).toBeNull();
+  });
+});
+
+describe('ProfileScreen sair (09f)', () => {
+  const PROFILE = { displayName: 'Anna Newman', email: 'anna@vers.com' };
+
+  /** Abre a confirmação inline ao acionar SAIR. */
+  it('abre a confirmação ao acionar SAIR', () => {
+    const onRequestLogout = jest.fn();
+    const { getByRole, getByText } = render(
+      <ProfileScreen onRequestLogout={onRequestLogout} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Sair' }));
+
+    expect(onRequestLogout).toHaveBeenCalledTimes(1);
+    expect(getByText('Deseja sair?')).toBeTruthy();
+  });
+
+  /** Confirma a saída sem encerrar nada localmente. */
+  it('confirma a saída sem encerrar localmente', () => {
+    const onConfirmLogout = jest.fn();
+    const { getByRole } = render(
+      <ProfileScreen onConfirmLogout={onConfirmLogout} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Sair' }));
+    fireEvent.press(getByRole('button', { name: 'Confirmar saída' }));
+
+    expect(onConfirmLogout).toHaveBeenCalledTimes(1);
+  });
+
+  /** Cancela a saída sem notificar confirmação. */
+  it('cancela a saída sem confirmar', () => {
+    const onCancelLogout = jest.fn();
+    const onConfirmLogout = jest.fn();
+    const { getByRole, queryByText } = render(
+      <ProfileScreen onCancelLogout={onCancelLogout} onConfirmLogout={onConfirmLogout} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Sair' }));
+    fireEvent.press(getByRole('button', { name: 'Cancelar saída' }));
+
+    expect(onCancelLogout).toHaveBeenCalledTimes(1);
+    expect(onConfirmLogout).not.toHaveBeenCalled();
+    expect(queryByText('Deseja sair?')).toBeNull();
   });
 });

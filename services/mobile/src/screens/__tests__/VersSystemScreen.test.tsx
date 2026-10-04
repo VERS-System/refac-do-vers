@@ -1,12 +1,12 @@
 /**
- * Testes unitários da tela do sistema VERS (Task 07, lotes 07a–07d).
+ * Testes unitários da tela do sistema VERS (Task 07, lotes 07a–07e).
  *
  * Existe para travar o scaffold visual, a identificação da instalação, a
- * configuração ativa e o dispositivo público: título, aba vers ativa, vazio
- * inicial e cards com valores crus do contrato, sem rede, cálculo ou
- * persistência. Os dados chegam por props (fixtures até F01/F05); ausências
- * nunca viram zero e nenhum segredo (deviceUid, MQTT, tópicos, série) é
- * exibido.
+ * configuração ativa, o dispositivo público e os estados: título, aba vers
+ * ativa, vazio inicial e cards com valores crus do contrato, sem rede,
+ * cálculo ou persistência. Os dados chegam por props (fixtures até F01/F05);
+ * ausências nunca viram zero e nenhum segredo (deviceUid, MQTT, tópicos,
+ * série) é exibido.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -172,5 +172,52 @@ describe('VersSystemScreen dispositivo público (07d)', () => {
     expect(getByTestId('vers-device')).toBeTruthy();
     expect(getByText('Offline')).toBeTruthy();
     expect(queryByText('ESP32 garagem')).toBeNull();
+  });
+});
+
+describe('VersSystemScreen estados (07e)', () => {
+  const INSTALLATION = { status: 'ACTIVE' as const, systemModel: 'VERS Urban v1' };
+
+  /** Exibe skeleton sem números no carregamento. */
+  it('exibe carregamento sem conteúdo', () => {
+    const { getByTestId, queryByTestId, queryByText } = render(
+      <VersSystemScreen installation={INSTALLATION} status="loading" />,
+    );
+
+    expect(getByTestId('vers-loading')).toBeTruthy();
+    expect(queryByTestId('vers-installation')).toBeNull();
+    expect(queryByText('VERS Urban v1')).toBeNull();
+  });
+
+  /** Exibe vazio neutro sem parecer falha. */
+  it('exibe vazio sem instalação', () => {
+    const { getByTestId } = render(<VersSystemScreen status="empty" />);
+
+    expect(getByTestId('vers-empty')).toBeTruthy();
+  });
+
+  /** Mantém o conteúdo com aviso na manutenção. */
+  it('mantém o conteúdo com aviso na manutenção', () => {
+    const { getByTestId, getByText } = render(
+      <VersSystemScreen installation={{ ...INSTALLATION, status: 'MAINTENANCE' }} />,
+    );
+
+    expect(getByTestId('vers-installation')).toBeTruthy();
+    expect(getByTestId('vers-warning')).toBeTruthy();
+    expect(getByText('Em manutenção')).toBeTruthy();
+  });
+
+  /** Exibe erro com nova tentativa sem conteúdo. */
+  it('exibe erro e repete a carga ao tentar de novo', () => {
+    const onRetry = jest.fn();
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <VersSystemScreen installation={INSTALLATION} onRetry={onRetry} status="error" />,
+    );
+
+    expect(getByTestId('vers-error')).toBeTruthy();
+    expect(queryByTestId('vers-installation')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

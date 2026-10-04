@@ -1,18 +1,21 @@
 /**
- * Implementa a tela do sistema VERS (Task 07, lotes 07a–07d).
+ * Implementa a tela do sistema VERS (Task 07, lotes 07a–07e).
  *
  * Existe para dar ao sistema VERS uma rota própria na aba `vers` sem criar
  * pilha nova: usa o `ScreenShell` padrão, o `AppHeader` com voltar por
  * callback e a `BottomNavigation` com a aba vers ativa. A identificação da
- * instalação, a configuração ativa e o dispositivo público chegam prontos
- * por props (fixtures até F01/F05); nada é calculado, buscado, persistido
- * ou reinterpretado aqui e ausências nunca viram zero. Nenhum segredo
- * operacional (deviceUid, MQTT, tópicos, série) passa por esta tela.
+ * instalação, a configuração ativa, o dispositivo público e os estados
+ * chegam prontos por props (fixtures até F01/F05); nada é calculado,
+ * buscado, persistido ou reinterpretado aqui e ausências nunca viram zero.
+ * Nenhum segredo operacional (deviceUid, MQTT, tópicos, série) passa por
+ * esta tela.
  */
 
 import { StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
+import { AppSkeleton } from '../components/AppSkeleton';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
 
@@ -26,7 +29,14 @@ type VersSystemScreenProps = {
   configuration?: VersConfiguration | null;
   /** Dispositivo público ativo; ausente omite o bloco, sem segredos. */
   device?: VersPublicDevice | null;
+  /** Estado visual atual; `success` exibe identificação, config e device. */
+  status?: VersSystemStatus;
+  /** Repete a carga no erro; ausente mantém o botão sem efeito. */
+  onRetry?: () => void;
 };
+
+/** Estados visuais do sistema VERS; a origem dos dados é do backend (F05 futuro). */
+export type VersSystemStatus = 'loading' | 'success' | 'empty' | 'error';
 
 /** Status público da instalação, como no contrato (F05 futuro). */
 export type VersInstallationStatus = 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE' | 'FAULT';
@@ -111,10 +121,58 @@ const DEVICE_STATUS_LABELS: Record<VersDeviceStatus, string> = {
 };
 
 /**
- * Apresenta cabeçalho, identificação, configuração e dispositivo do sistema
- * VERS, delegando voltar e troca de aba por callbacks.
+ * Apresenta cabeçalho, identificação, configuração, dispositivo e estados
+ * do sistema VERS, delegando voltar, nova tentativa e troca de aba por
+ * callbacks.
  */
-export function VersSystemScreen({ onTabPress, onBack, installation = null, configuration = null, device = null }: VersSystemScreenProps) {
+export function VersSystemScreen({ onTabPress, onBack, installation = null, configuration = null, device = null, status = 'success', onRetry }: VersSystemScreenProps) {
+  const showWarning = installation?.status === 'MAINTENANCE' || installation?.status === 'FAULT';
+
+  if (status === 'loading') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="vers" onTabPress={onTabPress} />}
+        testID="vers-system-screen"
+      >
+        <View
+          accessibilityLabel="Carregando"
+          accessibilityRole="progressbar"
+          style={styles.stateBlock}
+          testID="vers-loading"
+        >
+          <AppSkeleton height={140} />
+          <AppSkeleton height={120} />
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="vers" onTabPress={onTabPress} />}
+        testID="vers-system-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Não foi possível carregar o sistema VERS. Tente novamente."
+            accessibilityRole="alert"
+            style={styles.emptyText}
+            testID="vers-error"
+          >
+            Não foi possível carregar o sistema VERS. Tente novamente.
+          </Text>
+          <View style={styles.retryButton}>
+            <PrimaryButton
+              accessibilityLabel="Tentar novamente"
+              label="TENTAR NOVAMENTE"
+              onPress={() => onRetry?.()}
+            />
+          </View>
+        </View>
+      </ScreenShell>
+    );
+  }
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -129,7 +187,19 @@ export function VersSystemScreen({ onTabPress, onBack, installation = null, conf
       />
 
       <View style={styles.emptyBlock}>
-        {installation ? (
+        {showWarning ? (
+          <Text
+            accessibilityRole="alert"
+            style={styles.warningText}
+            testID="vers-warning"
+          >
+            {installation?.status === 'MAINTENANCE'
+              ? 'Sistema em manutenção. Os dados podem estar desatualizados.'
+              : 'Falha no sistema. Verifique os detalhes com o suporte.'}
+          </Text>
+        ) : null}
+
+        {installation && status !== 'empty' ? (
           <View style={styles.card} testID="vers-installation">
             {installation.systemModel ? (
               <Text style={styles.modelText}>{installation.systemModel}</Text>
@@ -208,6 +278,22 @@ const styles = StyleSheet.create({
     gap: 16,
     marginTop: 18,
     width: '100%',
+  },
+  stateBlock: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 16,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  retryButton: {
+    maxWidth: 350,
+    width: '100%',
+  },
+  warningText: {
+    color: theme.colors.primary,
+    fontSize: 12,
+    textAlign: 'center',
   },
   card: {
     alignItems: 'center',

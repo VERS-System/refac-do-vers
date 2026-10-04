@@ -1,11 +1,11 @@
 /**
- * Implementa a tela do sistema VERS (Task 07, lotes 07a–07e).
+ * Implementa a tela do sistema VERS (Task 07, lotes 07a–07f).
  *
  * Existe para dar ao sistema VERS uma rota própria na aba `vers` sem criar
  * pilha nova: usa o `ScreenShell` padrão, o `AppHeader` com voltar por
  * callback e a `BottomNavigation` com a aba vers ativa. A identificação da
- * instalação, a configuração ativa, o dispositivo público e os estados
- * chegam prontos por props (fixtures até F01/F05); nada é calculado,
+ * instalação, a configuração ativa, o dispositivo público, os estados e os
+ * atalhos chegam prontos por props (fixtures até F01/F05); nada é calculado,
  * buscado, persistido ou reinterpretado aqui e ausências nunca viram zero.
  * Nenhum segredo operacional (deviceUid, MQTT, tópicos, série) passa por
  * esta tela.
@@ -33,6 +33,10 @@ type VersSystemScreenProps = {
   status?: VersSystemStatus;
   /** Repete a carga no erro; ausente mantém o botão sem efeito. */
   onRetry?: () => void;
+  /** Abre os testes relacionados; ausente omite o atalho. */
+  onOpenTests?: () => void;
+  /** Abre a solicitação de revisão; ausente omite o atalho. */
+  onOpenSupport?: () => void;
 };
 
 /** Estados visuais do sistema VERS; a origem dos dados é do backend (F05 futuro). */
@@ -121,11 +125,11 @@ const DEVICE_STATUS_LABELS: Record<VersDeviceStatus, string> = {
 };
 
 /**
- * Apresenta cabeçalho, identificação, configuração, dispositivo e estados
- * do sistema VERS, delegando voltar, nova tentativa e troca de aba por
- * callbacks.
+ * Apresenta cabeçalho, identificação, configuração, dispositivo, estados e
+ * atalhos do sistema VERS, delegando voltar, nova tentativa, testes,
+ * revisão e troca de aba por callbacks.
  */
-export function VersSystemScreen({ onTabPress, onBack, installation = null, configuration = null, device = null, status = 'success', onRetry }: VersSystemScreenProps) {
+export function VersSystemScreen({ onTabPress, onBack, installation = null, configuration = null, device = null, status = 'success', onRetry, onOpenTests, onOpenSupport }: VersSystemScreenProps) {
   const showWarning = installation?.status === 'MAINTENANCE' || installation?.status === 'FAULT';
 
   if (status === 'loading') {
@@ -261,6 +265,26 @@ export function VersSystemScreen({ onTabPress, onBack, installation = null, conf
             ) : null}
           </View>
         ) : null}
+
+        {onOpenTests ? (
+          <View style={styles.actionButton}>
+            <PrimaryButton
+              accessibilityLabel="Ver testes do sistema"
+              label="VER TESTES"
+              onPress={() => onOpenTests?.()}
+            />
+          </View>
+        ) : null}
+
+        {onOpenSupport ? (
+          <View style={styles.actionButton}>
+            <PrimaryButton
+              accessibilityLabel="Solicitar revisão do sistema"
+              label="SOLICITAR REVISÃO"
+              onPress={() => onOpenSupport?.()}
+            />
+          </View>
+        ) : null}
       </View>
     </ScreenShell>
   );
@@ -287,6 +311,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   retryButton: {
+    maxWidth: 350,
+    width: '100%',
+  },
+  actionButton: {
     maxWidth: 350,
     width: '100%',
   },

@@ -1,12 +1,12 @@
 /**
- * Testes unitários da tela do sistema VERS (Task 07, lotes 07a–07e).
+ * Testes unitários da tela do sistema VERS (Task 07, lotes 07a–07f).
  *
  * Existe para travar o scaffold visual, a identificação da instalação, a
- * configuração ativa, o dispositivo público e os estados: título, aba vers
- * ativa, vazio inicial e cards com valores crus do contrato, sem rede,
- * cálculo ou persistência. Os dados chegam por props (fixtures até F01/F05);
- * ausências nunca viram zero e nenhum segredo (deviceUid, MQTT, tópicos,
- * série) é exibido.
+ * configuração ativa, o dispositivo público, os estados e os atalhos:
+ * título, aba vers ativa, vazio inicial e cards com valores crus do
+ * contrato, sem rede, cálculo ou persistência. Os dados chegam por props
+ * (fixtures até F01/F05); ausências nunca viram zero e nenhum segredo
+ * (deviceUid, MQTT, tópicos, série) é exibido.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -219,5 +219,44 @@ describe('VersSystemScreen estados (07e)', () => {
 
     fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('VersSystemScreen atalhos (07f)', () => {
+  const INSTALLATION = { status: 'ACTIVE' as const, systemModel: 'VERS Urban v1' };
+
+  /** Abre os testes relacionados por callback puro. */
+  it('abre os testes ao acionar VER TESTES', () => {
+    const onOpenTests = jest.fn();
+    const { getByRole } = render(
+      <VersSystemScreen installation={INSTALLATION} onOpenTests={onOpenTests} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Ver testes do sistema' }));
+
+    expect(onOpenTests).toHaveBeenCalledTimes(1);
+  });
+
+  /** Abre a revisão por callback puro. */
+  it('abre a revisão ao acionar SOLICITAR REVISÃO', () => {
+    const onOpenSupport = jest.fn();
+    const { getByRole } = render(
+      <VersSystemScreen installation={INSTALLATION} onOpenSupport={onOpenSupport} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Solicitar revisão do sistema' }));
+
+    expect(onOpenSupport).toHaveBeenCalledTimes(1);
+  });
+
+  /** Omite os atalhos sem callbacks sem quebrar o layout. */
+  it('omite os atalhos sem callbacks', () => {
+    const { getByTestId, queryByRole } = render(
+      <VersSystemScreen installation={INSTALLATION} />,
+    );
+
+    expect(getByTestId('vers-installation')).toBeTruthy();
+    expect(queryByRole('button', { name: 'Ver testes do sistema' })).toBeNull();
+    expect(queryByRole('button', { name: 'Solicitar revisão do sistema' })).toBeNull();
   });
 });

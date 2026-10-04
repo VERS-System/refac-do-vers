@@ -1,13 +1,13 @@
 /**
- * Implementa a tela do sistema VERS (Task 07, lotes 07a–07c).
+ * Implementa a tela do sistema VERS (Task 07, lotes 07a–07d).
  *
  * Existe para dar ao sistema VERS uma rota própria na aba `vers` sem criar
  * pilha nova: usa o `ScreenShell` padrão, o `AppHeader` com voltar por
  * callback e a `BottomNavigation` com a aba vers ativa. A identificação da
- * instalação e a configuração ativa chegam prontas por props (fixtures até
- * F01/F05); nada é calculado, buscado, persistido ou reinterpretado aqui e
- * ausências nunca viram zero. Nenhum segredo operacional (deviceUid, MQTT,
- * tópicos, série) passa por esta tela.
+ * instalação, a configuração ativa e o dispositivo público chegam prontos
+ * por props (fixtures até F01/F05); nada é calculado, buscado, persistido
+ * ou reinterpretado aqui e ausências nunca viram zero. Nenhum segredo
+ * operacional (deviceUid, MQTT, tópicos, série) passa por esta tela.
  */
 
 import { StyleSheet, Text, View } from 'react-native';
@@ -24,6 +24,8 @@ type VersSystemScreenProps = {
   installation?: VersInstallation | null;
   /** Configuração ativa da montagem; ausente omite o bloco. */
   configuration?: VersConfiguration | null;
+  /** Dispositivo público ativo; ausente omite o bloco, sem segredos. */
+  device?: VersPublicDevice | null;
 };
 
 /** Status público da instalação, como no contrato (F05 futuro). */
@@ -84,11 +86,35 @@ const STORAGE_LABELS: Record<VersStorageType, string> = {
   NONE: 'Nenhum',
 };
 
+/** Estado público do dispositivo, como no contrato (F05 futuro). */
+export type VersDeviceStatus = 'PROVISIONING' | 'ONLINE' | 'OFFLINE' | 'REVOKED' | 'FAULT';
+
+/** Metadados públicos do dispositivo; vem pronto do contrato, sem segredos. */
+export type VersPublicDevice = {
+  /** Nome público; `null` omite a linha. */
+  name?: string | null;
+  /** Versão do firmware; `null` omite a linha. */
+  firmwareVersion?: string | null;
+  /** Estado público; `null` omite a linha. */
+  status?: VersDeviceStatus | null;
+  /** Última atividade em UTC crua; `null` omite a linha. */
+  lastSeenAt?: string | null;
+};
+
+/** Rótulos públicos do dispositivo; o código cru nunca é exibido. */
+const DEVICE_STATUS_LABELS: Record<VersDeviceStatus, string> = {
+  PROVISIONING: 'Em provisionamento',
+  ONLINE: 'Online',
+  OFFLINE: 'Offline',
+  REVOKED: 'Revogado',
+  FAULT: 'Falha',
+};
+
 /**
- * Apresenta cabeçalho, identificação e configuração do sistema VERS,
- * delegando voltar e troca de aba por callbacks.
+ * Apresenta cabeçalho, identificação, configuração e dispositivo do sistema
+ * VERS, delegando voltar e troca de aba por callbacks.
  */
-export function VersSystemScreen({ onTabPress, onBack, installation = null, configuration = null }: VersSystemScreenProps) {
+export function VersSystemScreen({ onTabPress, onBack, installation = null, configuration = null, device = null }: VersSystemScreenProps) {
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -145,6 +171,23 @@ export function VersSystemScreen({ onTabPress, onBack, installation = null, conf
             ) : null}
             {configuration.version != null ? (
               <Text style={styles.dateText}>{`v${configuration.version}`}</Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {device ? (
+          <View style={styles.card} testID="vers-device">
+            {device.name ? (
+              <Text style={styles.modelText}>{device.name}</Text>
+            ) : null}
+            {device.firmwareVersion ? (
+              <Text style={styles.dateText}>{device.firmwareVersion}</Text>
+            ) : null}
+            {device.status ? (
+              <Text style={styles.statusText}>{DEVICE_STATUS_LABELS[device.status]}</Text>
+            ) : null}
+            {device.lastSeenAt ? (
+              <Text style={styles.dateText}>{device.lastSeenAt}</Text>
             ) : null}
           </View>
         ) : null}

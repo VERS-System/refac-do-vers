@@ -1,11 +1,12 @@
 /**
- * Testes unitários da tela do sistema VERS (Task 07, lotes 07a–07c).
+ * Testes unitários da tela do sistema VERS (Task 07, lotes 07a–07d).
  *
- * Existe para travar o scaffold visual, a identificação da instalação e a
- * configuração ativa: título, aba vers ativa, vazio inicial e cards com
- * valores crus do contrato, sem rede, cálculo ou persistência. Os dados
- * chegam por props (fixtures até F01/F05); ausências nunca viram zero e
- * nenhum segredo (deviceUid, MQTT, tópicos, série) é exibido.
+ * Existe para travar o scaffold visual, a identificação da instalação, a
+ * configuração ativa e o dispositivo público: título, aba vers ativa, vazio
+ * inicial e cards com valores crus do contrato, sem rede, cálculo ou
+ * persistência. Os dados chegam por props (fixtures até F01/F05); ausências
+ * nunca viram zero e nenhum segredo (deviceUid, MQTT, tópicos, série) é
+ * exibido.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -124,5 +125,52 @@ describe('VersSystemScreen configuração ativa (07c)', () => {
     expect(getByTestId('vers-configuration')).toBeTruthy();
     expect(queryByText('Série')).toBeNull();
     expect(queryByText('Amortecedor traseiro')).toBeNull();
+  });
+});
+
+describe('VersSystemScreen dispositivo público (07d)', () => {
+  const DEVICE = {
+    firmwareVersion: 'v2.4.1',
+    lastSeenAt: '2026-03-14T12:00:00.000Z',
+    name: 'ESP32 garagem',
+    status: 'ONLINE' as const,
+  };
+
+  /** Exibe o bloco com metadados públicos e esconde segredos. */
+  it('exibe o dispositivo quando informado', () => {
+    const { getByTestId, getByText, queryByText } = render(
+      <VersSystemScreen device={DEVICE} installation={{ status: 'ACTIVE' }} />,
+    );
+
+    expect(getByTestId('vers-device')).toBeTruthy();
+    expect(getByText('ESP32 garagem')).toBeTruthy();
+    expect(getByText('v2.4.1')).toBeTruthy();
+    expect(getByText('Online')).toBeTruthy();
+    expect(getByText('2026-03-14T12:00:00.000Z')).toBeTruthy();
+    expect(queryByText('device-uid-123')).toBeNull();
+  });
+
+  /** Omite o bloco sem dispositivo sem parecer falha. */
+  it('omite o bloco sem dispositivo', () => {
+    const { getByTestId, queryByTestId } = render(
+      <VersSystemScreen installation={{ status: 'ACTIVE' }} />,
+    );
+
+    expect(getByTestId('vers-installation')).toBeTruthy();
+    expect(queryByTestId('vers-device')).toBeNull();
+  });
+
+  /** Omite linhas ausentes sem inventar valor e mantém o bloco. */
+  it('omite campos ausentes do dispositivo sem inventar valor', () => {
+    const { getByTestId, getByText, queryByText } = render(
+      <VersSystemScreen
+        device={{ status: 'OFFLINE' }}
+        installation={{ status: 'ACTIVE' }}
+      />,
+    );
+
+    expect(getByTestId('vers-device')).toBeTruthy();
+    expect(getByText('Offline')).toBeTruthy();
+    expect(queryByText('ESP32 garagem')).toBeNull();
   });
 });

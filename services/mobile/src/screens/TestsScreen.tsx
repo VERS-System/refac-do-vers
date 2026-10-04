@@ -1,19 +1,23 @@
 /**
- * Implementa a tela de testes experimentais (Task 08, lotes 08a–08d).
+ * Implementa a tela de testes experimentais (Task 08, lotes 08a–08f).
  *
  * Existe para dar aos testes uma rota interna sem criar aba nova: usa o
  * `ScreenShell` padrão, o `AppHeader` com voltar por callback e a
- * `BottomNavigation` com a aba de origem. A listagem paginada, os filtros
- * visuais e os detalhes chegam prontos por props (fixtures até F01/F05);
- * planejamento e confirmações vêm nos lotes seguintes. Nada é calculado,
- * buscado, persistido ou presumido aqui e nenhuma transição é concluída
- * localmente. Nenhum comando MQTT passa por esta tela.
+ * `BottomNavigation` com a aba de origem. Listagem, filtros, detalhes,
+ * planejamento e confirmações chegam prontos por props (fixtures até
+ * F01/F05); sem `planDraft` o rascunho usa estado visual interno para não
+ * resetar o digitado na rota sem estado do pai. Nada é calculado, buscado,
+ * persistido ou presumido aqui e nenhuma transição é concluída localmente.
+ * Nenhum comando MQTT passa por esta tela.
  */
 
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '../components/AppHeader';
+import { AuthTextField } from '../components/AuthTextField';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
 
@@ -43,7 +47,33 @@ type TestsScreenProps = {
   onFilterChange?: (filter: TestFilter) => void;
   /** Detalhe do teste selecionado; ausente mantém só lista e filtros. */
   selectedTest?: TestDetail | null;
+  /** Rascunho do planejamento; ausente usa o vazio. */
+  planDraft?: Partial<TestPlanDraft> | null;
+  /** Edição do rascunho; ausente só exibe os campos. */
+  onPlanChange?: (next: TestPlanDraft) => void;
+  /** Envio do planejamento; ausente omite o botão. */
+  onSubmitPlan?: (draft: TestPlanDraft) => void;
+  /** Solicita o início; chamado só após confirmação. */
+  onStart?: () => void;
+  /** Solicita a finalização; chamado só após confirmação. */
+  onFinish?: () => void;
+  /** Solicita o cancelamento; chamado só após confirmação. */
+  onCancel?: () => void;
+  /** Estado da ação; `conflict` exibe mensagem pública sem presumir transição. */
+  actionState?: TestActionState;
+  /** Mensagem pública do conflito; exibida sem detalhe interno. */
+  conflictMessage?: string | null;
+  /** Dados recentes crus exibidos na execução, sem comandar nada. */
+  recentDataLabel?: string | null;
+  /** Estado de conexão cru exibido na execução. */
+  connectionLabel?: string | null;
 };
+
+/** Estado visual da ação; só representa o retorno do backend. */
+export type TestActionState = 'idle' | 'conflict' | 'unavailable';
+
+/** Ação aguardando confirmação local; nunca presume transição. */
+type PendingAction = 'start' | 'finish' | 'cancel' | null;
 
 /** Filtro visual da lista; só representa o filtro do contrato. */
 export type TestFilter = {
@@ -141,16 +171,49 @@ const OUTCOME_LABELS: Record<TestOutcome, string> = {
   INCONCLUSIVE: 'Inconclusivo',
 };
 
+/** Rascunho visual do planejamento; só repasse, sem validação de domínio. */
+export type TestPlanDraft = {
+  name: string;
+  terrain: TestTerrain | null;
+  testLocation: string;
+  vehicleWeightKg: string;
+  notes: string;
+};
+
+/** Rascunho vazio exibido sem prop. */
+const EMPTY_PLAN: TestPlanDraft = {
+  name: '',
+  notes: '',
+  terrain: null,
+  testLocation: '',
+  vehicleWeightKg: '',
+};
+
+/** Opções visuais de terreno, com o rótulo exibido. */
+const TERRAIN_OPTIONS: ReadonlyArray<{ value: TestTerrain; label: string }> = [
+  { label: 'Rodovia', value: 'HIGHWAY' },
+  { label: 'Cidade', value: 'CITY' },
+  { label: 'Fora de estrada', value: 'OFFROAD' },
+  { label: 'Misto', value: 'MIXED' },
+  { label: 'Outro', value: 'OTHER' },
+];
+
 /**
- * Apresenta cabeçalho, filtros visuais, listagem paginada e detalhes dos
- * testes, delegando voltar, filtro, seleção, paginação e troca de aba por
- * callbacks.
+ * Apresenta cabeçalho, filtros visuais, listagem paginada, detalhes,
+ * planejamento e confirmações dos testes, delegando voltar, filtro, seleção,
+ * paginação, edição, envio, ações e troca de aba por callbacks.
  */
-export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items = [], page = 1, pageSize = 20, totalItems, onPageChange, onSelectTest, statusFilter = 'ALL', installationFilter = null, onFilterChange, selectedTest = null }: TestsScreenProps) {
-  const total = totalItems ?? items.length;
+export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items = [], page = 1, pageSize = 20, totalItems, onPageChange, onSelectTest, statusFilter = null, installationFilter = null, onFilterChange, selectedTest = null, planDraft = null, onPlanChange, onSubmitPlan, onStart, onFinish, onCancel, actionState = 'idle', conflictMessage = null, recentDataLabel = null, connectionLabel = null }: TestsScreenProps) {
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [internalDraft, setInternalDraft] = useState<TestPlanDraft>(EMPTY_PLAN);
+  const [internalStatus, setInternalStatus] = useState<TestListStatus | 'ALL'>('ALL');
+  const [internalCreated, setInternalCreated] = useState<TestListItem[]>([]);
+  const visibleItems = [...internalCreated, ...items];
+  const total = totalItems ?? visibleItems.length;
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
-  const currentStatus: TestListStatus | 'ALL' = statusFilter ?? 'ALL';
+  const currentStatus: TestListStatus | 'ALL' = statusFilter ?? internalStatus;
   const currentFilter: TestFilter = { installationFilter: installationFilter ?? null, statusFilter: currentStatus };
+  const actionsDisabled = actionState === 'unavailable';
 
   /** Vai à página vizinha dentro dos limites e notifica o chamador. */
   function goToPage(next: number) {
@@ -163,7 +226,59 @@ export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items =
 
   /** Notifica a troca de filtro sem aplicar regra local. */
   function changeStatusFilter(next: TestListStatus | 'ALL') {
+    if (statusFilter == null) {
+      setInternalStatus(next);
+    }
+
     onFilterChange?.({ ...currentFilter, statusFilter: next });
+  }
+
+  /** Abre a confirmação local sem solicitar nada ao backend ainda. */
+  function requestAction(next: Exclude<PendingAction, null>) {
+    setPendingAction(next);
+  }
+
+  /** Confirma a ação pendente e notifica o chamador uma única vez. */
+  function confirmPendingAction() {
+    if (pendingAction === 'start') {
+      onStart?.();
+    } else if (pendingAction === 'finish') {
+      onFinish?.();
+    } else if (pendingAction === 'cancel') {
+      onCancel?.();
+    }
+
+    setPendingAction(null);
+  }
+
+  const draft: TestPlanDraft = planDraft != null ? { ...EMPTY_PLAN, ...planDraft } : internalDraft;
+
+  /** Repassa a edição do campo sem validar domínio. */
+  function changePlanField(field: keyof TestPlanDraft, value: string | TestTerrain | null) {
+    const next = { ...draft, [field]: value };
+
+    if (planDraft == null) {
+      setInternalDraft(next);
+    }
+
+    onPlanChange?.(next);
+  }
+
+  /** Envia o planejamento; sem callback, guarda na lista visual local. */
+  function submitPlan() {
+    if (planDraft == null) {
+      const created: TestListItem = {
+        id: `local-${Date.now()}`,
+        name: draft.name.trim() || 'Teste sem nome',
+        periodLabel: draft.testLocation || null,
+        status: 'PLANNED',
+      };
+
+      setInternalCreated((previous) => [created, ...previous]);
+      setInternalDraft(EMPTY_PLAN);
+    }
+
+    onSubmitPlan?.(draft);
   }
 
   return (
@@ -188,25 +303,31 @@ export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items =
             <Text style={styles.filterLabel}>{currentFilter.installationFilter}</Text>
           ) : null}
           <View style={styles.filterRow}>
-            {STATUS_FILTER_OPTIONS.map((option) => (
-              <Pressable
-                accessibilityLabel={`Filtrar: ${option.label}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: currentStatus === option.value }}
-                hitSlop={8}
-                key={option.value}
-                onPress={() => changeStatusFilter(option.value)}
-                style={styles.filterChip}
-              >
-                <Text style={styles.filterChipText}>{option.label}</Text>
-              </Pressable>
-            ))}
+            {STATUS_FILTER_OPTIONS.map((option) => {
+              const isSelected = currentStatus === option.value;
+
+              return (
+                <Pressable
+                  accessibilityLabel={`Filtrar: ${option.label}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  hitSlop={8}
+                  key={option.value}
+                  onPress={() => changeStatusFilter(option.value)}
+                  style={[styles.filterChip, isSelected && styles.filterChipSelected]}
+                >
+                  <Text style={[styles.filterChipText, isSelected && styles.filterChipTextSelected]}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
-        {items.length > 0 ? (
+        {visibleItems.length > 0 ? (
           <View style={styles.listCard} testID="tests-list">
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <Pressable
                 accessibilityLabel={item.name}
                 accessibilityRole="button"
@@ -291,6 +412,155 @@ export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items =
             ) : null}
           </View>
         ) : null}
+
+        {selectedTest && actionState !== 'conflict' ? (
+          <View style={styles.listCard} testID="tests-actions">
+            {selectedTest.status === 'PLANNED' && onStart ? (
+              <View style={styles.actionButton}>
+                <PrimaryButton
+                  accessibilityLabel="Iniciar teste"
+                  disabled={actionsDisabled}
+                  label="INICIAR TESTE"
+                  onPress={() => requestAction('start')}
+                />
+              </View>
+            ) : null}
+            {selectedTest.status === 'RUNNING' ? (
+              <>
+                {recentDataLabel ? (
+                  <Text style={styles.rowPeriod}>{recentDataLabel}</Text>
+                ) : null}
+                {connectionLabel ? (
+                  <Text style={styles.rowPeriod}>{connectionLabel}</Text>
+                ) : null}
+                {onFinish ? (
+                  <View style={styles.actionButton}>
+                    <PrimaryButton
+                      accessibilityLabel="Finalizar teste"
+                      disabled={actionsDisabled}
+                      label="FINALIZAR TESTE"
+                      onPress={() => requestAction('finish')}
+                    />
+                  </View>
+                ) : null}
+                {onCancel ? (
+                  <View style={styles.actionButton}>
+                    <PrimaryButton
+                      accessibilityLabel="Cancelar teste"
+                      disabled={actionsDisabled}
+                      label="CANCELAR TESTE"
+                      onPress={() => requestAction('cancel')}
+                    />
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+            {selectedTest.status !== 'PLANNED' && selectedTest.status !== 'RUNNING' && onCancel ? (
+              <View style={styles.actionButton}>
+                <PrimaryButton
+                  accessibilityLabel="Cancelar teste"
+                  disabled={actionsDisabled}
+                  label="CANCELAR TESTE"
+                  onPress={() => requestAction('cancel')}
+                />
+              </View>
+            ) : null}
+            {pendingAction ? (
+              <View style={styles.confirmBlock} testID="tests-confirm">
+                <Text style={styles.rowPeriod}>
+                  {pendingAction === 'start' && 'Confirmar o início do teste?'}
+                  {pendingAction === 'finish' && 'Confirmar a finalização do teste?'}
+                  {pendingAction === 'cancel' && 'Confirmar o cancelamento do teste?'}
+                </Text>
+                <View style={styles.actionButton}>
+                  <PrimaryButton
+                    accessibilityLabel={
+                      pendingAction === 'start'
+                        ? 'Confirmar início'
+                        : pendingAction === 'finish'
+                          ? 'Confirmar finalização'
+                          : 'Confirmar cancelamento'
+                    }
+                    label="CONFIRMAR"
+                    onPress={confirmPendingAction}
+                  />
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {actionState === 'conflict' ? (
+          <View style={styles.listCard} testID="tests-conflict">
+            <Text
+              accessibilityRole="alert"
+              style={styles.rowStatus}
+            >
+              {conflictMessage ?? 'O teste mudou. Consulte o estado atual.'}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={styles.listCard} testID="tests-plan-form">
+          <AuthTextField
+            label="Nome:"
+            onChangeText={(value) => changePlanField('name', value)}
+            placeholder="Nome do teste"
+            value={draft.name}
+          />
+          <View style={styles.fieldGap}>
+            <Text style={styles.filterLabel}>Terreno</Text>
+            <View style={styles.filterRow}>
+              {TERRAIN_OPTIONS.map((option) => {
+                const isTerrainSelected = draft.terrain === option.value;
+
+                return (
+                  <Pressable
+                    accessibilityLabel={`Terreno: ${option.label}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isTerrainSelected }}
+                    hitSlop={8}
+                    key={option.value}
+                    onPress={() => changePlanField('terrain', option.value)}
+                    style={[styles.filterChip, isTerrainSelected && styles.filterChipSelected]}
+                  >
+                    <Text style={[styles.filterChipText, isTerrainSelected && styles.filterChipTextSelected]}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <AuthTextField
+            label="Local do teste:"
+            onChangeText={(value) => changePlanField('testLocation', value)}
+            placeholder="Local informado"
+            value={draft.testLocation}
+          />
+          <AuthTextField
+            label="Peso do veículo (kg):"
+            keyboardType="numeric"
+            onChangeText={(value) => changePlanField('vehicleWeightKg', value)}
+            placeholder="Ex. 1200"
+            value={draft.vehicleWeightKg}
+          />
+          <AuthTextField
+            label="Observações:"
+            onChangeText={(value) => changePlanField('notes', value)}
+            placeholder="Notas opcionais"
+            value={draft.notes}
+          />
+          {onSubmitPlan || planDraft == null ? (
+            <View style={styles.actionButton}>
+              <PrimaryButton
+                accessibilityLabel="Planejar teste"
+                label="PLANEJAR TESTE"
+                onPress={submitPlan}
+              />
+            </View>
+          ) : null}
+        </View>
       </View>
     </ScreenShell>
   );
@@ -337,9 +607,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
+  filterChipSelected: {
+    backgroundColor: theme.colors.tabActive,
+    borderColor: theme.colors.primary,
+  },
   filterChipText: {
     color: theme.colors.primary,
     fontSize: 11,
+  },
+  filterChipTextSelected: {
+    color: theme.colors.white,
+    fontWeight: '700',
   },
   listCard: {
     backgroundColor: theme.colors.surface,
@@ -379,6 +657,21 @@ const styles = StyleSheet.create({
   pagerLabel: {
     color: theme.colors.gray,
     fontSize: 12,
+  },
+  fieldGap: {
+    gap: 8,
+    marginTop: 12,
+    width: '100%',
+  },
+  confirmBlock: {
+    gap: 8,
+    marginTop: 12,
+    width: '100%',
+  },
+  actionButton: {
+    marginTop: 12,
+    maxWidth: 350,
+    width: '100%',
   },
   emptyText: {
     color: theme.colors.white,

@@ -1,12 +1,12 @@
 /**
- * Testes unitários da tela de veículos (Task 10, lotes 10a–10e).
+ * Testes unitários da tela de veículos (Task 10, lotes 10a–10f).
  *
  * Existe para travar o scaffold visual, a rota interna, a listagem, os
- * detalhes, o cadastro e a edição: título, vazio, linhas com selo, card com
- * dados, form de cadastro e modo de edição com placa travada, sem rede,
- * cálculo ou persistência. Os dados chegam por props (fixtures até F01/F05);
- * vínculo, unicidade e remoção pertencem ao backend. Sem CPF, CRLV, RENAVAM
- * ou documentos no MVP.
+ * detalhes, o cadastro, a edição e a remoção: título, vazio, linhas com
+ * selo, card com dados, form do contrato, placa travada e confirmação com
+ * substituto, sem rede, cálculo ou persistência. Os dados chegam por props
+ * (fixtures até F01/F05); vínculo, unicidade e remoção pertencem ao backend.
+ * Sem CPF, CRLV, RENAVAM ou documentos no MVP.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -230,5 +230,82 @@ describe('VehiclesScreen edição (10e)', () => {
 
     expect(onCancelEditVehicle).toHaveBeenCalledTimes(1);
     expect(onSubmitUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('VehiclesScreen remoção (10f)', () => {
+  const PRIMARY = { id: 'v1', isPrimary: true, licensePlate: 'ABC1D23', model: 'Modelo X' };
+  const OTHER = { id: 'v2', isPrimary: false, licensePlate: 'XYZ9K88', model: 'Modelo Y' };
+
+  /** Abre a confirmação inline ao solicitar a remoção. */
+  it('abre a confirmação ao solicitar a remoção', () => {
+    const onRemoveVehicle = jest.fn();
+    const { getByRole, getByTestId, getByText } = render(
+      <VehiclesScreen onRemoveVehicle={onRemoveVehicle} selectedVehicle={PRIMARY} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Remover veículo' }));
+
+    expect(onRemoveVehicle).toHaveBeenCalledWith('v1');
+    expect(getByTestId('vehicles-remove-confirm')).toBeTruthy();
+    expect(getByText('Remover este veículo?')).toBeTruthy();
+  });
+
+  /** Confirma com o substituto escolhido. */
+  it('confirma a remoção com o substituto', () => {
+    const onConfirmRemove = jest.fn();
+    const { getByRole } = render(
+      <VehiclesScreen
+        items={[PRIMARY, OTHER]}
+        onConfirmRemove={onConfirmRemove}
+        onRemoveVehicle={jest.fn()}
+        replacementRequired
+        selectedVehicle={PRIMARY}
+      />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Remover veículo' }));
+    fireEvent.press(getByRole('button', { name: 'Substituto: XYZ9K88' }));
+    fireEvent.press(getByRole('button', { name: 'Confirmar remoção' }));
+
+    expect(onConfirmRemove).toHaveBeenCalledWith('v1', 'v2');
+  });
+
+  /** Cancela sem confirmar a remoção. */
+  it('cancela a remoção sem confirmar', () => {
+    const onCancelRemove = jest.fn();
+    const onConfirmRemove = jest.fn();
+    const { getByRole, queryByTestId } = render(
+      <VehiclesScreen
+        onCancelRemove={onCancelRemove}
+        onConfirmRemove={onConfirmRemove}
+        onRemoveVehicle={jest.fn()}
+        selectedVehicle={PRIMARY}
+      />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Remover veículo' }));
+    fireEvent.press(getByRole('button', { name: 'Cancelar remoção' }));
+
+    expect(onCancelRemove).toHaveBeenCalledTimes(1);
+    expect(onConfirmRemove).not.toHaveBeenCalled();
+    expect(queryByTestId('vehicles-remove-confirm')).toBeNull();
+  });
+
+  /** Exibe o conflito e desabilita as ações quando indisponível. */
+  it('exibe conflito e desabilita ações quando indisponível', () => {
+    const { getByRole, getByTestId, getByText } = render(
+      <VehiclesScreen
+        actionsDisabled
+        conflictMessage="Placa já cadastrada."
+        selectedVehicle={PRIMARY}
+      />,
+    );
+
+    expect(getByTestId('vehicles-conflict')).toBeTruthy();
+    expect(getByText('Placa já cadastrada.')).toBeTruthy();
+    expect(
+      getByRole('button', { name: 'Remover veículo' }).props.accessibilityState,
+    ).toEqual(expect.objectContaining({ disabled: true }));
   });
 });

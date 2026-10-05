@@ -1,14 +1,14 @@
 /**
- * Implementa a tela de veículos (Task 10, lotes 10a–10d).
+ * Implementa a tela de veículos (Task 10, lotes 10a–10f).
  *
  * Existe para dar aos veículos uma rota interna sem criar aba nova: usa o
  * `ScreenShell` padrão, o `AppHeader` com voltar por callback e a
- * `BottomNavigation` com a aba profile de origem. Listagem, detalhes e
- * cadastro chegam por props (fixtures até F01/F05); sem rascunho, o form usa
- * estado visual interno para não resetar o digitado na rota. Edição,
- * principal e remoção vêm nos lotes seguintes. Só os 4 campos do contrato
- * são repassados, sem validação de domínio e sem documentos. Nada é
- * calculado, buscado, persistido ou decidido aqui.
+ * `BottomNavigation` com a aba profile de origem. Listagem, detalhes,
+ * cadastro, edição e remoção chegam por props (fixtures até F01/F05); sem
+ * props de controle, rascunho, confirmação e substituto usam estado visual
+ * interno. Só os campos do contrato são repassados, sem validação de
+ * domínio e sem documentos. Nada é calculado, buscado, persistido ou
+ * decidido aqui; unicidade, vínculo e remoção atômica pertencem ao backend.
  */
 
 import { useState } from 'react';
@@ -50,6 +50,20 @@ type VehiclesScreenProps = {
   onSubmitUpdate?: (changes: VehicleUpdate) => void;
   /** Cancela a edição e descarta o rascunho. */
   onCancelEditVehicle?: () => void;
+  /** Confirmação de remoção; ausente usa estado visual interno. */
+  confirmingRemove?: boolean | null;
+  /** Solicita a remoção e abre a confirmação. */
+  onRequestRemove?: (vehicleId: string) => void;
+  /** Confirma a remoção com o substituto escolhido (pode ser nulo). */
+  onConfirmRemove?: (vehicleId: string, replacementId: string | null) => void;
+  /** Cancela a remoção e fecha a confirmação. */
+  onCancelRemove?: () => void;
+  /** Exige escolha de substituto na confirmação. */
+  replacementRequired?: boolean | null;
+  /** Mensagem pública de conflito; exibida sem detalhe interno. */
+  conflictMessage?: string | null;
+  /** Desabilita as ações do detalhe quando indisponível. */
+  actionsDisabled?: boolean | null;
 };
 
 /** Mutáveis do veículo; placa e id nunca entram. */
@@ -122,8 +136,12 @@ const EMPTY_VEHICLE: VehicleDraft = {
  * delegando voltar, seleção, cadastro, edição, remoção, principal e troca
  * de aba por callbacks.
  */
-export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary, vehicleDraft = null, onVehicleChange, onSubmitCreate, editingVehicle = null, onSubmitUpdate, onCancelEditVehicle }: VehiclesScreenProps) {
+export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary, vehicleDraft = null, onVehicleChange, onSubmitCreate, editingVehicle = null, onSubmitUpdate, onCancelEditVehicle, confirmingRemove = null, onRequestRemove, onConfirmRemove, onCancelRemove, replacementRequired = null, conflictMessage = null, actionsDisabled = null }: VehiclesScreenProps) {
   const [internalDraft, setInternalDraft] = useState<VehicleDraft>(EMPTY_VEHICLE);
+  const [internalConfirming, setInternalConfirming] = useState(false);
+  const [internalReplacement, setInternalReplacement] = useState<string | null>(null);
+  const isConfirmingRemove = confirmingRemove ?? internalConfirming;
+  const isActionsDisabled = actionsDisabled ?? false;
   const isEditingVehicle = editingVehicle != null;
   const editBase: VehicleDraft = {
     brand: editingVehicle?.brand ?? '',
@@ -153,6 +171,44 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
   function submitUpdate() {
     onSubmitUpdate?.({ brand: draft.brand, model: draft.model, modelYear: draft.modelYear });
   }
+
+  /** Solicita a remoção e abre a confirmação inline. */
+  function requestRemove() {
+    if (!selectedVehicle) {
+      return;
+    }
+
+    onRemoveVehicle?.(selectedVehicle.id);
+
+    if (confirmingRemove == null) {
+      setInternalConfirming(true);
+    }
+
+    onRequestRemove?.(selectedVehicle.id);
+  }
+
+  /** Confirma a remoção com o substituto escolhido (pode ser nulo). */
+  function confirmRemove() {
+    if (!selectedVehicle) {
+      return;
+    }
+
+    if (confirmingRemove == null) {
+      setInternalConfirming(false);
+    }
+
+    onConfirmRemove?.(selectedVehicle.id, internalReplacement);
+  }
+
+  /** Cancela a remoção e fecha a confirmação. */
+  function cancelRemove() {
+    if (confirmingRemove == null) {
+      setInternalConfirming(false);
+      setInternalReplacement(null);
+    }
+
+    onCancelRemove?.();
+  }
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -167,6 +223,17 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
       />
 
       <View style={styles.emptyBlock}>
+        {conflictMessage ? (
+          <View style={styles.listCard} testID="vehicles-conflict">
+            <Text
+              accessibilityRole="alert"
+              style={styles.primarySeal}
+            >
+              {conflictMessage}
+            </Text>
+          </View>
+        ) : null}
+
         {onOpenCreate ? (
           <View style={styles.createButton}>
             <PrimaryButton
@@ -230,27 +297,76 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
               <View style={styles.createButton}>
                 <PrimaryButton
                   accessibilityLabel="Editar veículo"
+                  disabled={isActionsDisabled}
                   label="EDITAR"
                   onPress={() => onEditVehicle?.(selectedVehicle.id)}
                 />
               </View>
             ) : null}
-            {onRemoveVehicle ? (
-              <View style={styles.createButton}>
-                <PrimaryButton
-                  accessibilityLabel="Remover veículo"
-                  label="REMOVER"
-                  onPress={() => onRemoveVehicle?.(selectedVehicle.id)}
-                />
-              </View>
-            ) : null}
+            <View style={styles.createButton}>
+              <PrimaryButton
+                accessibilityLabel="Remover veículo"
+                disabled={isActionsDisabled}
+                label="REMOVER"
+                onPress={requestRemove}
+              />
+            </View>
             {onMakePrimary && !selectedVehicle.isPrimary ? (
               <View style={styles.createButton}>
                 <PrimaryButton
                   accessibilityLabel="Tornar principal"
+                  disabled={isActionsDisabled}
                   label="TORNAR PRINCIPAL"
                   onPress={() => onMakePrimary?.(selectedVehicle.id)}
                 />
+              </View>
+            ) : null}
+            {isConfirmingRemove ? (
+              <View style={styles.confirmBlock} testID="vehicles-remove-confirm">
+                <Text style={styles.confirmText}>Remover este veículo?</Text>
+                {replacementRequired ? (
+                  <View style={styles.optionRow}>
+                    {items
+                      .filter((item) => item.id !== selectedVehicle.id)
+                      .map((item) => (
+                        <Pressable
+                          accessibilityLabel={`Substituto: ${item.licensePlate}`}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: internalReplacement === item.id }}
+                          hitSlop={8}
+                          key={item.id}
+                          onPress={() => setInternalReplacement(item.id)}
+                          style={[
+                            styles.optionChip,
+                            internalReplacement === item.id && styles.optionChipSelected,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.optionChipText,
+                              internalReplacement === item.id && styles.optionChipTextSelected,
+                            ]}
+                          >
+                            {item.licensePlate}
+                          </Text>
+                        </Pressable>
+                      ))}
+                  </View>
+                ) : null}
+                <View style={styles.createButton}>
+                  <PrimaryButton
+                    accessibilityLabel="Confirmar remoção"
+                    label="CONFIRMAR REMOÇÃO"
+                    onPress={confirmRemove}
+                  />
+                </View>
+                <View style={styles.createButton}>
+                  <PrimaryButton
+                    accessibilityLabel="Cancelar remoção"
+                    label="CANCELAR"
+                    onPress={cancelRemove}
+                  />
+                </View>
               </View>
             ) : null}
           </View>
@@ -342,6 +458,43 @@ const styles = StyleSheet.create({
     marginTop: 12,
     maxWidth: 350,
     width: '100%',
+  },
+  confirmBlock: {
+    gap: 8,
+    marginTop: 12,
+    width: '100%',
+  },
+  confirmText: {
+    color: theme.colors.white,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  optionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  optionChip: {
+    borderColor: theme.colors.border,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  optionChipSelected: {
+    backgroundColor: theme.colors.tabActive,
+    borderColor: theme.colors.primary,
+  },
+  optionChipText: {
+    color: theme.colors.primary,
+    fontSize: 11,
+  },
+  optionChipTextSelected: {
+    color: theme.colors.white,
+    fontWeight: '700',
   },
   fieldGap: {
     marginTop: 12,

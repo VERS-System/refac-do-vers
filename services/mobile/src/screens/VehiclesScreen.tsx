@@ -1,10 +1,10 @@
 /**
- * Implementa a tela de veículos (Task 10, lotes 10a–10b).
+ * Implementa a tela de veículos (Task 10, lotes 10a–10c).
  *
  * Existe para dar aos veículos uma rota interna sem criar aba nova: usa o
  * `ScreenShell` padrão, o `AppHeader` com voltar por callback e a
- * `BottomNavigation` com a aba profile de origem. A listagem chega pronta
- * por props (fixtures até F01/F05); detalhes, cadastro, edição, principal e
+ * `BottomNavigation` com a aba profile de origem. Listagem e detalhes chegam
+ * prontos por props (fixtures até F01/F05); cadastro, edição, principal e
  * remoção vêm nos lotes seguintes. Nada é calculado, buscado, persistido ou
  * decidido aqui. Sem CPF, CRLV, RENAVAM ou documentos no MVP.
  */
@@ -26,6 +26,14 @@ type VehiclesScreenProps = {
   onSelectVehicle?: (vehicleId: string) => void;
   /** Abre o cadastro; ausente omite o botão. */
   onOpenCreate?: () => void;
+  /** Detalhe do veículo selecionado; ausente mantém só a lista. */
+  selectedVehicle?: VehicleDetail | null;
+  /** Abre a edição do detalhe; ausente omite o botão. */
+  onEditVehicle?: (vehicleId: string) => void;
+  /** Solicita a remoção do detalhe; ausente omite o botão. */
+  onRemoveVehicle?: (vehicleId: string) => void;
+  /** Solicita tornar o detalhe principal; ausente omite o botão. */
+  onMakePrimary?: (vehicleId: string) => void;
 };
 
 /** Linha da lista de veículos; vem pronta do contrato. */
@@ -42,11 +50,39 @@ export type VehicleListItem = {
   isPrimary?: boolean | null;
 };
 
+/** Vínculo com o veículo, como no contrato (F05 futuro). */
+export type VehicleRelationship = 'OWNER' | 'DRIVER' | 'ADMIN';
+
+/** Detalhe do veículo selecionado; vem pronto do contrato. */
+export type VehicleDetail = {
+  /** Identificador estável do veículo. */
+  id: string;
+  /** Placa normalizada; imutável após o cadastro. */
+  licensePlate: string;
+  /** Marca; `null` omite a linha. */
+  brand?: string | null;
+  /** Modelo; `null` omite a linha. */
+  model?: string | null;
+  /** Ano do modelo; `null` omite a linha. */
+  modelYear?: number | null;
+  /** Principal da conta. */
+  isPrimary?: boolean | null;
+  /** Vínculo; `null` omite a linha. */
+  relationship?: VehicleRelationship | null;
+};
+
+/** Rótulos públicos de vínculo; o código cru nunca é exibido. */
+const RELATIONSHIP_LABELS: Record<VehicleRelationship, string> = {
+  ADMIN: 'Administrador',
+  DRIVER: 'Condutor',
+  OWNER: 'Proprietário',
+};
+
 /**
- * Apresenta cabeçalho e listagem dos veículos, delegando voltar, seleção,
- * cadastro e troca de aba por callbacks.
+ * Apresenta cabeçalho, listagem e detalhes dos veículos, delegando voltar,
+ * seleção, cadastro, edição, remoção, principal e troca de aba por callbacks.
  */
-export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate }: VehiclesScreenProps) {
+export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary }: VehiclesScreenProps) {
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -101,6 +137,54 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
             Nenhum veículo vinculado.
           </Text>
         )}
+
+        {selectedVehicle ? (
+          <View style={styles.listCard} testID="vehicles-detail">
+            <Text style={styles.plateText}>{selectedVehicle.licensePlate}</Text>
+            {selectedVehicle.brand ? (
+              <Text style={styles.modelText}>{selectedVehicle.brand}</Text>
+            ) : null}
+            {selectedVehicle.model ? (
+              <Text style={styles.modelText}>{selectedVehicle.model}</Text>
+            ) : null}
+            {selectedVehicle.modelYear != null ? (
+              <Text style={styles.modelText}>{`${selectedVehicle.modelYear}`}</Text>
+            ) : null}
+            {selectedVehicle.isPrimary ? (
+              <Text style={styles.primarySeal}>Principal</Text>
+            ) : null}
+            {selectedVehicle.relationship ? (
+              <Text style={styles.modelText}>{RELATIONSHIP_LABELS[selectedVehicle.relationship]}</Text>
+            ) : null}
+            {onEditVehicle ? (
+              <View style={styles.createButton}>
+                <PrimaryButton
+                  accessibilityLabel="Editar veículo"
+                  label="EDITAR"
+                  onPress={() => onEditVehicle?.(selectedVehicle.id)}
+                />
+              </View>
+            ) : null}
+            {onRemoveVehicle ? (
+              <View style={styles.createButton}>
+                <PrimaryButton
+                  accessibilityLabel="Remover veículo"
+                  label="REMOVER"
+                  onPress={() => onRemoveVehicle?.(selectedVehicle.id)}
+                />
+              </View>
+            ) : null}
+            {onMakePrimary && !selectedVehicle.isPrimary ? (
+              <View style={styles.createButton}>
+                <PrimaryButton
+                  accessibilityLabel="Tornar principal"
+                  label="TORNAR PRINCIPAL"
+                  onPress={() => onMakePrimary?.(selectedVehicle.id)}
+                />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </ScreenShell>
   );
@@ -120,6 +204,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   createButton: {
+    marginTop: 12,
     maxWidth: 350,
     width: '100%',
   },

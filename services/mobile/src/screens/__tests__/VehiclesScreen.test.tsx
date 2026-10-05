@@ -1,11 +1,11 @@
 /**
- * Testes unitários da tela de veículos (Task 10, lotes 10a–10b).
+ * Testes unitários da tela de veículos (Task 10, lotes 10a–10c).
  *
- * Existe para travar o scaffold visual, a rota interna e a listagem:
- * título, vazio inicial, linhas com placa, modelo e selo do principal e
- * atalho de cadastro, sem rede, cálculo ou persistência. Os dados chegam por
- * props (fixtures até F01/F05); vínculo, unicidade e remoção pertencem ao
- * backend. Sem CPF, CRLV, RENAVAM ou documentos no MVP.
+ * Existe para travar o scaffold visual, a rota interna, a listagem e os
+ * detalhes: título, vazio, linhas com selo do principal e card com dados
+ * crus e ações, sem rede, cálculo ou persistência. Os dados chegam por props
+ * (fixtures até F01/F05); vínculo, unicidade e remoção pertencem ao backend.
+ * Sem CPF, CRLV, RENAVAM ou documentos no MVP.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -71,5 +71,63 @@ describe('VehiclesScreen listagem (10b)', () => {
     fireEvent.press(getByRole('button', { name: 'Cadastrar veículo' }));
 
     expect(onOpenCreate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('VehiclesScreen detalhes (10c)', () => {
+  const SELECTED = {
+    brand: 'Marca A',
+    id: 'v1',
+    isPrimary: false,
+    licensePlate: 'ABC1D23',
+    model: 'Modelo X',
+    modelYear: 2026,
+    relationship: 'OWNER' as const,
+  };
+
+  /** Exibe o detalhe com dados crus e ações. */
+  it('exibe o detalhe quando informado', () => {
+    const { getByTestId, getByText } = render(
+      <VehiclesScreen selectedVehicle={SELECTED} />,
+    );
+
+    expect(getByTestId('vehicles-detail')).toBeTruthy();
+    expect(getByText('ABC1D23')).toBeTruthy();
+    expect(getByText('Marca A')).toBeTruthy();
+    expect(getByText('2026')).toBeTruthy();
+    expect(getByText('Proprietário')).toBeTruthy();
+  });
+
+  /** Aciona editar, remover e tornar principal por callbacks puros. */
+  it('notifica as ações do detalhe por callbacks', () => {
+    const onEditVehicle = jest.fn();
+    const onRemoveVehicle = jest.fn();
+    const onMakePrimary = jest.fn();
+    const { getByRole } = render(
+      <VehiclesScreen
+        onEditVehicle={onEditVehicle}
+        onMakePrimary={onMakePrimary}
+        onRemoveVehicle={onRemoveVehicle}
+        selectedVehicle={SELECTED}
+      />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Editar veículo' }));
+    fireEvent.press(getByRole('button', { name: 'Remover veículo' }));
+    fireEvent.press(getByRole('button', { name: 'Tornar principal' }));
+
+    expect(onEditVehicle).toHaveBeenCalledWith('v1');
+    expect(onRemoveVehicle).toHaveBeenCalledWith('v1');
+    expect(onMakePrimary).toHaveBeenCalledWith('v1');
+  });
+
+  /** Omite o detalhe sem seleção sem parecer falha. */
+  it('omite o detalhe sem seleção', () => {
+    const { getByTestId, queryByTestId } = render(
+      <VehiclesScreen items={[{ id: 'v1', isPrimary: false, licensePlate: 'ABC1D23' }]} />,
+    );
+
+    expect(getByTestId('vehicles-list')).toBeTruthy();
+    expect(queryByTestId('vehicles-detail')).toBeNull();
   });
 });

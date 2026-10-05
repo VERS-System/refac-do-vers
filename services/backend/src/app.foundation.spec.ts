@@ -175,6 +175,16 @@ describe('fundacao HTTP da aplicacao', () => {
     });
   });
 
+  it.each(['register', 'login', 'refresh', 'logout', 'logout-all'])('recusa CSRF multibyte em /auth/%s com envelope 403', async (route) => {
+    const response = await fetch(`${baseUrl}/api/v1/auth/${route}`, {
+      method: 'POST',
+      headers: { Origin: 'http://localhost:3001', Cookie: `vers_csrf=${'a'.repeat(64)}`, 'X-CSRF-Token': 'é'.repeat(64) },
+    });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ error: { code: 'AUTH_UNAUTHORIZED' } });
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
   it('emite CSRF e exige cookie, header e origem permitida nas mutações', async () => {
     const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
     expect(csrf.status).toBe(200);

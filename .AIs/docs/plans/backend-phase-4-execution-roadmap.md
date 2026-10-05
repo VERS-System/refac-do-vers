@@ -4,7 +4,7 @@
 
 ## Objetivo e estado
 
-**Lotes 01–07 implementados e validados; lote 07 pronto para revisão do programador.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` e `/auth/logout-all` estão
+**Lotes 01–08 implementados; lote 08 em revisão do programador.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` e `/auth/logout-all` estão
 registrados. Implementar as rotas `/auth/*` contratadas, sessões em cookies
 e proteção das rotas que forem entregues nas fases seguintes. Cada lote produz
 um diff pequeno, testes antes do código e revisão do programador. A IA não faz
@@ -16,7 +16,7 @@ commits, acessa `.env`, Neon ou serviços externos sem autorização específica
   [`openapi.yaml`](../Api/openapi.yaml) e `packages/shared-types`.
 - Fontes internas: `services/backend/prisma/schema.prisma`, `AppModule`,
   configuração de CORS, rate limit, auditoria e envelopes da F03.
-- `AuthModule`, controller, service e guards existentes têm zero bytes;
+- No baseline anterior à F04, `AuthModule`, controller, service e guards tinham zero bytes;
   `auth.config.ts` contém apenas `JWT_SECRET` e `JWT_EXPIRATION=7d`.
 - O schema já contém `User`, papéis globais e `RefreshSession` com hash,
   expiração, revogação e encadeamento. `User` nasce como
@@ -329,7 +329,7 @@ O lote 08 permanece pendente; F04 não foi marcada concluída.
 
 ### 08 — Fechamento da fase
 
-**Escopo:** conferir as cinco operações efetivas com OpenAPI e shared types,
+**Escopo:** conferir as seis operações efetivas com OpenAPI e shared types,
 eventos auditáveis, CORS/CSRF, cookie inacessível ao JavaScript e regressão da
 F03. Documentar limites da proteção WebSocket até existir canal real na F08.
 
@@ -341,6 +341,23 @@ e qualquer bloqueio de `pnpm`. **Saída:** F04 marcada concluída somente depois
 da revisão do programador e de todas as condições do critério de saída.
 
 ## Ordem e limites
+
+### Evidência do lote 08 — 05/10/2026
+
+Conferidas as seis operações de auth, status e envelopes com o controller e
+tipos compartilhados. Acrescentados tipos `CsrfResponse` e `LogoutAllRequest`,
+headers Origin/CSRF e respostas 403 ao OpenAPI. Referências locais do YAML
+resolvidas e cinco mutações conferidas. Corrigidos CSRF multibyte (RangeError)
+e envelope 403; política de auditoria cobre refresh/logout-all e valida resultado.
+
+Regressão HTTP cobre as cinco mutações com token malformado, sem cookies de
+sessão na recusa; testes existentes cobrem CORS, cookies, rotação/replay,
+revogação, autorização por recurso e fundação F03. Banco e Redis são doubles:
+não houve validação contra serviços reais. A política de auditoria está testada,
+mas emissão/persistência por operação ainda não foi conectada. Não se afirma
+auditoria persistente concluída. WebSocket aguarda canal real da F08.
+
+F04 permanece em andamento até revisão do programador e aceite dessas pendências.
 
 ```text
 F03 → 01 → decisões operacionais → 02 → 03 → 04 → 05 → 06 → 07 → 08 → F05

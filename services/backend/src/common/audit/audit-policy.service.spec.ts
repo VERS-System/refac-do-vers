@@ -3,6 +3,13 @@
 import { AuditPolicyService } from './audit-policy.service';
 
 describe('AuditPolicyService', () => {
+  it.each(['auth.refresh', 'auth.logout-all'])('aceita o evento de sessão %s sem payload', (action) => {
+    expect(new AuditPolicyService().createEvent({ action, resourceType: 'session', result: 'SUCCESS', payload: { token: 'segredo' } })).toEqual({ action, resourceType: 'session', result: 'SUCCESS', actorId: null, resourceId: null, requestId: null });
+  });
+
+  it('rejeita resultado inválido recebido em runtime', () => {
+    expect(() => new AuditPolicyService().createEvent({ action: 'auth.login', resourceType: 'session', result: 'INVALID' as 'SUCCESS' })).toThrow('Resultado de auditoria nao permitido');
+  });
   it('aceita somente eventos allowlist e campos persistiveis', () => {
     const service = new AuditPolicyService();
 

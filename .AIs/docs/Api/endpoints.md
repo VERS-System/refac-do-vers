@@ -423,7 +423,7 @@ existência de recursos de outra conta. Motivo ou filtro inválido retorna
 | `AUTH_INVALID_CREDENTIALS` | Login inválido sem enumerar usuários. |
 | `AUTH_INVALID_REFRESH_TOKEN` | Refresh cookie ausente, inválido ou expirado. |
 | `AUTH_SESSION_REVOKED` | Sessão já revogada. |
-| `AUTH_UNAUTHORIZED` | Recurso exige autenticação válida. |
+| `AUTH_UNAUTHORIZED` | Autenticação ausente/inválida (401) ou autorização/CSRF recusado (403). |
 | `CONFIGURATION_NOT_FOUND` | Configuração inexistente ou inacessível dentro da instalação. |
 | `CONFLICT` | Conflito transversal sem código de domínio mais específico. |
 | `INSTALLATION_NOT_FOUND` | Instalação inexistente ou não acessível ao usuário. |

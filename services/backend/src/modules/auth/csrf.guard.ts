@@ -37,7 +37,7 @@ export class CsrfGuard implements CanActivate {
       : null;
 
     if (!origin || !origins.includes(origin) || !token || !expected ||
-      token.length !== expected.length ||
+      !/^[a-f0-9]{64}$/.test(token) ||
       !timingSafeEqual(Buffer.from(token), Buffer.from(expected))) {
       throw new ForbiddenException('Solicitação não autorizada.');
     }

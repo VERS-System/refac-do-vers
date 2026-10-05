@@ -120,6 +120,24 @@ describe('RootNavigator (Task 00 - Item 4b)', () => {
     expect(queryByTestId('home-screen')).toBeNull();
   });
 
+  /** Abre os veículos pelo Perfil sem criar aba nova (10a). */
+  it('abre os veículos pelo Perfil e volta sem mudar as abas', () => {
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <RootNavigator isAuthenticated isSplashVisible={false} onAuthenticated={jest.fn()} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Perfil' }));
+    fireEvent.press(getByRole('button', { name: 'Meus veículos' }));
+
+    expect(getByTestId('vehicles-screen')).toBeTruthy();
+    expect(queryByTestId('profile-screen')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Voltar' }));
+
+    expect(getByTestId('profile-screen')).toBeTruthy();
+    expect(queryByTestId('vehicles-screen')).toBeNull();
+  });
+
   /** Exibe a fixture demo do perfil na rota sem backend (09b). */
   it('exibe os dados demo do perfil na rota', () => {
     const { getByRole, getByTestId, getByText, queryByTestId } = render(

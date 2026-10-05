@@ -1,11 +1,12 @@
 /**
- * Testes unitários da tela de veículos (Task 10, lotes 10a–10c).
+ * Testes unitários da tela de veículos (Task 10, lotes 10a–10d).
  *
- * Existe para travar o scaffold visual, a rota interna, a listagem e os
- * detalhes: título, vazio, linhas com selo do principal e card com dados
- * crus e ações, sem rede, cálculo ou persistência. Os dados chegam por props
- * (fixtures até F01/F05); vínculo, unicidade e remoção pertencem ao backend.
- * Sem CPF, CRLV, RENAVAM ou documentos no MVP.
+ * Existe para travar o scaffold visual, a rota interna, a listagem, os
+ * detalhes e o cadastro: título, vazio, linhas com selo do principal, card
+ * com dados e form só com os campos do contrato, sem rede, cálculo ou
+ * persistência. Os dados chegam por props (fixtures até F01/F05); vínculo,
+ * unicidade e remoção pertencem ao backend. Sem CPF, CRLV, RENAVAM ou
+ * documentos no MVP.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -129,5 +130,49 @@ describe('VehiclesScreen detalhes (10c)', () => {
 
     expect(getByTestId('vehicles-list')).toBeTruthy();
     expect(queryByTestId('vehicles-detail')).toBeNull();
+  });
+});
+
+describe('VehiclesScreen cadastro (10d)', () => {
+  /** Exibe o formulário com o rascunho informado e sem campos de documentos. */
+  it('exibe o formulário com o rascunho', () => {
+    const { getByDisplayValue, getByTestId, queryByLabelText } = render(
+      <VehiclesScreen vehicleDraft={{ brand: 'Marca A', licensePlate: 'ABC1D23' }} />,
+    );
+
+    expect(getByTestId('vehicles-form')).toBeTruthy();
+    expect(getByDisplayValue('ABC1D23')).toBeTruthy();
+    expect(getByDisplayValue('Marca A')).toBeTruthy();
+    expect(queryByLabelText('CPF')).toBeNull();
+    expect(queryByLabelText('Documento')).toBeNull();
+  });
+
+  /** Repassa a edição e o envio só com os campos do contrato. */
+  it('repassa a edição e o envio por callbacks', () => {
+    const onVehicleChange = jest.fn();
+    const onSubmitCreate = jest.fn();
+    const { getByLabelText, getByRole } = render(
+      <VehiclesScreen
+        onSubmitCreate={onSubmitCreate}
+        onVehicleChange={onVehicleChange}
+        vehicleDraft={{ licensePlate: '' }}
+      />,
+    );
+
+    fireEvent.changeText(getByLabelText('Placa'), 'ABC1D23');
+    expect(onVehicleChange).toHaveBeenCalledWith(expect.objectContaining({ licensePlate: 'ABC1D23' }));
+
+    fireEvent.press(getByRole('button', { name: 'Confirmar cadastro' }));
+    expect(onSubmitCreate).toHaveBeenCalledTimes(1);
+    expect(onSubmitCreate.mock.calls[0][0]).not.toHaveProperty('cpf');
+  });
+
+  /** Mantém o digitado sem callbacks (rota interna sem estado do pai). */
+  it('mantém o digitado sem callbacks', () => {
+    const { getByDisplayValue, getByLabelText } = render(<VehiclesScreen />);
+
+    fireEvent.changeText(getByLabelText('Placa'), 'ABC1D23');
+
+    expect(getByDisplayValue('ABC1D23')).toBeTruthy();
   });
 });

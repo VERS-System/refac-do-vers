@@ -1,16 +1,20 @@
 /**
- * Implementa a tela de veículos (Task 10, lotes 10a–10c).
+ * Implementa a tela de veículos (Task 10, lotes 10a–10d).
  *
  * Existe para dar aos veículos uma rota interna sem criar aba nova: usa o
  * `ScreenShell` padrão, o `AppHeader` com voltar por callback e a
- * `BottomNavigation` com a aba profile de origem. Listagem e detalhes chegam
- * prontos por props (fixtures até F01/F05); cadastro, edição, principal e
- * remoção vêm nos lotes seguintes. Nada é calculado, buscado, persistido ou
- * decidido aqui. Sem CPF, CRLV, RENAVAM ou documentos no MVP.
+ * `BottomNavigation` com a aba profile de origem. Listagem, detalhes e
+ * cadastro chegam por props (fixtures até F01/F05); sem rascunho, o form usa
+ * estado visual interno para não resetar o digitado na rota. Edição,
+ * principal e remoção vêm nos lotes seguintes. Só os 4 campos do contrato
+ * são repassados, sem validação de domínio e sem documentos. Nada é
+ * calculado, buscado, persistido ou decidido aqui.
  */
 
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
+import { AuthTextField } from '../components/AuthTextField';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
@@ -34,6 +38,12 @@ type VehiclesScreenProps = {
   onRemoveVehicle?: (vehicleId: string) => void;
   /** Solicita tornar o detalhe principal; ausente omite o botão. */
   onMakePrimary?: (vehicleId: string) => void;
+  /** Rascunho do cadastro; ausente usa estado visual interno. */
+  vehicleDraft?: Partial<VehicleDraft> | null;
+  /** Edição do rascunho; ausente só atualiza o modo interno. */
+  onVehicleChange?: (next: VehicleDraft) => void;
+  /** Envio do cadastro só com os campos do contrato. */
+  onSubmitCreate?: (draft: VehicleDraft) => void;
 };
 
 /** Linha da lista de veículos; vem pronta do contrato. */
@@ -78,11 +88,41 @@ const RELATIONSHIP_LABELS: Record<VehicleRelationship, string> = {
   OWNER: 'Proprietário',
 };
 
+/** Rascunho visual do cadastro; só os campos do contrato, sem validação. */
+export type VehicleDraft = {
+  licensePlate: string;
+  brand: string;
+  model: string;
+  modelYear: string;
+};
+
+/** Rascunho vazio exibido sem prop. */
+const EMPTY_VEHICLE: VehicleDraft = {
+  brand: '',
+  licensePlate: '',
+  model: '',
+  modelYear: '',
+};
+
 /**
- * Apresenta cabeçalho, listagem e detalhes dos veículos, delegando voltar,
- * seleção, cadastro, edição, remoção, principal e troca de aba por callbacks.
+ * Apresenta cabeçalho, listagem, detalhes e cadastro dos veículos,
+ * delegando voltar, seleção, cadastro, edição, remoção, principal e troca
+ * de aba por callbacks.
  */
-export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary }: VehiclesScreenProps) {
+export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary, vehicleDraft = null, onVehicleChange, onSubmitCreate }: VehiclesScreenProps) {
+  const [internalDraft, setInternalDraft] = useState<VehicleDraft>(EMPTY_VEHICLE);
+  const draft: VehicleDraft = vehicleDraft != null ? { ...EMPTY_VEHICLE, ...vehicleDraft } : internalDraft;
+
+  /** Repassa a edição do campo sem validar domínio e sem documentos. */
+  function changeVehicleField(field: keyof VehicleDraft, value: string) {
+    const next = { ...draft, [field]: value };
+
+    if (vehicleDraft == null) {
+      setInternalDraft(next);
+    }
+
+    onVehicleChange?.(next);
+  }
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -185,6 +225,48 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
             ) : null}
           </View>
         ) : null}
+
+        <View style={styles.listCard} testID="vehicles-form">
+          <AuthTextField
+            autoCapitalize="characters"
+            label="Placa:"
+            onChangeText={(value) => changeVehicleField('licensePlate', value)}
+            placeholder="ABC1D23"
+            value={draft.licensePlate}
+          />
+          <View style={styles.fieldGap}>
+            <AuthTextField
+              label="Marca:"
+              onChangeText={(value) => changeVehicleField('brand', value)}
+              placeholder="Marca do veículo"
+              value={draft.brand}
+            />
+          </View>
+          <View style={styles.fieldGap}>
+            <AuthTextField
+              label="Modelo:"
+              onChangeText={(value) => changeVehicleField('model', value)}
+              placeholder="Modelo do veículo"
+              value={draft.model}
+            />
+          </View>
+          <View style={styles.fieldGap}>
+            <AuthTextField
+              keyboardType="numeric"
+              label="Ano:"
+              onChangeText={(value) => changeVehicleField('modelYear', value)}
+              placeholder="2026"
+              value={draft.modelYear}
+            />
+          </View>
+          <View style={styles.createButton}>
+            <PrimaryButton
+              accessibilityLabel="Confirmar cadastro"
+              label="CADASTRAR VEÍCULO"
+              onPress={() => onSubmitCreate?.(draft)}
+            />
+          </View>
+        </View>
       </View>
     </ScreenShell>
   );
@@ -206,6 +288,10 @@ const styles = StyleSheet.create({
   createButton: {
     marginTop: 12,
     maxWidth: 350,
+    width: '100%',
+  },
+  fieldGap: {
+    marginTop: 12,
     width: '100%',
   },
   listCard: {

@@ -13,6 +13,7 @@ describe('createCorsConfig', () => {
       'https://app.vers.dev',
     ]);
     expect(config.credentials).toBe(true);
+    expect(config.allowedHeaders).toContain('x-csrf-token');
   });
 
   it('ignora separadores sem uma origem associada', () => {

@@ -12,9 +12,25 @@
 - Respostas incluem `requestId` para correlação.
 - Nenhuma resposta contém senha, access token ou refresh token.
 
-**Estado em 26/09/2026:** apenas `GET /health/live` e `GET /health/ready` estão
-registrados no backend. As demais rotas deste documento e do OpenAPI são
+**Estado em 05/10/2026:** `GET /health/live`, `GET /health/ready`,
+`GET /auth/csrf`, `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`,
+`POST /auth/logout` e `POST /auth/logout-all` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
 contratos aprovados para fases futuras.
+
+### Auditoria mínima de autenticação
+
+As cinco mutações de auth tentam persistir `auth.register`, `auth.login`,
+`auth.refresh`, `auth.logout` e `auth.logout-all`, com resultado SUCCESS/FAILURE
+e requestId. Não são copiados entrada, saída, senha, email, cookies ou tokens.
+Neste incremento actorId/resourceId ficam nulos. Cadastro novo e duplicado
+mantêm o mesmo evento de sucesso. GET csrf não gera evento.
+
+Por decisão do programador em 05/10/2026, falha de auditoria não bloqueia auth
+nem desfaz revogação. Gera log `audit_persistence_failed` com ação/requestId,
+sem causa interna. Não há retentativa ou garantia de entrega se o banco falhar.
+Recusas nos guards (CSRF e rate limit global) não passam pelo interceptor;
+validação de DTO e falhas do controller/service geram FAILURE. Nos handlers que
+finalizam a resposta 202/204 diretamente, a gravação pode terminar após o envio.
 
 ## Health checks
 
@@ -35,8 +51,9 @@ ao JavaScript. O access token autentica recursos protegidos. O refresh token é
 aceito apenas na renovação e no encerramento da sessão.
 
 Clientes devem enviar credenciais/cookies nas requisições. CORS aceitará
-credenciais somente das origens permitidas. A política `SameSite` e o mecanismo
-exato de proteção CSRF permanecem pendentes até a definição dos domínios finais.
+credenciais somente das origens permitidas. Cookies usam `SameSite=Lax`;
+mutações exigem `Origin` permitido e token CSRF em cookie e header. A integração
+de clientes nativos depende da definição de `Origin`.
 
 ## Envelopes
 
@@ -92,9 +109,27 @@ Erro:
 `GET /auth/csrf` retorna `data.csrfToken` e define o cookie de vínculo. O
 cliente envia o token em `X-CSRF-Token` nas mutações; o backend valida também
 `Origin`. O token CSRF não é um token de autenticação. Access JWT dura 15
-minutos e refresh JWT sete dias, com chaves distintas configuráveis. Cookies
+minutos e refresh JWT sete dias, com chaves distintas configuráveis. O access
+cookie usa `Path=/` e o refresh cookie usa `Path=/api/v1/auth`. Cookies
 de auth são `HttpOnly`, host-only e `SameSite=Lax`; `Secure` é obrigatório sob
 HTTPS. Domínios finais de produção seguem pendentes.
+Após o login, o cliente deve chamar novamente `GET /auth/csrf`: o novo token
+fica vinculado ao cookie de sessão. O token obtido antes do login deixa de
+servir para mutações autenticadas.
+Após `POST /auth/refresh`, o cliente também deve renovar o token CSRF antes
+da próxima mutação, pois os cookies de sessão foram trocados.
+
+Os cookies de autenticação se chamam `vers_access` e `vers_refresh`.
+Logout valida o refresh JWT e seu hash antes de revogar a sessão e seus
+sucessores. Repetir a chamada com o mesmo refresh ainda não expirado responde
+`204`; cookie ausente, token inválido/expirado ou sessão alheia responde `401`.
+Logout-all exige access JWT de conta ativa e sessão não revogada, e encerra as
+sessões dessa conta, incluindo sucessores de rotações concorrentes. Um novo
+login iniciado em paralelo não pertence necessariamente a esse conjunto.
+Ambas as rotas exigem Origin/CSRF e respondem `204` sem corpo, expirando
+os cookies com os mesmos paths e atributos da emissão. Falha de persistência
+não confirma logout nem emite cookies de limpeza. A verificação de revogação
+nas futuras rotas protegidas será ligada pelos guards do lote 07.
 
 ### Cadastro
 
@@ -109,7 +144,8 @@ HTTPS. Domínios finais de produção seguem pendentes.
 A senha deve possuir no mínimo oito caracteres, uma letra maiúscula, um
 caractere especial e nenhum espaço. A resposta é `202` sem corpo e sem cookies
 de sessão, tanto para email novo quanto para email já cadastrado. Uma conta
-nova permanece `PENDING_VERIFICATION` e com acesso restrito; a ativação será
+nova permanece `PENDING_VERIFICATION` e não pode fazer login nem acessar rotas
+autenticadas; a ativação será
 definida em fase futura. Nenhum email pode ser inferido pela resposta pública.
 
 ### Login
@@ -123,8 +159,37 @@ definida em fase futura. Nenhum email pode ser inferido pela resposta pública.
 
 Credenciais inválidas usam uma mensagem genérica e não confirmam se o email
 existe.
+Contas `PENDING_VERIFICATION` ou `BLOCKED` também não recebem sessão e usam
+erro público genérico. Após 8 senhas erradas, o login espera 15 minutos;
+após mais 4, espera 1 hora; após mais 2, bloqueia por 24 horas e libera
+automaticamente. Um login correto zera a contagem. Durante a espera, a API
+retorna `429`; se Redis estiver indisponível, retorna `503` sem iniciar sessão.
 
 ## Perfil
+
+### Proteção preparada na F04 — lote 07
+
+O `AuthModule` exporta `JwtAuthGuard`, `RolesGuard` e `ResourceAccessService`
+para as futuras rotas de domínio. Aplicar `@UseGuards(JwtAuthGuard, RolesGuard)`
+explicitamente; `@Roles('ADMIN')` exige papel global atual do banco e
+`@CurrentUser()` fornece apenas `id`, `sessionId` e `roles` internos.
+`@Public()` dispensa ambos os guards onde houver exceção pública explícita.
+A composição de estratégia e guards usa a integração documentada de
+[Passport no NestJS](https://docs.nestjs.com/recipes/passport).
+
+O guard aceita exclusivamente um `vers_access` com assinatura HS256, tipo
+access, UUIDs e expiração. A cada requisição verifica sessão persistida não
+revogada, não substituída e não expirada, além de conta `ACTIVE`. Refresh,
+bearer, query e claims de papel não concedem acesso. Falhas de autenticação
+retornam `401` com `AUTH_UNAUTHORIZED`; papel insuficiente retorna `403` com
+esse mesmo código existente. Os controllers de teste não são publicados.
+
+Veículos e instalações exigem vínculo da conta, inclusive para ADMIN global.
+Testes permitem o criador histórico ou vínculo atual pela instalação.
+Ausência e falta de acesso retornam o mesmo `404` de domínio. Os helpers
+preparam consultas de acesso; as F05–F06 devem verificar vínculos na própria
+consulta de dados e, nas escritas, dentro da transação para impedir corridas.
+Este lote não registra `/users`, `/vehicles`, `/installations` ou `/tests`.
 
 | Método | Rota | Acesso | Resultado |
 | --- | --- | --- | --- |
@@ -373,7 +438,7 @@ existência de recursos de outra conta. Motivo ou filtro inválido retorna
 | `AUTH_INVALID_CREDENTIALS` | Login inválido sem enumerar usuários. |
 | `AUTH_INVALID_REFRESH_TOKEN` | Refresh cookie ausente, inválido ou expirado. |
 | `AUTH_SESSION_REVOKED` | Sessão já revogada. |
-| `AUTH_UNAUTHORIZED` | Recurso exige autenticação válida. |
+| `AUTH_UNAUTHORIZED` | Autenticação ausente/inválida (401) ou autorização/CSRF recusado (403). |
 | `CONFIGURATION_NOT_FOUND` | Configuração inexistente ou inacessível dentro da instalação. |
 | `CONFLICT` | Conflito transversal sem código de domínio mais específico. |
 | `INSTALLATION_NOT_FOUND` | Instalação inexistente ou não acessível ao usuário. |

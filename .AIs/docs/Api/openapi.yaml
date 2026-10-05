@@ -73,6 +73,9 @@ paths:
                   requestId:
                     type: string
   /auth/register:
+    parameters:
+      - $ref: '#/components/parameters/AuthOrigin'
+      - $ref: '#/components/parameters/CsrfToken'
     post:
       tags: [Auth]
       summary: Aceita cadastro sem iniciar sessão e sem revelar se o email existe
@@ -86,9 +89,14 @@ paths:
       responses:
         '202':
           description: Solicitação aceita; resposta igual para email novo ou já cadastrado, sem body e sem cookies de sessão.
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '400':
           $ref: '#/components/responses/ValidationError'
   /auth/login:
+    parameters:
+      - $ref: '#/components/parameters/AuthOrigin'
+      - $ref: '#/components/parameters/CsrfToken'
     post:
       tags: [Auth]
       summary: Autentica usuário e inicia sessão
@@ -102,14 +110,28 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/Authenticated'
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          description: Espera temporária após tentativas incorretas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
   /auth/refresh:
+    parameters:
+      - $ref: '#/components/parameters/AuthOrigin'
+      - $ref: '#/components/parameters/CsrfToken'
     post:
       tags: [Auth]
       summary: Rotaciona a sessão usando somente o refresh cookie
+      description: Renovar CSRF após trocar cookies. Tokens no body ou header não são utilizados.
       security:
         - refreshCookie: []
       responses:
@@ -118,12 +140,18 @@ paths:
           headers:
             Set-Cookie:
               $ref: '#/components/headers/AuthenticationCookies'
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
   /auth/logout:
+    parameters:
+      - $ref: '#/components/parameters/AuthOrigin'
+      - $ref: '#/components/parameters/CsrfToken'
     post:
       tags: [Auth]
       summary: Revoga a sessão atual e limpa os cookies
+      description: Exige Origin e X-CSRF-Token. Repetição com refresh ainda válido é aceita; sucessores também são revogados.
       security:
         - refreshCookie: []
       responses:
@@ -132,12 +160,18 @@ paths:
           headers:
             Set-Cookie:
               $ref: '#/components/headers/AuthenticationCookies'
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
   /auth/logout-all:
+    parameters:
+      - $ref: '#/components/parameters/AuthOrigin'
+      - $ref: '#/components/parameters/CsrfToken'
     post:
       tags: [Auth]
       summary: Revoga todas as sessões do usuário
+      description: Exige Origin, X-CSRF-Token e access cookie de conta ativa com sessão não revogada.
       security:
         - accessCookie: []
       responses:
@@ -146,6 +180,8 @@ paths:
           headers:
             Set-Cookie:
               $ref: '#/components/headers/AuthenticationCookies'
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
   /users/me:
@@ -708,12 +744,12 @@ components:
     accessCookie:
       type: apiKey
       in: cookie
-      name: vers_access_token
+      name: vers_access
       description: JWT em cookie HttpOnly; Secure em produção.
     refreshCookie:
       type: apiKey
       in: cookie
-      name: vers_refresh_token
+      name: vers_refresh
       description: JWT rotativo em cookie HttpOnly; Secure em produção.
   headers:
     AuthenticationCookies:
@@ -723,6 +759,21 @@ components:
       schema:
         type: string
   parameters:
+    AuthOrigin:
+      name: Origin
+      in: header
+      required: true
+      description: Origem presente na allowlist configurada do backend.
+      schema:
+        type: string
+    CsrfToken:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      description: Token emitido por GET /auth/csrf, vinculado ao cookie vers_csrf e à sessão atual.
+      schema:
+        type: string
+        pattern: '^[a-f0-9]{64}$'
     Page:
       name: page
       in: query
@@ -873,6 +924,12 @@ components:
         type: string
         enum: [OPEN, IN_REVIEW, SCHEDULED, RESOLVED, CANCELLED]
   responses:
+    CsrfError:
+      description: Origem, cookie ou token CSRF inválido; código AUTH_UNAUTHORIZED.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
     Authenticated:
       description: Sessão iniciada; tokens disponíveis somente nos cookies.
       headers:

@@ -5,7 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="865a946e-6b71-4fdc-8dab-d05befb533f2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.AIs/docs/contexts/Context_12_09_2026.md" beforeDir="false" afterPath="$PROJECT_DIR$/.AIs/docs/contexts/Context_12_09_2026.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/backend/src/common/filters/http-exception.filter.spec.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/backend/src/common/filters/http-exception.filter.spec.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/backend/src/common/filters/http-exception.filter.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/backend/src/common/filters/http-exception.filter.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -15,10 +16,10 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 2,
-  "fromUser": false
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 2,
+  &quot;fromUser&quot;: false
+}</component>
   <component name="ProjectId" id="3JEbZRin5ynwUbuH3GScO5fzOi8" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -38,7 +39,8 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "python.packages.toolwindow.project.migrated.to.right.top.v2": "true"
+    "python.packages.toolwindow.project.migrated.to.right.top.v2": "true",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\PyCharm 2026.2.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external"
   }
 }]]></component>
   <component name="SharedIndexes">

@@ -23,6 +23,7 @@ type ExceptionResponseBody = {
 const STATUS_TO_CODE: Partial<Record<number, ApiErrorCode>> = {
   [HttpStatus.BAD_REQUEST]: 'VALIDATION_ERROR',
   [HttpStatus.UNAUTHORIZED]: 'AUTH_UNAUTHORIZED',
+  [HttpStatus.FORBIDDEN]: 'AUTH_UNAUTHORIZED',
   [HttpStatus.NOT_FOUND]: 'RESOURCE_NOT_FOUND',
   [HttpStatus.CONFLICT]: 'CONFLICT',
   [HttpStatus.TOO_MANY_REQUESTS]: 'RATE_LIMIT_EXCEEDED',

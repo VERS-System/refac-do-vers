@@ -14,6 +14,8 @@ import { envValidationSchema } from './config/env.config';
 import { createRateLimitConfig } from './config/rate-limit.config';
 import { AuditPolicyService } from './common/audit/audit-policy.service';
 import { HealthModule } from './modules/health/health.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { CsrfGuard } from './modules/auth/csrf.guard';
 
 @Module({
   imports: [
@@ -37,9 +39,11 @@ import { HealthModule } from './modules/health/health.module';
     }),
     PrismaModule,
     HealthModule,
+    AuthModule,
   ],
   providers: [
     AuditPolicyService,
+    { provide: APP_GUARD, useClass: CsrfGuard },
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

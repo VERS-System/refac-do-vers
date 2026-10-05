@@ -5,6 +5,8 @@ import { Injectable } from '@nestjs/common';
 type AuditResult = 'SUCCESS' | 'FAILURE';
 type AuditAction =
   | 'auth.login'
+  | 'auth.refresh'
+  | 'auth.logout-all'
   | 'auth.logout'
   | 'auth.register'
   | 'vehicle.create'
@@ -43,6 +45,8 @@ export interface SafeAuditEvent {
 
 const ALLOWED_ACTIONS = new Set<AuditAction>([
   'auth.login',
+  'auth.refresh',
+  'auth.logout-all',
   'auth.logout',
   'auth.register',
   'vehicle.create',
@@ -102,6 +106,9 @@ export class AuditPolicyService {
    * O campo `payload` e deliberadamente ignorado para nao armazenar segredos.
    */
   createEvent(input: AuditEventInput): SafeAuditEvent {
+    if (input.result !== 'SUCCESS' && input.result !== 'FAILURE') {
+      throw new Error('Resultado de auditoria nao permitido');
+    }
     return {
       action: toAllowedAction(input.action),
       resourceType: toAllowedResourceType(input.resourceType),

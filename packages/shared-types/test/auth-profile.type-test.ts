@@ -3,6 +3,8 @@
 import type {
   ApiSuccessResponse,
   AuthResponse,
+  CsrfResponse,
+  LogoutAllRequest,
   LoginRequest,
   LogoutRequest,
   RefreshTokenRequest,
@@ -27,6 +29,10 @@ const loginRequest: LoginRequest = {
 const refreshRequest: RefreshTokenRequest = {};
 
 const logoutRequest: LogoutRequest = refreshRequest;
+const logoutAllRequest: LogoutAllRequest = {};
+const csrfResponse: ApiSuccessResponse<CsrfResponse> = { data: { csrfToken: 'a'.repeat(64) }, requestId: 'request-csrf' };
+void logoutAllRequest;
+void csrfResponse;
 
 const profileUpdate: UpdateUserProfileRequest = {
   displayName: 'Ana Souza',

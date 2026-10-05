@@ -44,16 +44,26 @@ export const envValidationSchema = Joi.object({
   CORS_ORIGINS: Joi.string().trim().min(1).default(defaultCorsOrigins),
 
   // JWT
-  JWT_SECRET: Joi.string().min(16).required().messages({
-    'string.min': 'JWT_SECRET deve ter no mínimo 16 caracteres',
-    'any.required': 'JWT_SECRET é obrigatória',
+  JWT_ACCESS_SECRET: Joi.string().min(16).required().messages({
+    'string.min': 'JWT_ACCESS_SECRET deve ter no mínimo 16 caracteres',
+    'any.required': 'JWT_ACCESS_SECRET é obrigatória',
   }),
-  JWT_EXPIRATION: Joi.string()
+  JWT_REFRESH_SECRET: Joi.string().min(16).required(),
+  JWT_ACCESS_EXPIRATION: Joi.string()
     .trim()
-    .pattern(/^\d+[smhd]$/)
+    .pattern(/^[1-9]\d*[smhd]$/)
+    .default('15m'),
+  JWT_REFRESH_EXPIRATION: Joi.string()
+    .trim()
+    .pattern(/^[1-9]\d*[smhd]$/)
     .default('7d'),
 
   // Proteção básica contra excesso de requisições
   RATE_LIMIT_TTL_SECONDS: Joi.number().integer().positive().default(60),
   RATE_LIMIT_MAX_REQUESTS: Joi.number().integer().positive().default(100),
+}).custom((value: Record<string, unknown>, helpers) => {
+  if (value.JWT_ACCESS_SECRET === value.JWT_REFRESH_SECRET) {
+    return helpers.error('any.invalid');
+  }
+  return value;
 });

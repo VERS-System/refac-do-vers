@@ -1,6 +1,6 @@
 // Testes HTTP da fundacao REST versionada do backend.
 
-import { ConflictException, Controller, Get, HttpException, HttpStatus, INestApplication, Logger, Param, Post, Query, ServiceUnavailableException } from '@nestjs/common';
+import { ConflictException, Controller, Get, HttpException, HttpStatus, INestApplication, Logger, Param, Post, Query, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { Server } from 'http';
@@ -89,6 +89,7 @@ describe('fundacao HTTP da aplicacao', () => {
   let createUser: jest.SpyInstance;
   let findUser: jest.SpyInstance;
   let createSession: jest.SpyInstance;
+  let createAudit: jest.SpyInstance;
   const loginAttempts = {
     assertAllowed: jest.fn(),
     recordFailure: jest.fn().mockResolvedValue(0),
@@ -112,6 +113,7 @@ describe('fundacao HTTP da aplicacao', () => {
     createUser = jest.spyOn(prisma.user, 'create').mockResolvedValue({ id: 'user-id' } as never);
     findUser = jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(null);
     createSession = jest.spyOn(prisma.refreshSession, 'create').mockResolvedValue({ id: 'session-id' } as never);
+    createAudit = jest.spyOn(prisma.auditEvent, 'create').mockResolvedValue({ id: 'audit-id' } as never);
     jest.spyOn(prisma, '$disconnect').mockResolvedValue(undefined);
 
     const { AppModule } = await import('./app.module');
@@ -175,7 +177,45 @@ describe('fundacao HTTP da aplicacao', () => {
     });
   });
 
+  it.each([
+    ['register', 'register', 202], ['login', 'login', 200], ['refresh', 'refresh', 204],
+    ['logout', 'logout', 204], ['logout-all', 'logoutAll', 204],
+  ] as const)('persiste resultado e correlação HTTP de /auth/%s sem segredos', async (route, method, successStatus) => {
+    const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
+    const { data } = (await csrf.json()) as { data: { csrfToken: string } };
+    const headers = { Origin: 'http://localhost:3001', Cookie: (csrf.headers.get('set-cookie') ?? '').split(';')[0], 'X-CSRF-Token': data.csrfToken, 'Content-Type': 'application/json', 'X-Request-Id': `audit-${route}` };
+    const input = JSON.stringify({ email: 'synthetic@example.com', password: 'Senha@123456' });
+    const service = jest.spyOn(app.get(AuthService), method);
+    const result = method === 'login' ? { accessToken: 'synthetic-access', refreshToken: 'synthetic-refresh', user: {} } : method === 'refresh' ? { accessToken: 'synthetic-access', refreshToken: 'synthetic-refresh' } : undefined;
+    try {
+      createAudit.mockClear();
+      service.mockResolvedValue(result as never);
+      const success = await fetch(`${baseUrl}/api/v1/auth/${route}`, { method: 'POST', headers, body: input });
+      expect(success.status).toBe(successStatus);
+      // O controller pode finalizar 202/204 antes de o interceptor completar a gravação.
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(createAudit).toHaveBeenLastCalledWith({ data: { action: `auth.${route}`, resourceType: route === 'register' ? 'user' : 'session', result: 'SUCCESS', requestId: `audit-${route}`, actorId: null, resourceId: null } });
+
+      service.mockRejectedValue(new UnauthorizedException('synthetic-secret-error'));
+      const failure = await fetch(`${baseUrl}/api/v1/auth/${route}`, { method: 'POST', headers, body: input });
+      expect(failure.status).toBe(401);
+      expect(createAudit).toHaveBeenLastCalledWith({ data: { action: `auth.${route}`, resourceType: route === 'register' ? 'user' : 'session', result: 'FAILURE', requestId: `audit-${route}`, actorId: null, resourceId: null } });
+      expect(JSON.stringify(createAudit.mock.calls)).not.toMatch(/synthetic|Senha/);
+
+      service.mockResolvedValue(result as never);
+      createAudit.mockRejectedValueOnce(new Error('synthetic-secret-storage'));
+      const logger = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+      try {
+        const unavailable = await fetch(`${baseUrl}/api/v1/auth/${route}`, { method: 'POST', headers, body: input });
+        expect(unavailable.status).toBe(successStatus);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(logger).toHaveBeenCalledWith({ event: 'audit_persistence_failed', action: `auth.${route}`, requestId: `audit-${route}` });
+      } finally { logger.mockRestore(); }
+    } finally { service.mockRestore(); }
+  });
+
   it.each(['register', 'login', 'refresh', 'logout', 'logout-all'])('recusa CSRF multibyte em /auth/%s com envelope 403', async (route) => {
+    createAudit.mockClear();
     const response = await fetch(`${baseUrl}/api/v1/auth/${route}`, {
       method: 'POST',
       headers: { Origin: 'http://localhost:3001', Cookie: `vers_csrf=${'a'.repeat(64)}`, 'X-CSRF-Token': 'é'.repeat(64) },
@@ -183,6 +223,7 @@ describe('fundacao HTTP da aplicacao', () => {
     expect(response.status).toBe(403);
     expect(await response.json()).toMatchObject({ error: { code: 'AUTH_UNAUTHORIZED' } });
     expect(response.headers.get('set-cookie')).toBeNull();
+    expect(createAudit).not.toHaveBeenCalled();
   });
 
   it('emite CSRF e exige cookie, header e origem permitida nas mutações', async () => {

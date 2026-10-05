@@ -1,6 +1,6 @@
 // Publica CSRF, cadastro, login, renovação e encerramento de sessões HTTP.
 
-import { Body, Controller, ForbiddenException, Get, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, Post, Req, Res, UnauthorizedException, UseInterceptors } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { Request, Response } from 'express';
@@ -9,8 +9,10 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { clearSessionCookies, readCookie, setSessionCookies } from './auth.cookies';
 import { csrfToken as createCsrfToken } from './csrf.guard';
+import { AuthAuditInterceptor } from './auth-audit.interceptor';
 
 @Controller('auth')
+@UseInterceptors(AuthAuditInterceptor)
 export class AuthController {
   constructor(private readonly config: ConfigService, private readonly auth: AuthService) {}
 

@@ -10,11 +10,14 @@ import { JwtStrategy } from '../../common/strategies/jwt.strategy';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { ResourceAccessService } from './resource-access.service';
+import { AuditPolicyService } from '../../common/audit/audit-policy.service';
+import { AuditWriterService } from '../../common/audit/audit-writer.service';
+import { AuthAuditInterceptor } from './auth-audit.interceptor';
 
 @Module({
   imports: [JwtModule.register({}), PassportModule.register({ session: false })],
   controllers: [AuthController],
-  providers: [AuthService, LoginAttemptsService, JwtStrategy, JwtAuthGuard, RolesGuard, ResourceAccessService],
+  providers: [AuthService, LoginAttemptsService, JwtStrategy, JwtAuthGuard, RolesGuard, ResourceAccessService, AuditPolicyService, AuditWriterService, AuthAuditInterceptor],
   exports: [JwtAuthGuard, RolesGuard, ResourceAccessService],
 })
 export class AuthModule {}

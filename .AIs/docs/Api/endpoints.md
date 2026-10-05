@@ -12,10 +12,25 @@
 - Respostas incluem `requestId` para correlação.
 - Nenhuma resposta contém senha, access token ou refresh token.
 
-**Estado em 30/09/2026:** `GET /health/live`, `GET /health/ready`,
+**Estado em 05/10/2026:** `GET /health/live`, `GET /health/ready`,
 `GET /auth/csrf`, `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`,
 `POST /auth/logout` e `POST /auth/logout-all` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
 contratos aprovados para fases futuras.
+
+### Auditoria mínima de autenticação
+
+As cinco mutações de auth tentam persistir `auth.register`, `auth.login`,
+`auth.refresh`, `auth.logout` e `auth.logout-all`, com resultado SUCCESS/FAILURE
+e requestId. Não são copiados entrada, saída, senha, email, cookies ou tokens.
+Neste incremento actorId/resourceId ficam nulos. Cadastro novo e duplicado
+mantêm o mesmo evento de sucesso. GET csrf não gera evento.
+
+Por decisão do programador em 05/10/2026, falha de auditoria não bloqueia auth
+nem desfaz revogação. Gera log `audit_persistence_failed` com ação/requestId,
+sem causa interna. Não há retentativa ou garantia de entrega se o banco falhar.
+Recusas nos guards (CSRF e rate limit global) não passam pelo interceptor;
+validação de DTO e falhas do controller/service geram FAILURE. Nos handlers que
+finalizam a resposta 202/204 diretamente, a gravação pode terminar após o envio.
 
 ## Health checks
 

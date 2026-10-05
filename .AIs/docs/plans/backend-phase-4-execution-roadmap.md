@@ -353,11 +353,33 @@ e envelope 403; política de auditoria cobre refresh/logout-all e valida resulta
 Regressão HTTP cobre as cinco mutações com token malformado, sem cookies de
 sessão na recusa; testes existentes cobrem CORS, cookies, rotação/replay,
 revogação, autorização por recurso e fundação F03. Banco e Redis são doubles:
-não houve validação contra serviços reais. A política de auditoria está testada,
-mas emissão/persistência por operação ainda não foi conectada. Não se afirma
-auditoria persistente concluída. WebSocket aguarda canal real da F08.
+não houve validação contra serviços reais. Na entrega original do lote 08,
+emissão/persistência por operação ainda não estava conectada; complemento abaixo.
+WebSocket aguarda canal real da F08.
 
 F04 permanece em andamento até revisão do programador e aceite dessas pendências.
+
+### Complemento — auditoria de auth, 05/10/2026
+
+Implementados gravador Prisma e interceptor exclusivo do AuthController para os
+cinco eventos. A política sanitiza campos antes de `AuditEvent.create`; evento
+guarda ação, resultado e requestId, com actorId/resourceId nulos. Não há payload
+nem identidade extraída de cookie não validado. Cadastro duplicado é auditado
+igual ao novo. GET csrf e recusas de guards não entram no interceptor.
+
+Decisão do programador: falha da auditoria mantém autenticação e revogação,
+logando somente evento técnico, ação e requestId. Gravação separada da transação
+da sessão, sem rollback, fila ou retentativa. Respostas 202/204 podem ser enviadas
+antes de terminar a tentativa de auditoria. Plano: [auditoria de auth](backend-phase-4-auth-audit.md).
+
+TDD: testes novos falharam com módulos ausentes; cinco casos HTTP falharam por
+ausência de gravação antes da conexão do interceptor. GREEN: 22 suítes/139 testes,
+lint e build passaram. Banco/Redis simulados; nenhuma migration ou dependência
+alterada. pnpm.ps1 bloqueado por ExecutionPolicy; pnpm.cmd abortou tentativa de
+reinstalação sem TTY. Executados scripts locais via npm.cmd sem reinstalar.
+
+Implementação da F04 pronta para revisão/PR do programador; não marcada concluída
+automaticamente. F05 não iniciada e aguarda o PR conforme pedido explícito.
 
 ```text
 F03 → 01 → decisões operacionais → 02 → 03 → 04 → 05 → 06 → 07 → 08 → F05

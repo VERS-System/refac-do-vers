@@ -11,7 +11,11 @@
 import { useState } from 'react';
 import { AuthNavigator } from './AuthNavigator';
 import { BatteryScreen } from '../screens/BatteryScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
+import { TestsScreen } from '../screens/TestsScreen';
+import { VersSystemScreen } from '../screens/VersSystemScreen';
 import type { MainTab } from '../components/BottomNavigation';
 import { SplashScreen } from '../screens/SplashScreen';
 
@@ -24,23 +28,54 @@ type RootNavigatorProps = {
   onAuthenticated: () => void;
 };
 
+/** Fixture demo do perfil até o backend (F01/F05); nunca dado real. */
+const DEMO_PROFILE = {
+  avatarUrl: null,
+  displayName: 'Anna Newman',
+  email: 'anna@vers.com',
+};
+
 /**
  * Renderiza splash, autenticação ou a aba ativa da área autenticada conforme
  * o estado recebido, sem conter temporizador, sessão ou regra de acesso.
  */
 export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticated }: RootNavigatorProps) {
   const [activeTab, setActiveTab] = useState<MainTab>('home');
+  const [isHistoryVisible, setHistoryVisible] = useState(false);
+  const [isTestsVisible, setTestsVisible] = useState(false);
 
   if (isSplashVisible) {
     return <SplashScreen />;
   }
 
   if (isAuthenticated) {
-    if (activeTab === 'battery') {
-      return <BatteryScreen onTabPress={setActiveTab} />;
+    if (isTestsVisible) {
+      return <TestsScreen activeTab={activeTab} onBack={() => setTestsVisible(false)} onTabPress={setActiveTab} />;
     }
 
-    return <HomeScreen onTabPress={setActiveTab} />;
+    if (isHistoryVisible) {
+      return (
+        <HistoryScreen
+          onBack={() => setHistoryVisible(false)}
+          onOpenTests={() => setTestsVisible(true)}
+          onTabPress={setActiveTab}
+        />
+      );
+    }
+
+    if (activeTab === 'battery') {
+      return <BatteryScreen onOpenHistory={() => setHistoryVisible(true)} onTabPress={setActiveTab} />;
+    }
+
+    if (activeTab === 'vers') {
+      return <VersSystemScreen onOpenTests={() => setTestsVisible(true)} onTabPress={setActiveTab} />;
+    }
+
+    if (activeTab === 'profile') {
+      return <ProfileScreen onTabPress={setActiveTab} profile={DEMO_PROFILE} />;
+    }
+
+    return <HomeScreen onOpenVersSystem={() => setActiveTab('vers')} onTabPress={setActiveTab} />;
   }
 
   return <AuthNavigator onAuthenticated={onAuthenticated} />;

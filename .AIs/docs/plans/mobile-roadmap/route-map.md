@@ -21,7 +21,7 @@ splash → pública (Login ↔ Register) → autenticada (Home + abas)
 
 - **Pública** (`AuthNavigator`): Login inicial; Cadastro via link; retorno
   preserva a pilha. Transição `animation: 'none'`.
-- **Autenticada**: Home hoje; telas futuras entram nas abas abaixo sem mudar
+- **Autenticada**: Home e Bateria hoje; telas futuras entram nas abas abaixo sem mudar
   a estrutura.
 
 ## Abas principais (`navigation/tabs.ts`)
@@ -29,7 +29,7 @@ splash → pública (Login ↔ Register) → autenticada (Home + abas)
 | Ordem | Aba | Rótulo | Destino atual |
 | --- | --- | --- | --- |
 | 1 | `home` | Início | Home |
-| 2 | `battery` | Bateria | Home (tela própria na Task 05) |
+| 2 | `battery` | Bateria | Bateria e energia |
 | 3 | `vers` | VERS (central) | Home (tela própria na Task 07) |
 | 4 | `profile` | Perfil | Home (tela própria na Task 09) |
 

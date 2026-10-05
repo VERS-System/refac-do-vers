@@ -5,6 +5,8 @@
  * indicadores: a grade usa o calendário real (JS `Date`), os dias com dados
  * aparecem em destaque e o dia selecionado recebe o círculo. Datas e dados
  * chegam por props (fixtures até o F06/Task 06); o componente não busca nada.
+ * Os limites `minMonth`/`maxMonth` (base da Task 06) travam a navegação sem
+ * notificar; ausentes, a navegação é livre como na Task 05.
  */
 
 import { useState } from 'react';
@@ -27,6 +29,12 @@ function toIsoDate(year: number, month: number, day: number): string {
   return `${year}-${paddedMonth}-${paddedDay}`;
 }
 
+/** Limite mensal aceito (mês 0–11 + ano); ausente significa sem limite. */
+export type CalendarMonthLimit = {
+  month: number;
+  year: number;
+};
+
 type BatteryCalendarProps = {
   month?: number;
   year?: number;
@@ -34,6 +42,10 @@ type BatteryCalendarProps = {
   selectedDate?: string | null;
   /** Dias com dados, em destaque, no formato `YYYY-MM-DD`. */
   daysWithData?: string[];
+  /** Mês mínimo navegável; anterior a ele trava sem notificar. */
+  minMonth?: CalendarMonthLimit;
+  /** Mês máximo navegável; posterior a ele trava sem notificar. */
+  maxMonth?: CalendarMonthLimit;
   onSelectDay?: (isoDate: string) => void;
   onMonthChange?: (month: number, year: number) => void;
 };
@@ -47,6 +59,8 @@ export function BatteryCalendar({
   year: initialYear,
   selectedDate,
   daysWithData = [],
+  minMonth,
+  maxMonth,
   onSelectDay,
   onMonthChange,
 }: BatteryCalendarProps) {
@@ -62,13 +76,42 @@ export function BatteryCalendar({
     ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
   ];
 
+  /** Verdadeiro quando o mês exibido já é o mínimo aceito. */
+  const isAtMin =
+    minMonth != null &&
+    (year < minMonth.year || (year === minMonth.year && month <= minMonth.month));
+  /** Verdadeiro quando o mês exibido já é o máximo aceito. */
+  const isAtMax =
+    maxMonth != null &&
+    (year > maxMonth.year || (year === maxMonth.year && month >= maxMonth.month));
+
   /** Move o mês exibido, virando o ano nas bordas, e notifica o chamador. */
   function changeMonth(delta: number) {
     const next = new Date(year, month + delta, 1);
+    const nextMonth = next.getMonth();
+    const nextYear = next.getFullYear();
 
-    setMonth(next.getMonth());
-    setYear(next.getFullYear());
-    onMonthChange?.(next.getMonth(), next.getFullYear());
+    if (
+      delta < 0 &&
+      minMonth != null &&
+      (nextYear < minMonth.year ||
+        (nextYear === minMonth.year && nextMonth < minMonth.month))
+    ) {
+      return;
+    }
+
+    if (
+      delta > 0 &&
+      maxMonth != null &&
+      (nextYear > maxMonth.year ||
+        (nextYear === maxMonth.year && nextMonth > maxMonth.month))
+    ) {
+      return;
+    }
+
+    setMonth(nextMonth);
+    setYear(nextYear);
+    onMonthChange?.(nextMonth, nextYear);
   }
 
   /** Marca o dia como selecionado e notifica o chamador. */
@@ -89,6 +132,8 @@ export function BatteryCalendar({
           <Pressable
             accessibilityLabel="Mês anterior"
             accessibilityRole="button"
+            accessibilityState={{ disabled: isAtMin }}
+            disabled={isAtMin}
             hitSlop={8}
             onPress={() => changeMonth(-1)}
           >
@@ -97,6 +142,8 @@ export function BatteryCalendar({
           <Pressable
             accessibilityLabel="Próximo mês"
             accessibilityRole="button"
+            accessibilityState={{ disabled: isAtMax }}
+            disabled={isAtMax}
             hitSlop={8}
             onPress={() => changeMonth(1)}
           >

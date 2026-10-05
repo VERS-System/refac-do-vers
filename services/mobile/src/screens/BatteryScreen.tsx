@@ -60,6 +60,8 @@ type BatteryScreenProps = {
   onSelectDay?: (isoDate: string) => void;
   onExpandToday?: () => void;
   onRetry?: () => void;
+  /** Abre o histórico standalone (Task 06); ausente omite o atalho. */
+  onOpenHistory?: () => void;
   /** Estado visual atual; `success` e `partial` exibem os gráficos. */
   status?: BatteryStatus;
   /** Porcentagem recuperada do donut. */
@@ -89,6 +91,7 @@ export function BatteryScreen({
   onSelectDay,
   onExpandToday,
   onRetry,
+  onOpenHistory,
   status = 'success',
   recoveredPercentage = 65,
   hourlyData = DEFAULT_HOURLY,
@@ -288,6 +291,16 @@ export function BatteryScreen({
           <BatteryCalendar daysWithData={daysWithData} onSelectDay={onSelectDay} />
         </View>
       )}
+
+      {!isExpanded && onOpenHistory && (
+        <View style={styles.historyButton}>
+          <PrimaryButton
+            accessibilityLabel="Ver histórico"
+            label="VER HISTÓRICO"
+            onPress={() => onOpenHistory?.()}
+          />
+        </View>
+      )}
     </ScreenShell>
   );
 }
@@ -323,6 +336,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
+    maxWidth: 350,
+    width: '100%',
+  },
+  historyButton: {
+    marginTop: 18,
     maxWidth: 350,
     width: '100%',
   },

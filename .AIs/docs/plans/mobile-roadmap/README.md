@@ -12,14 +12,14 @@ negócio, segurança, persistência, cálculos e autorização pertencem ao back
 | --- | --- | --- | --- |
 | 00 | [Base visual e navegação](00-base-visual-navegacao.md) | Concluída | — |
 | 01 | [Splash](01-tela-splash.md) | Implementada | Task 00 |
-| 02 | [Login](02-tela-login.md) | Interface parcial | Tasks 00–01 |
-| 03 | [Cadastro](03-tela-cadastro.md) | Interface parcial | Task 02 |
-| 04 | [Home](04-tela-home.md) | Interface parcial | Tasks 00–03 |
-| 05 | [Bateria e energia](05-tela-bateria-energia.md) | Planejada | Task 04 |
-| 06 | [Calendário e histórico](06-tela-calendario-historico.md) | Planejada | Task 05 |
-| 07 | [Sistema VERS](07-tela-sistema-vers.md) | Planejada | Task 04 |
-| 08 | [Testes experimentais](08-telas-testes.md) | Planejada | Tasks 05 e 07 |
-| 09 | [Perfil](09-tela-perfil.md) | Planejada | Task 04 |
+| 02 | [Login](02-tela-login.md) | Concluída | Tasks 00–01 |
+| 03 | [Cadastro](03-tela-cadastro.md) | Concluída | Task 02 |
+| 04 | [Home](04-tela-home.md) | Concluída | Tasks 00–03 |
+| 05 | [Bateria e energia](05-tela-bateria-energia.md) | Concluída | Task 04 |
+| 06 | [Calendário e histórico](06-tela-calendario-historico.md) | Concluída | Task 05 |
+| 07 | [Sistema VERS](07-tela-sistema-vers.md) | Concluída | Task 04 |
+| 08 | [Testes experimentais](08-telas-testes.md) | Concluída | Tasks 05 e 07 |
+| 09 | [Perfil](09-tela-perfil.md) | Concluída | Task 04 |
 | 10 | [Veículos](10-telas-veiculos.md) | Planejada | Task 09 |
 | 11 | [Suporte e revisão](11-telas-suporte-revisao.md) | Planejada | Tasks 07 e 09 |
 | 12 | [Viber](12-tela-viber.md) | Planejada | Task 04 |

@@ -1,12 +1,13 @@
 /**
- * Testes unitários da tela de veículos (Task 10, lotes 10a–10f).
+ * Testes unitários da tela de veículos (Task 10, lotes 10a–10g).
  *
  * Existe para travar o scaffold visual, a rota interna, a listagem, os
- * detalhes, o cadastro, a edição e a remoção: título, vazio, linhas com
- * selo, card com dados, form do contrato, placa travada e confirmação com
- * substituto, sem rede, cálculo ou persistência. Os dados chegam por props
- * (fixtures até F01/F05); vínculo, unicidade e remoção pertencem ao backend.
- * Sem CPF, CRLV, RENAVAM ou documentos no MVP.
+ * detalhes, o cadastro, a edição, a remoção e os estados: título, vazio,
+ * linhas com selo, card com dados, form do contrato, placa travada,
+ * confirmação com substituto e estados visuais, sem rede, cálculo ou
+ * persistência. Os dados chegam por props (fixtures até F01/F05); vínculo,
+ * unicidade e remoção pertencem ao backend. Sem CPF, CRLV, RENAVAM ou
+ * documentos no MVP.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -321,8 +322,81 @@ describe('VehiclesScreen remoção (10f)', () => {
 
     expect(getByTestId('vehicles-conflict')).toBeTruthy();
     expect(getByText('Placa já cadastrada.')).toBeTruthy();
-    expect(
-      getByRole('button', { name: 'Remover veículo' }).props.accessibilityState,
+    expect(getByRole('button', { name: 'Remover veículo' }).props.accessibilityState,
     ).toEqual(expect.objectContaining({ disabled: true }));
+  });
+});
+
+describe('VehiclesScreen estados (10g)', () => {
+  const ITEM = { id: 'v1', isPrimary: true, licensePlate: 'ABC1D23', model: 'Modelo X' };
+
+  /** Exibe skeleton sem conteúdo no carregamento. */
+  it('exibe carregamento sem conteúdo', () => {
+    const { getByTestId, queryByTestId, queryByText } = render(
+      <VehiclesScreen items={[ITEM]} status="loading" />,
+    );
+
+    expect(getByTestId('vehicles-loading')).toBeTruthy();
+    expect(queryByTestId('vehicles-list')).toBeNull();
+    expect(queryByText('ABC1D23')).toBeNull();
+  });
+
+  /** Exibe erro com nova tentativa sem conteúdo. */
+  it('exibe erro e repete a carga ao tentar de novo', () => {
+    const onRetry = jest.fn();
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <VehiclesScreen items={[ITEM]} onRetry={onRetry} status="error" />,
+    );
+
+    expect(getByTestId('vehicles-error')).toBeTruthy();
+    expect(queryByTestId('vehicles-list')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('VehiclesScreen acessibilidade (10g)', () => {
+  /** Expõe nome+papel em todos os botões: voltar, cadastro, lista, detalhe, form e abas. */
+  it('expõe nome acessível em botões e atalhos', () => {
+    const { getAllByRole } = render(
+      <VehiclesScreen
+        items={[{ id: 'v1', isPrimary: false, licensePlate: 'ABC1D23', model: 'Modelo X' }]}
+        onBack={jest.fn()}
+        onOpenCreate={jest.fn()}
+        onSelectVehicle={jest.fn()}
+        selectedVehicle={{ id: 'v1', licensePlate: 'ABC1D23' }}
+      />,
+    );
+
+    const buttons = getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(9);
+
+    for (const button of buttons) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+  });
+
+  /** Informa o substituto selecionado ao leitor de tela. */
+  it('informa o substituto selecionado ao leitor de tela', () => {
+    const { getByRole } = render(
+      <VehiclesScreen
+        items={[
+          { id: 'v1', isPrimary: true, licensePlate: 'ABC1D23' },
+          { id: 'v2', isPrimary: false, licensePlate: 'XYZ9K88' },
+        ]}
+        onRemoveVehicle={jest.fn()}
+        replacementRequired
+        selectedVehicle={{ id: 'v1', licensePlate: 'ABC1D23' }}
+      />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Remover veículo' }));
+    fireEvent.press(getByRole('button', { name: 'Substituto: XYZ9K88' }));
+
+    expect(
+      getByRole('button', { name: 'Substituto: XYZ9K88' }).props.accessibilityState,
+    ).toEqual(expect.objectContaining({ selected: true }));
   });
 });

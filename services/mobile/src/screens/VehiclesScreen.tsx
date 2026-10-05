@@ -1,19 +1,21 @@
 /**
- * Implementa a tela de veículos (Task 10, lotes 10a–10f).
+ * Implementa a tela de veículos (Task 10, lotes 10a–10g).
  *
  * Existe para dar aos veículos uma rota interna sem criar aba nova: usa o
  * `ScreenShell` padrão, o `AppHeader` com voltar por callback e a
  * `BottomNavigation` com a aba profile de origem. Listagem, detalhes,
- * cadastro, edição e remoção chegam por props (fixtures até F01/F05); sem
- * props de controle, rascunho, confirmação e substituto usam estado visual
- * interno. Só os campos do contrato são repassados, sem validação de
- * domínio e sem documentos. Nada é calculado, buscado, persistido ou
- * decidido aqui; unicidade, vínculo e remoção atômica pertencem ao backend.
+ * cadastro, edição, remoção e estados chegam por props (fixtures até
+ * F01/F05); sem props de controle, rascunho, confirmação e substituto usam
+ * estado visual interno. Só os campos do contrato são repassados, sem
+ * validação de domínio e sem documentos. Nada é calculado, buscado,
+ * persistido ou decidido aqui; unicidade, vínculo e remoção atômica
+ * pertencem ao backend.
  */
 
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
+import { AppSkeleton } from '../components/AppSkeleton';
 import { AuthTextField } from '../components/AuthTextField';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -64,7 +66,14 @@ type VehiclesScreenProps = {
   conflictMessage?: string | null;
   /** Desabilita as ações do detalhe quando indisponível. */
   actionsDisabled?: boolean | null;
+  /** Estado visual atual; `success` exibe lista, detalhe e form. */
+  status?: VehicleScreenStatus;
+  /** Repete a carga no erro; ausente mantém o botão sem efeito. */
+  onRetry?: () => void;
 };
+
+/** Estados visuais dos veículos; a origem dos dados é do backend (F05 futuro). */
+export type VehicleScreenStatus = 'loading' | 'success' | 'empty' | 'error';
 
 /** Mutáveis do veículo; placa e id nunca entram. */
 export type VehicleUpdate = {
@@ -132,11 +141,11 @@ const EMPTY_VEHICLE: VehicleDraft = {
 };
 
 /**
- * Apresenta cabeçalho, listagem, detalhes e cadastro dos veículos,
- * delegando voltar, seleção, cadastro, edição, remoção, principal e troca
- * de aba por callbacks.
+ * Apresenta cabeçalho, listagem, detalhes, cadastro, remoção e estados dos
+ * veículos, delegando voltar, seleção, cadastro, edição, remoção, principal
+ * e troca de aba por callbacks.
  */
-export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary, vehicleDraft = null, onVehicleChange, onSubmitCreate, editingVehicle = null, onSubmitUpdate, onCancelEditVehicle, confirmingRemove = null, onRequestRemove, onConfirmRemove, onCancelRemove, replacementRequired = null, conflictMessage = null, actionsDisabled = null }: VehiclesScreenProps) {
+export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary, vehicleDraft = null, onVehicleChange, onSubmitCreate, editingVehicle = null, onSubmitUpdate, onCancelEditVehicle, confirmingRemove = null, onRequestRemove, onConfirmRemove, onCancelRemove, replacementRequired = null, conflictMessage = null, actionsDisabled = null, status = 'success', onRetry }: VehiclesScreenProps) {
   const [internalDraft, setInternalDraft] = useState<VehicleDraft>(EMPTY_VEHICLE);
   const [internalConfirming, setInternalConfirming] = useState(false);
   const [internalReplacement, setInternalReplacement] = useState<string | null>(null);
@@ -229,6 +238,52 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
 
     onCancelRemove?.();
   }
+
+  if (status === 'loading') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="profile" onTabPress={onTabPress} />}
+        testID="vehicles-screen"
+      >
+        <View
+          accessibilityLabel="Carregando"
+          accessibilityRole="progressbar"
+          style={styles.stateBlock}
+          testID="vehicles-loading"
+        >
+          <AppSkeleton height={120} />
+          <AppSkeleton height={140} />
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="profile" onTabPress={onTabPress} />}
+        testID="vehicles-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Não foi possível carregar os veículos. Tente novamente."
+            accessibilityRole="alert"
+            style={styles.emptyText}
+            testID="vehicles-error"
+          >
+            Não foi possível carregar os veículos. Tente novamente.
+          </Text>
+          <View style={styles.createButton}>
+            <PrimaryButton
+              accessibilityLabel="Tentar novamente"
+              label="TENTAR NOVAMENTE"
+              onPress={() => onRetry?.()}
+            />
+          </View>
+        </View>
+      </ScreenShell>
+    );
+  }
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
@@ -264,7 +319,7 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
           </View>
         ) : null}
 
-        {visibleItems.length > 0 ? (
+        {visibleItems.length > 0 && status !== 'empty' ? (
           <View style={styles.listCard} testID="vehicles-list">
             {visibleItems.map((item) => (
               <Pressable
@@ -473,6 +528,13 @@ const styles = StyleSheet.create({
     gap: 16,
     marginTop: 18,
     width: '100%',
+  },
+  stateBlock: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 16,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   createButton: {
     marginTop: 12,

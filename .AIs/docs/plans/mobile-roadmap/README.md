@@ -20,7 +20,7 @@ negócio, segurança, persistência, cálculos e autorização pertencem ao back
 | 07 | [Sistema VERS](07-tela-sistema-vers.md) | Concluída | Task 04 |
 | 08 | [Testes experimentais](08-telas-testes.md) | Concluída | Tasks 05 e 07 |
 | 09 | [Perfil](09-tela-perfil.md) | Concluída | Task 04 |
-| 10 | [Veículos](10-telas-veiculos.md) | Planejada | Task 09 |
+| 10 | [Veículos](10-telas-veiculos.md) | Concluída | Task 09 |
 | 11 | [Suporte e revisão](11-telas-suporte-revisao.md) | Planejada | Tasks 07 e 09 |
 | 12 | [Viber](12-tela-viber.md) | Planejada | Task 04 |
 | 13 | [Estados globais e entrega visual](13-estados-globais-entrega.md) | Planejada | Tasks 01–12 |

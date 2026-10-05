@@ -152,6 +152,30 @@ retorna `429`; se Redis estiver indisponível, retorna `503` sem iniciar sessão
 
 ## Perfil
 
+### Proteção preparada na F04 — lote 07
+
+O `AuthModule` exporta `JwtAuthGuard`, `RolesGuard` e `ResourceAccessService`
+para as futuras rotas de domínio. Aplicar `@UseGuards(JwtAuthGuard, RolesGuard)`
+explicitamente; `@Roles('ADMIN')` exige papel global atual do banco e
+`@CurrentUser()` fornece apenas `id`, `sessionId` e `roles` internos.
+`@Public()` dispensa ambos os guards onde houver exceção pública explícita.
+A composição de estratégia e guards usa a integração documentada de
+[Passport no NestJS](https://docs.nestjs.com/recipes/passport).
+
+O guard aceita exclusivamente um `vers_access` com assinatura HS256, tipo
+access, UUIDs e expiração. A cada requisição verifica sessão persistida não
+revogada, não substituída e não expirada, além de conta `ACTIVE`. Refresh,
+bearer, query e claims de papel não concedem acesso. Falhas de autenticação
+retornam `401` com `AUTH_UNAUTHORIZED`; papel insuficiente retorna `403` com
+esse mesmo código existente. Os controllers de teste não são publicados.
+
+Veículos e instalações exigem vínculo da conta, inclusive para ADMIN global.
+Testes permitem o criador histórico ou vínculo atual pela instalação.
+Ausência e falta de acesso retornam o mesmo `404` de domínio. Os helpers
+preparam consultas de acesso; as F05–F06 devem verificar vínculos na própria
+consulta de dados e, nas escritas, dentro da transação para impedir corridas.
+Este lote não registra `/users`, `/vehicles`, `/installations` ou `/tests`.
+
 | Método | Rota | Acesso | Resultado |
 | --- | --- | --- | --- |
 | `GET` | `/users/me` | Access cookie | Retorna o perfil autenticado. |

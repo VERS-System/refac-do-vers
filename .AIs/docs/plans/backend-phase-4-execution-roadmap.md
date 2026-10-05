@@ -4,7 +4,7 @@
 
 ## Objetivo e estado
 
-**Lotes 01–06 implementados e validados; lote 06 pronto para revisão do programador.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` e `/auth/logout-all` estão
+**Lotes 01–07 implementados e validados; lote 07 pronto para revisão do programador.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` e `/auth/logout-all` estão
 registrados. Implementar as rotas `/auth/*` contratadas, sessões em cookies
 e proteção das rotas que forem entregues nas fases seguintes. Cada lote produz
 um diff pequeno, testes antes do código e revisão do programador. A IA não faz
@@ -278,6 +278,28 @@ ensaio com PostgreSQL real segue pendente. Guards e fechamento são lotes 07–0
 
 ### 07 — Guards e autorização
 
+**Plano de execução — 03/10/2026:** implementar estratégia Passport JWT com
+extrator exclusivo do cookie `vers_access`, HS256 e expiração obrigatória.
+Consultar sessão persistida e conta ativa a cada acesso; papéis vêm do banco,
+nunca das claims. Exportar guards opt-in, decorators de papéis, rota pública
+e usuário atual pelo `AuthModule`; não instalar autenticação global nem
+publicar rotas sintéticas fora dos testes. Reutilizar `AUTH_UNAUTHORIZED` em
+401/403, com status 403 para papel insuficiente, sem ampliar o catálogo.
+Preparar consultas de vínculo para veículos, instalações e testes, mantendo
+404 indistinguível e acesso histórico pelo criador conforme contrato.
+ADMIN global não dispensa vínculo. As F05–F06 aplicarão esses componentes nas
+rotas reais; escritas deverão verificar vínculo dentro da própria transação.
+
+Arquivos deste lote: `common/strategies/jwt.strategy.ts`,
+`common/guards/{jwt-auth,roles}.guard.ts`,
+`common/decorators/{public,roles,current-user}.decorator.ts`,
+`modules/auth/auth-principal.ts`, `modules/auth/resource-access.service.ts`,
+`modules/auth/auth.service.ts`, `modules/auth/auth.module.ts` e
+`modules/auth/auth-authorization.spec.ts`; este plano, índice do backend,
+contrato humano e contexto diário. Primeiro comprovar RED no harness HTTP
+com JWT real e Prisma simulado; depois executar `test:unit`, lint e build.
+Não acessar `.env`, Neon, Redis real ou alterar dependências/schema.
+
 **Escopo:** ler access token somente do cookie, validar assinatura e estado da
 conta, separar rotas públicas/autenticadas/admin. Preparar checagem de vínculo
 do recurso em consulta/service; aplicá-la nas rotas reais da F05–F06.
@@ -288,6 +310,22 @@ do recurso em consulta/service; aplicá-la nas rotas reais da F05–F06.
 **RED → GREEN:** token ausente/alterado/expirado, conta bloqueada, papel
 insuficiente, recurso inexistente/alheio com mesma resposta `404`. **Saída:**
 guards testados e política de aplicação por rota documentada.
+
+**Execução — 03/10/2026:** estratégia Passport JWT e guards opt-in exportados.
+`vers_access` único é a única fonte do token; HS256, tipo access, UUIDs e
+expiração são obrigatórios. Sessão e conta são consultadas a cada acesso;
+revogação, substituição, expiração e conta não ativa impedem acesso. Papéis
+vêm do banco, com herança no controlador e sobrescrita por rota. Helpers de
+veículo/instalação/teste mantêm vínculo e consulta histórica do criador,
+sem bypass para ADMIN. Não há novas rotas de produção.
+
+Baseline: 18 suítes/89 testes. RED confirmou módulos/decorators ausentes.
+O harness precisou importar `AuthModule` diretamente para consumir seus
+providers exportados. GREEN final: `npm.cmd run test:unit`, 19 suítes/108
+testes, lint e build aprovados. JWTs reais, Prisma simulado e HTTP local;
+nenhum `.env`, banco real, serviço externo, migration ou dependência alterado.
+Ensaios de consultas SQL e concorrência real continuam para a integração.
+O lote 08 permanece pendente; F04 não foi marcada concluída.
 
 ### 08 — Fechamento da fase
 

@@ -5,6 +5,16 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { LoginAttemptsService } from './login-attempts.service';
+import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from '../../common/strategies/jwt.strategy';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { ResourceAccessService } from './resource-access.service';
 
-@Module({ imports: [JwtModule.register({})], controllers: [AuthController], providers: [AuthService, LoginAttemptsService] })
+@Module({
+  imports: [JwtModule.register({}), PassportModule.register({ session: false })],
+  controllers: [AuthController],
+  providers: [AuthService, LoginAttemptsService, JwtStrategy, JwtAuthGuard, RolesGuard, ResourceAccessService],
+  exports: [JwtAuthGuard, RolesGuard, ResourceAccessService],
+})
 export class AuthModule {}

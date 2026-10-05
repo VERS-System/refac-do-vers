@@ -14,7 +14,7 @@ arquitetura; estes documentos definem como executar cada fase.
 | 01 | [Contratos da API](01-contratos-api.md) | Concluída | Fase 00 |
 | 02 | [Schema e migrations](02-schema-migrations.md) | Concluída | Fase 01 |
 | 03 | [APIs e rotas](03-apis-rotas.md) | Concluída | Fase 02 |
-| 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Planejada | Fase 03 |
+| 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Em andamento — lotes 01–07 implementados; fechamento pendente | Fase 03 |
 | 05 | [Recursos de domínio](05-recursos-dominio.md) | Planejada | Fase 04 |
 | 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Planejada | Fase 05 |
 | 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Bloqueada pelo marco MQTT | Fase 06 + hardware/simulador |

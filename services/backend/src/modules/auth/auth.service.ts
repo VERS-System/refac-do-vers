@@ -12,6 +12,8 @@ import { durationMs } from './auth.cookies';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginAttemptsService } from './login-attempts.service';
+import { isUUID } from 'class-validator';
+import { AuthPrincipal } from './auth-principal';
 
 const DUMMY_HASH = '$2b$12$JgDN2CSA0FYYGIxtI3dQOusmGIJZ/T8LFZeNUWCAqrEEzUPZm3H5S';
 
@@ -26,6 +28,25 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
   ) {}
+
+  /** Valida claims já assinadas e consulta sessão/conta para revogar acesso imediatamente. */
+  async validateAccessClaims(payload: unknown): Promise<AuthPrincipal> {
+    if (!payload || typeof payload !== 'object') throw new UnauthorizedException();
+    const claims = payload as { sub?: unknown; sid?: unknown; typ?: unknown; exp?: unknown };
+    if (claims.typ !== 'access' || typeof claims.sub !== 'string' || !isUUID(claims.sub) ||
+      typeof claims.sid !== 'string' || !isUUID(claims.sid) ||
+      typeof claims.exp !== 'number' || !Number.isFinite(claims.exp) || claims.exp <= Date.now() / 1000) {
+      throw new UnauthorizedException();
+    }
+    const session = await this.prisma.refreshSession.findUnique({ where: { id: claims.sid } });
+    if (!session || session.userId !== claims.sub || session.revokedAt || session.replacedBySessionId ||
+      session.expiresAt <= new Date()) throw new UnauthorizedException();
+    const user = await this.prisma.user.findUnique({
+      where: { id: claims.sub }, select: { id: true, status: true, roles: { select: { role: true } } },
+    });
+    if (!user || user.status !== 'ACTIVE') throw new UnauthorizedException();
+    return { id: user.id, sessionId: session.id, roles: user.roles.map(({ role }) => role) };
+  }
 
   /** Persiste hash e papel padrão numa operação atômica; duplicidade é indistinguível. */
   async register(input: RegisterDto): Promise<void> {

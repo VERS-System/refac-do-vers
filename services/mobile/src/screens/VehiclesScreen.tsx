@@ -44,6 +44,19 @@ type VehiclesScreenProps = {
   onVehicleChange?: (next: VehicleDraft) => void;
   /** Envio do cadastro só com os campos do contrato. */
   onSubmitCreate?: (draft: VehicleDraft) => void;
+  /** Veículo em edição; presente liga o modo de edição com placa travada. */
+  editingVehicle?: VehicleDetail | null;
+  /** Envio da edição só com mutáveis, sem placa e sem id. */
+  onSubmitUpdate?: (changes: VehicleUpdate) => void;
+  /** Cancela a edição e descarta o rascunho. */
+  onCancelEditVehicle?: () => void;
+};
+
+/** Mutáveis do veículo; placa e id nunca entram. */
+export type VehicleUpdate = {
+  brand: string;
+  model: string;
+  modelYear: string;
 };
 
 /** Linha da lista de veículos; vem pronta do contrato. */
@@ -109,9 +122,21 @@ const EMPTY_VEHICLE: VehicleDraft = {
  * delegando voltar, seleção, cadastro, edição, remoção, principal e troca
  * de aba por callbacks.
  */
-export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary, vehicleDraft = null, onVehicleChange, onSubmitCreate }: VehiclesScreenProps) {
+export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary, vehicleDraft = null, onVehicleChange, onSubmitCreate, editingVehicle = null, onSubmitUpdate, onCancelEditVehicle }: VehiclesScreenProps) {
   const [internalDraft, setInternalDraft] = useState<VehicleDraft>(EMPTY_VEHICLE);
-  const draft: VehicleDraft = vehicleDraft != null ? { ...EMPTY_VEHICLE, ...vehicleDraft } : internalDraft;
+  const isEditingVehicle = editingVehicle != null;
+  const editBase: VehicleDraft = {
+    brand: editingVehicle?.brand ?? '',
+    licensePlate: editingVehicle?.licensePlate ?? '',
+    model: editingVehicle?.model ?? '',
+    modelYear: editingVehicle?.modelYear != null ? `${editingVehicle.modelYear}` : '',
+  };
+  const draft: VehicleDraft =
+    vehicleDraft != null
+      ? { ...EMPTY_VEHICLE, ...vehicleDraft }
+      : internalDraft === EMPTY_VEHICLE && isEditingVehicle
+        ? editBase
+        : internalDraft;
 
   /** Repassa a edição do campo sem validar domínio e sem documentos. */
   function changeVehicleField(field: keyof VehicleDraft, value: string) {
@@ -122,6 +147,11 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
     }
 
     onVehicleChange?.(next);
+  }
+
+  /** Envia a edição só com mutáveis, sem placa e sem id. */
+  function submitUpdate() {
+    onSubmitUpdate?.({ brand: draft.brand, model: draft.model, modelYear: draft.modelYear });
   }
   return (
     <ScreenShell
@@ -227,13 +257,17 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
         ) : null}
 
         <View style={styles.listCard} testID="vehicles-form">
-          <AuthTextField
-            autoCapitalize="characters"
-            label="Placa:"
-            onChangeText={(value) => changeVehicleField('licensePlate', value)}
-            placeholder="ABC1D23"
-            value={draft.licensePlate}
-          />
+          {isEditingVehicle ? (
+            <Text style={styles.plateText}>{draft.licensePlate}</Text>
+          ) : (
+            <AuthTextField
+              autoCapitalize="characters"
+              label="Placa:"
+              onChangeText={(value) => changeVehicleField('licensePlate', value)}
+              placeholder="ABC1D23"
+              value={draft.licensePlate}
+            />
+          )}
           <View style={styles.fieldGap}>
             <AuthTextField
               label="Marca:"
@@ -259,13 +293,32 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
               value={draft.modelYear}
             />
           </View>
-          <View style={styles.createButton}>
-            <PrimaryButton
-              accessibilityLabel="Confirmar cadastro"
-              label="CADASTRAR VEÍCULO"
-              onPress={() => onSubmitCreate?.(draft)}
-            />
-          </View>
+          {isEditingVehicle ? (
+            <>
+              <View style={styles.createButton}>
+                <PrimaryButton
+                  accessibilityLabel="Salvar alterações"
+                  label="SALVAR ALTERAÇÕES"
+                  onPress={submitUpdate}
+                />
+              </View>
+              <View style={styles.createButton}>
+                <PrimaryButton
+                  accessibilityLabel="Cancelar edição"
+                  label="CANCELAR"
+                  onPress={() => onCancelEditVehicle?.()}
+                />
+              </View>
+            </>
+          ) : (
+            <View style={styles.createButton}>
+              <PrimaryButton
+                accessibilityLabel="Confirmar cadastro"
+                label="CADASTRAR VEÍCULO"
+                onPress={() => onSubmitCreate?.(draft)}
+              />
+            </View>
+          )}
         </View>
       </View>
     </ScreenShell>

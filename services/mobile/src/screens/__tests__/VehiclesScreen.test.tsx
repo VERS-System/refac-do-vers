@@ -1,12 +1,12 @@
 /**
- * Testes unitários da tela de veículos (Task 10, lotes 10a–10d).
+ * Testes unitários da tela de veículos (Task 10, lotes 10a–10e).
  *
  * Existe para travar o scaffold visual, a rota interna, a listagem, os
- * detalhes e o cadastro: título, vazio, linhas com selo do principal, card
- * com dados e form só com os campos do contrato, sem rede, cálculo ou
- * persistência. Os dados chegam por props (fixtures até F01/F05); vínculo,
- * unicidade e remoção pertencem ao backend. Sem CPF, CRLV, RENAVAM ou
- * documentos no MVP.
+ * detalhes, o cadastro e a edição: título, vazio, linhas com selo, card com
+ * dados, form de cadastro e modo de edição com placa travada, sem rede,
+ * cálculo ou persistência. Os dados chegam por props (fixtures até F01/F05);
+ * vínculo, unicidade e remoção pertencem ao backend. Sem CPF, CRLV, RENAVAM
+ * ou documentos no MVP.
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -174,5 +174,61 @@ describe('VehiclesScreen cadastro (10d)', () => {
     fireEvent.changeText(getByLabelText('Placa'), 'ABC1D23');
 
     expect(getByDisplayValue('ABC1D23')).toBeTruthy();
+  });
+});
+
+describe('VehiclesScreen edição (10e)', () => {
+  const EDITING = {
+    brand: 'Marca A',
+    id: 'v1',
+    licensePlate: 'ABC1D23',
+    model: 'Modelo X',
+    modelYear: 2026,
+  };
+
+  /** Exibe a placa travada e os mutáveis editáveis com valores atuais. */
+  it('edita com placa travada e mutáveis preenchidos', () => {
+    const { getByDisplayValue, getByText, queryByLabelText } = render(
+      <VehiclesScreen editingVehicle={EDITING} />,
+    );
+
+    expect(getByText('ABC1D23')).toBeTruthy();
+    expect(queryByLabelText('Placa')).toBeNull();
+    expect(getByDisplayValue('Marca A')).toBeTruthy();
+    expect(getByDisplayValue('2026')).toBeTruthy();
+  });
+
+  /** Salva repassando só mutáveis, sem placa e sem id. */
+  it('salva repassando só mutáveis', () => {
+    const onSubmitUpdate = jest.fn();
+    const { getByLabelText, getByRole } = render(
+      <VehiclesScreen editingVehicle={EDITING} onSubmitUpdate={onSubmitUpdate} />,
+    );
+
+    fireEvent.changeText(getByLabelText('Marca'), 'Marca B');
+    fireEvent.press(getByRole('button', { name: 'Salvar alterações' }));
+
+    const payload = onSubmitUpdate.mock.calls[0][0];
+    expect(payload).toEqual({ brand: 'Marca B', model: 'Modelo X', modelYear: '2026' });
+    expect(payload).not.toHaveProperty('licensePlate');
+    expect(payload).not.toHaveProperty('id');
+  });
+
+  /** Cancela sem salvar e avisa o chamador. */
+  it('cancela a edição sem salvar', () => {
+    const onCancelEditVehicle = jest.fn();
+    const onSubmitUpdate = jest.fn();
+    const { getByRole } = render(
+      <VehiclesScreen
+        editingVehicle={EDITING}
+        onCancelEditVehicle={onCancelEditVehicle}
+        onSubmitUpdate={onSubmitUpdate}
+      />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Cancelar edição' }));
+
+    expect(onCancelEditVehicle).toHaveBeenCalledTimes(1);
+    expect(onSubmitUpdate).not.toHaveBeenCalled();
   });
 });

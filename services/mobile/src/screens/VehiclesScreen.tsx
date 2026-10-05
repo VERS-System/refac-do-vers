@@ -140,6 +140,8 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
   const [internalDraft, setInternalDraft] = useState<VehicleDraft>(EMPTY_VEHICLE);
   const [internalConfirming, setInternalConfirming] = useState(false);
   const [internalReplacement, setInternalReplacement] = useState<string | null>(null);
+  const [internalCreated, setInternalCreated] = useState<VehicleListItem[]>([]);
+  const visibleItems = [...internalCreated, ...items];
   const isConfirmingRemove = confirmingRemove ?? internalConfirming;
   const isActionsDisabled = actionsDisabled ?? false;
   const isEditingVehicle = editingVehicle != null;
@@ -165,6 +167,24 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
     }
 
     onVehicleChange?.(next);
+  }
+
+  /** Envia o cadastro; sem callback, guarda na lista visual local. */
+  function submitCreate() {
+    if (onSubmitCreate == null) {
+      const created: VehicleListItem = {
+        brand: draft.brand || null,
+        id: `local-${Date.now()}`,
+        isPrimary: false,
+        licensePlate: draft.licensePlate.trim() || 'SEM PLACA',
+        model: draft.model || null,
+      };
+
+      setInternalCreated((previous) => [created, ...previous]);
+      setInternalDraft(EMPTY_VEHICLE);
+    }
+
+    onSubmitCreate?.(draft);
   }
 
   /** Envia a edição só com mutáveis, sem placa e sem id. */
@@ -244,9 +264,9 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
           </View>
         ) : null}
 
-        {items.length > 0 ? (
+        {visibleItems.length > 0 ? (
           <View style={styles.listCard} testID="vehicles-list">
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <Pressable
                 accessibilityLabel={`${item.licensePlate} ${item.model ?? ''}`.trim()}
                 accessibilityRole="button"
@@ -326,7 +346,7 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
                 <Text style={styles.confirmText}>Remover este veículo?</Text>
                 {replacementRequired ? (
                   <View style={styles.optionRow}>
-                    {items
+                    {visibleItems
                       .filter((item) => item.id !== selectedVehicle.id)
                       .map((item) => (
                         <Pressable
@@ -431,7 +451,7 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
               <PrimaryButton
                 accessibilityLabel="Confirmar cadastro"
                 label="CADASTRAR VEÍCULO"
-                onPress={() => onSubmitCreate?.(draft)}
+                onPress={submitCreate}
               />
             </View>
           )}

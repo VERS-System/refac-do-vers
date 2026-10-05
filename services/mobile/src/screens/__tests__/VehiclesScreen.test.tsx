@@ -175,6 +175,23 @@ describe('VehiclesScreen cadastro (10d)', () => {
 
     expect(getByDisplayValue('ABC1D23')).toBeTruthy();
   });
+
+  /** Cria sem callbacks e exibe na lista com o form limpo. */
+  it('cria sem callbacks e exibe na lista', () => {
+    const { getByLabelText, getByRole, getByTestId, getByText, queryByTestId } = render(
+      <VehiclesScreen />,
+    );
+
+    expect(queryByTestId('vehicles-list')).toBeNull();
+
+    fireEvent.changeText(getByLabelText('Placa'), 'ABC1D23');
+    fireEvent.changeText(getByLabelText('Modelo'), 'Modelo X');
+    fireEvent.press(getByRole('button', { name: 'Confirmar cadastro' }));
+
+    expect(getByTestId('vehicles-list')).toBeTruthy();
+    expect(getByText('ABC1D23')).toBeTruthy();
+    expect(queryByTestId('vehicles-empty')).toBeNull();
+  });
 });
 
 describe('VehiclesScreen edição (10e)', () => {

@@ -332,6 +332,13 @@ acesso. Parâmetros ou filtros inválidos retornam `VALIDATION_ERROR`.
 
 ## Testes experimentais
 
+F05 lote 5 implementa GET/POST `/tests` e GET `/tests/{testId}`. Transições
+start/finish/cancel permanecem no lote 6. POST exige Origin permitido e CSRF.
+Instalação ausente/alheia usa `INSTALLATION_NOT_FOUND`; configuração ausente
+ou de outra instalação usa `CONFIGURATION_NOT_FOUND`. Instalação não ativa
+retorna `INSTALLATION_STATE_CONFLICT` (409). Conta, veículo e instalação são
+bloqueados antes de criar o snapshot. Texto vazio ou só espaços é inválido.
+
 As rotas exigem access cookie. O usuário pode criar testes para uma instalação
 de veículo a que tem acesso e consultar os testes que criou ou aos quais ainda
 tem acesso pela instalação. Após excluir um veículo, os testes criados continuam

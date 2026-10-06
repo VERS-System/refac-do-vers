@@ -131,3 +131,23 @@ de configurações vazia. Dispositivo público não inclui UID/serial/credenciai
 TDD: 22 casos RED antes das rotas; GREEN 25 suítes/236 testes no backend.
 Lint, build e diff --check aprovados; sem banco externo, schema ou dependências.
 Próximo lote: planejamento, listagem e detalhe de testes experimentais.
+
+## Lote 5 — plano
+
+Criar modules/tests (DTOs/service/controller/module/teste HTTP), registrar
+AppModule; exportar validadores UTC existentes em common/dto/pagination.dto.ts
+para reutilização com paginação. Atualizar contratos/índice/contexto.
+GET/POST tests e GET tests/:id; transições ficam no lote 6.
+DTO estrito: UUIDs, enums, texto não vazio 120/160, notes nullable máximo 1000,
+peso nullable finito maior que zero; preservar tipos originais sem coerção.
+Listar/detalhar com OR criador ou vínculo atual pela instalação, inclusive ADMIN.
+Paginação 1/20 máximo 100; createdAt desc/id asc, filtros installationId/status
+e intervalo startedAt UTC [from,to); reaproveitar validadores, sem novas regras.
+Lista usa RepeatableRead para linhas/contagem. Projeção explícita pública sem
+vehicleId/placa. Criação transacional: bloquear conta, depois veículo/instalação
+acessível; ler montagem/configuração própria, exigir instalação ACTIVE (409
+INSTALLATION_STATE_CONFLICT), configuração correspondente (404), gravar PLANNED
+e criador/snapshot do servidor. Configuração imutável; modelo/local/piezos/versão
+preservados sem placa. Sem migration/dependência. Testes HTTP RED/GREEN antes
+do código, guards/CSRF/validação, acesso/histórico, snapshot e falhas. Regressão
+test:unit, lint/build, diff --check; concorrência PostgreSQL real não simulada.

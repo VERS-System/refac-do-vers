@@ -19,6 +19,7 @@ import { CsrfGuard } from './modules/auth/csrf.guard';
 import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { InstallationsModule } from './modules/installations/installations.module';
+import { TestsModule } from './modules/tests/tests.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { InstallationsModule } from './modules/installations/installations.modul
     UsersModule,
     VehiclesModule,
     InstallationsModule,
+    TestsModule,
   ],
   providers: [
     AuditPolicyService,

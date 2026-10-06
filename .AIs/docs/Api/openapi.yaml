@@ -484,6 +484,10 @@ paths:
     post:
       tags: [Tests]
       summary: Cria teste planejado
+      description: Snapshot atribuído pelo servidor; instalação não ativa retorna INSTALLATION_STATE_CONFLICT.
+      parameters:
+        - $ref: '#/components/parameters/AuthOrigin'
+        - $ref: '#/components/parameters/CsrfToken'
       security:
         - accessCookie: []
       requestBody:
@@ -499,6 +503,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestResponse'
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -522,6 +528,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':

@@ -151,3 +151,14 @@ e criador/snapshot do servidor. Configuração imutável; modelo/local/piezos/ve
 preservados sem placa. Sem migration/dependência. Testes HTTP RED/GREEN antes
 do código, guards/CSRF/validação, acesso/histórico, snapshot e falhas. Regressão
 test:unit, lint/build, diff --check; concorrência PostgreSQL real não simulada.
+
+### Lote 5 entregue — 06/10/2026
+
+GET/POST tests e GET tests/:id registrados via TestsModule. Criação bloqueia
+conta e veículo/instalação acessível, valida ACTIVE/configuração e grava snapshot
+sem identificadores de placa. Consultas usam criador ou vínculo atual, mantendo
+histórico após exclusão. Reutilizados os validadores UTC com exports no DTO comum.
+TDD: 41 casos RED antes da implementação; mais dois casos de recurso desaparecido
+no bloqueio; GREEN final 26 suítes/279 testes. Lint/build/diff --check aprovados.
+Sem dependência/migration/banco externo. Próximo lote 6: start/finish/cancel.
+Locks, rollback e cascatas ainda requerem ensaio contra PostgreSQL real.

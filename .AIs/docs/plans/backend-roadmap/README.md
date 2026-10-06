@@ -52,5 +52,6 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Plano executável da Fase 3](../backend-phase-3-execution-roadmap.md)
 - [Plano executável da Fase 4](../backend-phase-4-execution-roadmap.md)
 - [Plano executável da Fase 5](../backend-phase-5-execution-roadmap.md)
+- [Proposta de plano executável da Fase 6 — aguardando validação](../backend-phase-6-execution-roadmap.md)
 - [Schema v2 proposto](../schema-mobile-mqtt.md)
 - [Roadmap estratégico de Backend e MQTT](../backend-mqtt-roadmap.md)

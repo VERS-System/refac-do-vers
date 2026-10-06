@@ -12,7 +12,7 @@
 - Respostas incluem `requestId` para correlação.
 - Nenhuma resposta contém senha, access token ou refresh token.
 
-**Estado em 05/10/2026:** `GET /health/live`, `GET /health/ready`,
+**Estado em 06/10/2026:** `GET /users/me`, `PATCH /users/me`, `GET /health/live`, `GET /health/ready`,
 `GET /auth/csrf`, `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`,
 `POST /auth/logout` e `POST /auth/logout-all` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
 contratos aprovados para fases futuras.
@@ -197,6 +197,13 @@ Este lote não registra `/users`, `/vehicles`, `/installations` ou `/tests`.
 | `PATCH` | `/users/me` | Access cookie | Atualiza nome e/ou avatar. |
 
 Payload de atualização:
+
+GET/PATCH estão registrados na F05. PATCH exige Origin permitido e
+X-CSRF-Token vinculado à sessão, aceita pelo menos um dos campos abaixo e
+rejeita campos extras. Ausência preserva o campo; null o limpa. Nome tem até
+120 caracteres e avatar exige URI absoluta sem espaços; não há busca remota
+do avatar. Email, papéis e status não são editáveis. Perfil removido entre
+autenticação e consulta/escrita retorna USER_NOT_FOUND (404).
 
 ```json
 {

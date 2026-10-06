@@ -14,8 +14,8 @@ arquitetura; estes documentos definem como executar cada fase.
 | 01 | [Contratos da API](01-contratos-api.md) | Concluída | Fase 00 |
 | 02 | [Schema e migrations](02-schema-migrations.md) | Concluída | Fase 01 |
 | 03 | [APIs e rotas](03-apis-rotas.md) | Concluída | Fase 02 |
-| 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Implementação pronta para revisão — lotes 01–08 e auditoria mínima integrados | Fase 03 |
-| 05 | [Recursos de domínio](05-recursos-dominio.md) | Planejada — aguarda PR do programador antes de iniciar | Fase 04 |
+| 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Concluída — revisão e PR confirmados pelo programador em 06/10/2026 | Fase 03 |
+| 05 | [Recursos de domínio](05-recursos-dominio.md) | Em andamento — lote 1: perfil | Fase 04 |
 | 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Planejada | Fase 05 |
 | 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Bloqueada pelo marco MQTT | Fase 06 + hardware/simulador |
 | 08 | [Tempo real](08-tempo-real.md) | Planejada | Fase 07 |
@@ -51,5 +51,6 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Plano executável da Fase 2](../backend-schema-phase-2-execution-roadmap.md)
 - [Plano executável da Fase 3](../backend-phase-3-execution-roadmap.md)
 - [Plano executável da Fase 4](../backend-phase-4-execution-roadmap.md)
+- [Plano executável da Fase 5](../backend-phase-5-execution-roadmap.md)
 - [Schema v2 proposto](../schema-mobile-mqtt.md)
 - [Roadmap estratégico de Backend e MQTT](../backend-mqtt-roadmap.md)

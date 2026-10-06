@@ -199,9 +199,14 @@ paths:
                 $ref: '#/components/schemas/UserProfileResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
     patch:
       tags: [Users]
       summary: Atualiza o perfil autenticado
+      parameters:
+        - $ref: '#/components/parameters/AuthOrigin'
+        - $ref: '#/components/parameters/CsrfToken'
       security:
         - accessCookie: []
       requestBody:
@@ -221,6 +226,10 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/CsrfError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
   /vehicles:
     get:
       tags: [Vehicles]

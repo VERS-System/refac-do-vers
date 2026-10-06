@@ -2,6 +2,10 @@
 
 # Fase 05 — Recursos experimentais do domínio
 
+Em andamento em 06/10/2026 após confirmação de revisão/PR da F04.
+Execução por lotes no [plano da F05](../backend-phase-5-execution-roadmap.md).
+Lote inicial: perfil próprio (`GET/PATCH /users/me`).
+
 ## Objetivo
 
 Implementar os casos de uso persistentes que preparam e controlam um teste VERS.

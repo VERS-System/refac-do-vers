@@ -4,7 +4,7 @@
 
 ## Objetivo e estado
 
-**Lotes 01–08 implementados; lote 08 em revisão do programador.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` e `/auth/logout-all` estão
+**Concluída: revisão e PR confirmados pelo programador em 06/10/2026.** A F03 concluiu a fundação HTTP; health, `/auth/csrf`, `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` e `/auth/logout-all` estão
 registrados. Implementar as rotas `/auth/*` contratadas, sessões em cookies
 e proteção das rotas que forem entregues nas fases seguintes. Cada lote produz
 um diff pequeno, testes antes do código e revisão do programador. A IA não faz

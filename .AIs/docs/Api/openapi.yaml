@@ -369,6 +369,7 @@ paths:
     get:
       tags: [Installations]
       summary: Lista instalações autorizadas
+      description: Ordenação por criação decrescente e ID como desempate; somente vínculos próprios.
       security:
         - accessCookie: []
       parameters:
@@ -402,6 +403,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InstallationResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -447,6 +450,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConfigurationResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':

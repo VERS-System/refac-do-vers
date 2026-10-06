@@ -18,6 +18,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CsrfGuard } from './modules/auth/csrf.guard';
 import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
+import { InstallationsModule } from './modules/installations/installations.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { VehiclesModule } from './modules/vehicles/vehicles.module';
     AuthModule,
     UsersModule,
     VehiclesModule,
+    InstallationsModule,
   ],
   providers: [
     AuditPolicyService,

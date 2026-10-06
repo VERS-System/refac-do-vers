@@ -289,6 +289,12 @@ inválido. `isPrimary: false` não desmarca o principal existente.
 
 ## Instalações e configurações
 
+As quatro rotas abaixo estão implementadas na F05 lote 4. Listagem de
+instalações ordena por criação decrescente e ID como desempate; filtros de
+veículo alheio retornam lista vazia. Listas usam página 1/tamanho 20, máximo 100.
+Dispositivo ativo é o não revogado (revokedAt null e status diferente de REVOKED).
+Listagem de configurações verifica instalação e paginação no mesmo snapshot.
+
 As rotas deste recorte são somente de leitura e exigem access cookie. A API
 retorna apenas instalações vinculadas a veículos acessíveis ao usuário.
 Recursos inexistentes ou sem autorização recebem `404`, sem revelar a existência

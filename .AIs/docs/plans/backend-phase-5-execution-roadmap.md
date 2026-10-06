@@ -104,3 +104,30 @@ incluindo limpeza MQTT, falha dessa limpeza e query extra. Lint/build aprovados.
 Doubles verificam chamadas/ordem; rollback, cascatas e concorrência reais não
 foram exercitados contra PostgreSQL nesta entrega. Próximo: lote 4, leituras
 de instalações/configurações. Sem alteração de schema/dependências.
+
+## Lote 4 — plano
+
+Criar modules/installations (DTOs, service, controller, module, teste HTTP),
+registrar AppModule e atualizar contratos/índice/contexto. Reutilizar guards,
+paginação, envelopes e tipos públicos; nenhuma migration/dependência.
+GET lista/detalhe de instalações e GET lista/detalhe de configurações.
+Filtrar vínculo UserVehicle na própria consulta, inclusive ADMIN; UUID/status
+e extras validados. Listagem de instalações por createdAt desc/id asc, filtros
+opcionais vehicleId/status; configuração por version desc/id asc. Página 1/20,
+máximo 100. Listas usam RepeatableRead para linhas/contagem/autorização.
+Configuração de outra instalação retorna CONFIGURATION_NOT_FOUND; listagem de
+configurações exige instalação acessível, senão INSTALLATION_NOT_FOUND.
+Selecionar só campos públicos; dispositivo não revogado (revokedAt null e
+status diferente de REVOKED), ou null; datas UTC. Sem serial/deviceUid/tópicos.
+TDD HTTP antes da implementação, auth/revogação, acesso, filtros/paginação,
+projeção, ausência e falhas; test:unit, lint/build e diff --check.
+
+### Lote 4 entregue — 06/10/2026
+
+Quatro leituras registradas via InstallationsModule no AppModule. Consultas
+filtram vínculo próprio, inclusive ADMIN, e projetam só os campos contratados.
+Listagens consistentes com RepeatableRead; instalação ausente não vira lista
+de configurações vazia. Dispositivo público não inclui UID/serial/credenciais.
+TDD: 22 casos RED antes das rotas; GREEN 25 suítes/236 testes no backend.
+Lint, build e diff --check aprovados; sem banco externo, schema ou dependências.
+Próximo lote: planejamento, listagem e detalhe de testes experimentais.

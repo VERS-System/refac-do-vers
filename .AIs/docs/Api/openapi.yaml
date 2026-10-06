@@ -234,6 +234,7 @@ paths:
     get:
       tags: [Vehicles]
       summary: Lista veículos vinculados ao usuário
+      description: Ordenação por criação decrescente e ID como desempate; apenas vínculos próprios.
       security:
         - accessCookie: []
       parameters:
@@ -246,11 +247,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VehicleListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
     post:
       tags: [Vehicles]
       summary: Cadastra veículo e cria vínculo OWNER
+      parameters:
+        - $ref: '#/components/parameters/AuthOrigin'
+        - $ref: '#/components/parameters/CsrfToken'
       security:
         - accessCookie: []
       requestBody:
@@ -272,6 +278,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '403':
+          $ref: '#/components/responses/CsrfError'
   /vehicles/{vehicleId}:
     parameters:
       - $ref: '#/components/parameters/VehicleId'
@@ -287,6 +295,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VehicleResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':

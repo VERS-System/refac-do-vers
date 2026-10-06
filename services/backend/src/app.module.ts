@@ -17,6 +17,7 @@ import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CsrfGuard } from './modules/auth/csrf.guard';
 import { UsersModule } from './modules/users/users.module';
+import { VehiclesModule } from './modules/vehicles/vehicles.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    VehiclesModule,
   ],
   providers: [
     AuditPolicyService,

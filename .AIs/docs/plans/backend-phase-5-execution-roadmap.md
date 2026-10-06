@@ -44,3 +44,32 @@ exporta IsRFC3986. Autenticação/CSRF e persistência são exercitados com JWT
 real e Prisma simulado; nenhum banco externo foi usado.
 pnpm abortou sua checagem de dependências sem TTY; scripts npm.cmd equivalentes
 passaram sem reinstalação. Lote 2 segue após revisão do programador.
+
+## Lote 2 — plano autorizado pela continuação
+
+GET/POST /vehicles e GET /vehicles/{vehicleId}. Novos arquivos em modules/vehicles:
+DTO, service, controller, module e teste HTTP; registro em app.module.ts.
+Atualizar contratos, índice e contexto após validação. Sem migration ou dependência.
+Normalizar placa para maiúsculas sem espaços/hífen, validar padrão brasileiro,
+marca/modelo e ano conforme OpenAPI; rejeitar null, extras e IDs do cliente.
+Consultar UserVehicle da própria conta junto aos campos públicos do veículo,
+sem checagem separada que permita corrida; ausência e recurso alheio usam 404.
+Paginação 1/20, máximo 100, ordem createdAt decrescente e id como desempate.
+Cadastro cria veículo e vínculo OWNER na mesma transação. Bloquear a linha da
+conta antes de contar vínculos para serializar primeiros cadastros concorrentes;
+somente o primeiro fica principal. Placa duplicada usa o conflito contratado.
+Testes HTTP antes da implementação: guards/CSRF, payloads, projeção, vínculo,
+paginação, primeiro/próximos, falhas e ordem transacional com Prisma simulado.
+Baseline e GREEN com test:unit, lint/build e diff --check. Concorrência real
+em PostgreSQL permanece ensaio separado; não confundir doubles com prova SQL.
+
+### Lote 2 entregue — 06/10/2026
+
+Implementados cadastro, listagem e detalhe no módulo vehicles e registrados no
+AppModule. DTO preserva tipos originais apesar da coerção global; projeção
+restrita aos campos públicos e vínculo próprio, inclusive para ADMIN.
+Listagem usa snapshot RepeatableRead; cadastro bloqueia a conta antes da
+contagem e cria veículo/vínculo atomicamente. Sem migration/dependência.
+TDD: baseline 152 testes; RED das rotas; GREEN 24 suítes/183 testes.
+Lint, build e diff --check aprovados. Concorrência real em PostgreSQL pendente.
+Próximo lote: atualização, promoção do principal e desvinculação de veículos.

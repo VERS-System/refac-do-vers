@@ -219,6 +219,12 @@ contrato inicial.
 
 ## Veículos
 
+F05 lote 2 implementa GET/POST `/vehicles` e GET `/vehicles/{vehicleId}`.
+PATCH e DELETE permanecem no lote 3. POST exige Origin permitido e token CSRF.
+Listagem usa página 1/tamanho 20, máximo 100, ordenada por criação decrescente
+e ID como desempate. Ausência de vínculo retorna `VEHICLE_NOT_FOUND`, inclusive
+para ADMIN. Cadastro serializa escritas por conta antes de definir o principal.
+
 Todas as operações exigem access cookie e verificam o vínculo do usuário com o
 objeto solicitado.
 

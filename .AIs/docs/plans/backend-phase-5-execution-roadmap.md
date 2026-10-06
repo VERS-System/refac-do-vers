@@ -73,3 +73,34 @@ contagem e cria veículo/vínculo atomicamente. Sem migration/dependência.
 TDD: baseline 152 testes; RED das rotas; GREEN 24 suítes/183 testes.
 Lint, build e diff --check aprovados. Concorrência real em PostgreSQL pendente.
 Próximo lote: atualização, promoção do principal e desvinculação de veículos.
+
+## Lote 3 — plano
+
+Alterar controller/service/testes de vehicles; criar DTO de atualização e query
+de exclusão. Atualizar contratos, índice e contexto. Sem dependências/migration.
+PATCH aceita brand/model/modelYear nullable e isPrimary boolean; preserva tipos,
+rejeita vazio/extras e só true promove (false mantém o principal existente).
+Mutações bloqueiam conta e veículo, nessa ordem, antes de consultar vínculo.
+Promoção desmarca anterior antes de marcar destino na mesma transação.
+DELETE valida substituto próprio/distinto; principal com um candidato promove
+automaticamente, com vários exige substituto. Sem outros vínculos remove veículo
+com cascatas/SetNull existentes, preservando testes e telemetria. FK MQTT bruta
+RESTRICT e trigger imutável impedem a cascata; programador autorizou apagar
+mensagens brutas no último vínculo, preservando testes, amostras e resumos.
+Limpeza dos envelopes e exclusão física ficam na mesma transação.
+TDD HTTP com doubles: payloads, auth/CSRF, vínculo, ordem, principal, candidatos,
+compartilhamento e falhas sem escrita parcial. test:unit, lint/build, diff --check.
+Ensaio de concorrência e cascatas em PostgreSQL real permanece pendente.
+
+### Lote 3 entregue — 06/10/2026
+
+PATCH/DELETE registrados com guards, CSRF e DTOs estritos. Conta e veículo
+bloqueados nessa ordem; promoção desmarca anterior antes do destino. Exclusão
+valida substituto antes de escrever e preserva veículo compartilhado.
+Último vínculo remove envelopes MQTT antes do veículo na mesma transação,
+conforme autorização explícita; FKs existentes preservam histórico normalizado.
+TDD: 29 novos casos RED antes das rotas; GREEN final 24 suítes/214 testes,
+incluindo limpeza MQTT, falha dessa limpeza e query extra. Lint/build aprovados.
+Doubles verificam chamadas/ordem; rollback, cascatas e concorrência reais não
+foram exercitados contra PostgreSQL nesta entrega. Próximo: lote 4, leituras
+de instalações/configurações. Sem alteração de schema/dependências.

@@ -304,6 +304,9 @@ paths:
     patch:
       tags: [Vehicles]
       summary: Atualiza veículo ou o torna principal
+      parameters:
+        - $ref: '#/components/parameters/AuthOrigin'
+        - $ref: '#/components/parameters/CsrfToken'
       security:
         - accessCookie: []
       requestBody:
@@ -319,6 +322,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VehicleResponse'
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -336,9 +341,13 @@ paths:
         replacementVehicleId é exigido ao excluir o principal quando houver
         dois ou mais candidatos restantes. Com um único candidato, a promoção
         é automática.
+        Mensagens MQTT brutas dos dispositivos são apagadas no último vínculo;
+        amostras normalizadas e resumos permanecem.
       security:
         - accessCookie: []
       parameters:
+        - $ref: '#/components/parameters/AuthOrigin'
+        - $ref: '#/components/parameters/CsrfToken'
         - name: replacementVehicleId
           in: query
           required: false
@@ -348,6 +357,8 @@ paths:
       responses:
         '204':
           description: Vínculo removido; veículo físico removido apenas após o último vínculo; histórico preservado.
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':

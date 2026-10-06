@@ -219,8 +219,8 @@ contrato inicial.
 
 ## Veículos
 
-F05 lote 2 implementa GET/POST `/vehicles` e GET `/vehicles/{vehicleId}`.
-PATCH e DELETE permanecem no lote 3. POST exige Origin permitido e token CSRF.
+F05 lotes 2–3 implementam as cinco rotas abaixo.
+POST, PATCH e DELETE exigem Origin permitido e token CSRF.
 Listagem usa página 1/tamanho 20, máximo 100, ordenada por criação decrescente
 e ID como desempate. Ausência de vínculo retorna `VEHICLE_NOT_FOUND`, inclusive
 para ADMIN. Cadastro serializa escritas por conta antes de definir o principal.
@@ -263,6 +263,8 @@ O payload permite apenas `brand`, `model`, `modelYear` e `isPrimary`. Enviar
 `isPrimary: true` promove o veículo e remove o estado principal do anterior na
 mesma transação. Placa, relacionamento e identificadores de usuário não são
 alteráveis por este endpoint.
+`null` limpa marca/modelo/ano; campos ausentes são preservados. Body vazio é
+inválido. `isPrimary: false` não desmarca o principal existente.
 
 ### Exclusão
 
@@ -280,6 +282,10 @@ alteráveis por este endpoint.
   identificadores específicos são removidos; testes e telemetria permanecem
   com snapshot de modelo, local informado, piezos e condições do experimento,
   sem placa.
+- mensagens MQTT brutas dos dispositivos são apagadas na mesma transação após
+  o último vínculo, conforme autorização do programador; amostras normalizadas
+  e resumos permanecem, com referências removidas pelas FKs existentes;
+- substituto inválido, alheio ou obrigatório ausente retorna `VALIDATION_ERROR`.
 
 ## Instalações e configurações
 

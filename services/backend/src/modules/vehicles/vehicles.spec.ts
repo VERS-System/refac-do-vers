@@ -34,7 +34,13 @@ describe('veículos autenticados', () => {
   const create = jest.fn();
   const lock = jest.fn();
   const transaction = jest.fn();
-  const tx = { userVehicle: { findMany, findUnique, count, create }, $queryRaw: lock };
+  const update = jest.fn();
+  const updateMany = jest.fn();
+  const unlink = jest.fn();
+  const deleteVehicle = jest.fn();
+  const deleteMessages = jest.fn();
+  const tx = { userVehicle: { findMany, findUnique, count, create, update, updateMany, delete: unlink },
+    vehicle: { delete: deleteVehicle }, mqttMessage: { deleteMany: deleteMessages }, $queryRaw: lock };
 
   /** Envia HTTP local para verificar DTO, sessão, CSRF e envelope juntos. */
   function request(path = '', method = 'GET', body?: object, authenticated = true, csrf = true): Promise<Response> {
@@ -72,6 +78,11 @@ describe('veículos autenticados', () => {
     count.mockResolvedValue(0);
     lock.mockResolvedValue([{ id: userId }]);
     create.mockResolvedValue({ relationship: 'OWNER', isPrimary: true, vehicle });
+    update.mockResolvedValue({ relationship: 'OWNER', isPrimary: true, vehicle });
+    updateMany.mockResolvedValue({ count: 1 });
+    unlink.mockResolvedValue({});
+    deleteVehicle.mockResolvedValue({});
+    deleteMessages.mockResolvedValue({ count: 0 });
     transaction.mockImplementation(async (callback: (db: typeof tx) => unknown) => callback(tx));
   });
   afterAll(async () => { if (app) await app.close(); process.env = originalEnv; });
@@ -180,5 +191,118 @@ describe('veículos autenticados', () => {
     const response = await request('', 'POST', { licensePlate: 'ABC1D23' });
     expect(response.status).toBe(404);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('atualiza campos nullable e promove após desmarcar o anterior', async () => {
+    const response = await request('/' + vehicleId, 'PATCH', { brand: null, model: 'Novo', modelYear: null, isPrimary: true });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ data: expected });
+    expect(lock.mock.calls[0][0].join('')).toContain('users');
+    expect(lock.mock.calls[1][0].join('')).toContain('vehicles');
+    expect(lock.mock.invocationCallOrder[1]).toBeLessThan(findUnique.mock.invocationCallOrder[0]);
+    expect(updateMany).toHaveBeenCalledWith({ where: { userId, isPrimary: true }, data: { isPrimary: false } });
+    expect(updateMany.mock.invocationCallOrder[0]).toBeLessThan(update.mock.invocationCallOrder[0]);
+    expect(update.mock.calls[0][0]).toMatchObject({ where: { userId_vehicleId: { userId, vehicleId } },
+      data: { isPrimary: true, vehicle: { update: { brand: null, model: 'Novo', modelYear: null } } } });
+  });
+  it('false mantém o principal e ausência preserva campos', async () => {
+    expect((await request('/' + vehicleId, 'PATCH', { isPrimary: false })).status).toBe(200);
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(update.mock.calls[0][0].data).toEqual({});
+  });
+  it.each([{}, { licensePlate: 'ABC1234' }, { userId }, { relationship: 'ADMIN' },
+    { brand: 12 }, { brand: 'a'.repeat(81) }, { model: false }, { model: 'a'.repeat(121) },
+    { modelYear: '2026' }, { modelYear: 1885 }, { modelYear: 2101 }, { modelYear: 2026.5 },
+    { isPrimary: null }, { isPrimary: 'true' }])('rejeita PATCH inválido: %p', async (body) => {
+    expect((await request('/' + vehicleId, 'PATCH', body)).status).toBe(400);
+    expect(update).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+  it.each(['PATCH', 'DELETE'])('exige vínculo na mutação %s', async (method) => {
+    findUnique.mockResolvedValue(null);
+    const response = await request('/' + vehicleId, method, method === 'PATCH' ? { model: null } : undefined);
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: { code: 'VEHICLE_NOT_FOUND' } });
+    expect(update).not.toHaveBeenCalled();
+    expect(unlink).not.toHaveBeenCalled();
+  });
+  it.each(['PATCH', 'DELETE'])('protege %s com sessão, CSRF e UUID', async (method) => {
+    const body = method === 'PATCH' ? { model: null } : undefined;
+    expect((await request('/' + vehicleId, method, body, true, false)).status).toBe(403);
+    findSession.mockResolvedValue({ userId, revokedAt: date });
+    expect((await request('/' + vehicleId, method, body)).status).toBe(401);
+    findSession.mockResolvedValue({ id: sid, userId, expiresAt: new Date(Date.now() + 60_000), revokedAt: null });
+    expect((await request('/invalido', method, body)).status).toBe(400);
+    expect(unlink).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
+  it('exclui último vínculo e veículo físico com resposta vazia', async () => {
+    findMany.mockResolvedValue([]);
+    const response = await request('/' + vehicleId, 'DELETE');
+    expect(response.status).toBe(204);
+    expect(await response.text()).toBe('');
+    expect(unlink).toHaveBeenCalledWith({ where: { userId_vehicleId: { userId, vehicleId } } });
+    expect(count).toHaveBeenCalledWith({ where: { vehicleId } });
+    expect(deleteVehicle).toHaveBeenCalledWith({ where: { id: vehicleId } });
+    expect(deleteMessages).toHaveBeenCalledWith({ where: { device: { vehicleId } } });
+    expect(unlink.mock.invocationCallOrder[0]).toBeLessThan(deleteMessages.mock.invocationCallOrder[0]);
+    expect(deleteMessages.mock.invocationCallOrder[0]).toBeLessThan(deleteVehicle.mock.invocationCallOrder[0]);
+    expect(update).not.toHaveBeenCalled();
+  });
+  it('promove automaticamente candidato único e preserva veículo compartilhado', async () => {
+    const replacement = '00000000-0000-4000-8000-000000000004';
+    findMany.mockResolvedValue([{ vehicleId: replacement }]);
+    count.mockResolvedValue(1);
+    expect((await request('/' + vehicleId, 'DELETE')).status).toBe(204);
+    expect(update).toHaveBeenCalledWith({ where: { userId_vehicleId: { userId, vehicleId: replacement } }, data: { isPrimary: true } });
+    expect(unlink.mock.invocationCallOrder[0]).toBeLessThan(update.mock.invocationCallOrder[0]);
+    expect(deleteVehicle).not.toHaveBeenCalled();
+    expect(deleteMessages).not.toHaveBeenCalled();
+  });
+  it('exige escolha entre vários candidatos antes de escrever', async () => {
+    findMany.mockResolvedValue([{ vehicleId: sid }, { vehicleId: userId }]);
+    expect((await request('/' + vehicleId, 'DELETE')).status).toBe(400);
+    expect(unlink).not.toHaveBeenCalled();
+  });
+  it('promove substituto próprio escolhido entre vários candidatos', async () => {
+    findMany.mockResolvedValue([{ vehicleId: sid }, { vehicleId: userId }]);
+    count.mockResolvedValue(1);
+    expect((await request('/' + vehicleId + '?replacementVehicleId=' + sid, 'DELETE')).status).toBe(204);
+    expect(findMany.mock.calls[0][0]).toMatchObject({ where: { userId, vehicleId: { not: vehicleId } }, take: 2 });
+    expect(update.mock.calls[0][0].where).toEqual({ userId_vehicleId: { userId, vehicleId: sid } });
+  });
+  it.each(['invalido', vehicleId])('rejeita substituto inválido: %s', async (replacement) => {
+    expect((await request('/' + vehicleId + '?replacementVehicleId=' + replacement, 'DELETE')).status).toBe(400);
+    expect(unlink).not.toHaveBeenCalled();
+  });
+  it('rejeita substituto de outra conta sem alterar vínculos', async () => {
+    findUnique.mockResolvedValueOnce({ relationship: 'OWNER', isPrimary: true, vehicle }).mockResolvedValueOnce(null);
+    expect((await request('/' + vehicleId + '?replacementVehicleId=' + sid, 'DELETE')).status).toBe(400);
+    expect(unlink).not.toHaveBeenCalled();
+  });
+  it('desvincula não principal sem promover outro', async () => {
+    findUnique.mockResolvedValue({ relationship: 'OWNER', isPrimary: false, vehicle });
+    count.mockResolvedValue(1);
+    expect((await request('/' + vehicleId, 'DELETE')).status).toBe(204);
+    expect(update).not.toHaveBeenCalled();
+    expect(findMany).not.toHaveBeenCalled();
+  });
+  it('propaga falha transacional sem revelar detalhes internos', async () => {
+    transaction.mockRejectedValue(new Error('falha-interna-sintetica'));
+    const response = await request('/' + vehicleId, 'PATCH', { model: null });
+    expect(response.status).toBe(500);
+    expect(JSON.stringify(await response.json())).not.toContain('falha-interna-sintetica');
+  });
+  it('interrompe exclusão física quando limpeza MQTT falha dentro da transação', async () => {
+    findMany.mockResolvedValue([]);
+    deleteMessages.mockRejectedValue(new Error('mqtt-sintetico'));
+    const response = await request('/' + vehicleId, 'DELETE');
+    expect(response.status).toBe(500);
+    expect(deleteVehicle).not.toHaveBeenCalled();
+    expect(transaction).toHaveBeenCalledTimes(1);
+  });
+  it('rejeita query extra de exclusão antes de iniciar transação', async () => {
+    expect((await request('/' + vehicleId + '?userId=' + sid, 'DELETE')).status).toBe(400);
+    expect(transaction).not.toHaveBeenCalled();
   });
 });

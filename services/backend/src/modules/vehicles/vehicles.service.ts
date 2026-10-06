@@ -1,11 +1,12 @@
 // Persiste veículos e consulta somente vínculos da conta autenticada.
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Vehicle } from '../../../../../packages/shared-types/src/vehicles';
 import { PaginatedResponse } from '../../../../../packages/shared-types/src/api';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { CreateVehicleDto } from './create-vehicle.dto';
+import { UpdateVehicleDto } from './update-vehicle.dto';
 
 const linkSelect = { relationship: true, isPrimary: true, vehicle: { select: {
   id: true, licensePlate: true, brand: true, model: true, modelYear: true,
@@ -42,6 +43,62 @@ export class VehiclesService {
       where: { userId_vehicleId: { userId, vehicleId } }, select: linkSelect });
     if (!link) throw new NotFoundException({ code: 'VEHICLE_NOT_FOUND' });
     return publicVehicle(link);
+  }
+
+  /** Bloqueia conta antes do veículo para serializar principal e exclusões compartilhadas. */
+  private async lockLink(tx: Prisma.TransactionClient, userId: string, vehicleId: string): Promise<LinkRow> {
+    const users = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+    if (!users.length) throw new NotFoundException({ code: 'USER_NOT_FOUND' });
+    await tx.$queryRaw`SELECT id FROM vehicles WHERE id = ${vehicleId}::uuid FOR UPDATE`;
+    const link = await tx.userVehicle.findUnique({ where: { userId_vehicleId: { userId, vehicleId } }, select: linkSelect });
+    if (!link) throw new NotFoundException({ code: 'VEHICLE_NOT_FOUND' });
+    return link;
+  }
+
+  /** Preserva campos ausentes e troca o principal sem violar a unicidade parcial. */
+  async update(userId: string, vehicleId: string, input: UpdateVehicleDto): Promise<Vehicle> {
+    if (!Object.values(input).some((value) => value !== undefined)) throw new BadRequestException();
+    const { isPrimary, ...fields } = input;
+    const changes = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockLink(tx, userId, vehicleId);
+      if (isPrimary === true) {
+        await tx.userVehicle.updateMany({ where: { userId, isPrimary: true }, data: { isPrimary: false } });
+      }
+      const link = await tx.userVehicle.update({ where: { userId_vehicleId: { userId, vehicleId } },
+        data: { ...(isPrimary === true ? { isPrimary: true } : {}),
+          ...(Object.keys(changes).length ? { vehicle: { update: changes } } : {}) }, select: linkSelect });
+      return publicVehicle(link);
+    });
+  }
+
+  /** Escolhe substituto próprio e remove identificadores só após o último vínculo. */
+  async remove(userId: string, vehicleId: string, replacementVehicleId?: string): Promise<void> {
+    if (replacementVehicleId === vehicleId) throw new BadRequestException();
+    await this.prisma.$transaction(async (tx) => {
+      const link = await this.lockLink(tx, userId, vehicleId);
+      if (replacementVehicleId) {
+        const replacement = await tx.userVehicle.findUnique({
+          where: { userId_vehicleId: { userId, vehicleId: replacementVehicleId } }, select: { vehicleId: true } });
+        if (!replacement) throw new BadRequestException();
+      }
+      let successor: string | undefined;
+      if (link.isPrimary) {
+        const candidates = await tx.userVehicle.findMany({ where: { userId, vehicleId: { not: vehicleId } },
+          select: { vehicleId: true }, orderBy: { vehicleId: 'asc' }, take: 2 });
+        if (candidates.length > 1 && !replacementVehicleId) throw new BadRequestException();
+        successor = replacementVehicleId ?? candidates[0]?.vehicleId;
+      }
+      await tx.userVehicle.delete({ where: { userId_vehicleId: { userId, vehicleId } } });
+      if (successor) {
+        await tx.userVehicle.update({ where: { userId_vehicleId: { userId, vehicleId: successor } }, data: { isPrimary: true } });
+      }
+      if (await tx.userVehicle.count({ where: { vehicleId } }) === 0) {
+        // Remove envelopes identificáveis; SetNull preserva as amostras normalizadas.
+        await tx.mqttMessage.deleteMany({ where: { device: { vehicleId } } });
+        await tx.vehicle.delete({ where: { id: vehicleId } });
+      }
+    });
   }
 
   /** Serializa cadastros por conta e cria veículo/vínculo OWNER atomicamente. */

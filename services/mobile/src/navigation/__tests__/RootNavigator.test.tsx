@@ -138,6 +138,23 @@ describe('RootNavigator (Task 00 - Item 4b)', () => {
     expect(queryByTestId('vehicles-screen')).toBeNull();
   });
 
+  /** Abre o Viber pela Home sem criar aba nova (11a). */
+  it('abre o Viber pela Home e volta sem mudar as abas', () => {
+    const { getByRole, getByTestId, queryByTestId } = render(
+      <RootNavigator isAuthenticated isSplashVisible={false} onAuthenticated={jest.fn()} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Conversar com o Viber' }));
+
+    expect(getByTestId('viber-screen')).toBeTruthy();
+    expect(queryByTestId('home-screen')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Voltar' }));
+
+    expect(getByTestId('home-screen')).toBeTruthy();
+    expect(queryByTestId('viber-screen')).toBeNull();
+  });
+
   /** Exibe a fixture demo do perfil na rota sem backend (09b). */
   it('exibe os dados demo do perfil na rota', () => {
     const { getByRole, getByTestId, getByText, queryByTestId } = render(

@@ -80,9 +80,20 @@ locais, sem montar prompts nem acessar dados brutos.
   GREEN.
 - Comentários em português no topo do arquivo e em cada função (regra 3).
 - Visual via `theme` (`theme.colors/radii/spacing`), `AppCard`/`Feedback`/
-  `AppSkeleton`/`PrimaryButton`/`AuthTextField` quando aplicável; bolhas
-  com as cores do mockup (cinza Viber, dourada usuário); sem segunda
-  identidade visual.
+  `AppSkeleton`/`PrimaryButton`/`AuthTextField` quando aplicável, seguindo
+  como referência visual `services/mobile/src/assets/telaNormal.png`
+  (repouso) e `services/mobile/src/assets/telaDigitação.png` (digitando):
+  fundo `background` (`#0c0c0c`), bolha Viber em `surface` (`#1a1a1a`)
+  com texto `gold` (`#d8c95a`) + avatar do Viber, bolha do usuário em
+  `gold` com texto `dark`, voltar em chevron `gold`, composer em barra
+  `surface` arredondada com placeholder `gray` e texto digitado `gold`,
+  seta de envio `gray` (repouso) → `gold` (ativa); sem segunda
+  identidade visual. Decisões da referência (regra 11, 07/10/2026): sem
+  contorno de destaque ao digitar (paleta não tem azul); fixtures em PT
+  (padrão do app); avatar do Viber com `versLogo.png` (constante,
+  padrão desde já) e avatar do usuário com inicial (foto do mockup
+  descartada — ~30px, sem qualidade); teclado nativo sem cobrir o
+  composer (layout 11g).
 - Nomes e campos vindos dos contratos públicos quando existirem; tipos de
   mensagem do Viber como tipos visuais locais até o contrato do
   ai-service ser aprovado (regra 5 do roadmap).

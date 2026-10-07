@@ -1,10 +1,10 @@
 // Planeja experimentos e consulta contexto público atual ou histórico do criador.
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { TestRecord } from '../../../../../packages/shared-types/src/tests';
 import { PaginatedResponse } from '../../../../../packages/shared-types/src/api';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateTestDto, TestQueryDto } from './test.dto';
+import { CancelTestDto, CreateTestDto, FinishTestDto, TestQueryDto } from './test.dto';
 
 const testSelect = { id: true, installationId: true, configurationId: true, createdById: true,
   name: true, status: true, terrain: true, snapshotVehicleModel: true, snapshotTestLocation: true,
@@ -53,6 +53,35 @@ export class TestsService {
     const row = await this.prisma.test.findFirst({ where: { id, ...accessWhere(userId) }, select: testSelect });
     if (!row) throw new NotFoundException({ code: 'TEST_NOT_FOUND' });
     return publicTest(row);
+  }
+
+  /** Condiciona a escrita ao estado lido para resolver disputas sem sobrescrever outra transição. */
+  async transition(userId: string, id: string, action: 'start' | 'finish' | 'cancel',
+    input: FinishTestDto | CancelTestDto = {}): Promise<TestRecord> {
+    return this.prisma.$transaction(async (tx) => {
+      const where = { id, ...accessWhere(userId) };
+      const row = await tx.test.findFirst({ where, select: testSelect });
+      if (!row) throw new NotFoundException({ code: 'TEST_NOT_FOUND' });
+      const allowed = action === 'start' ? row.status === 'PLANNED' : action === 'finish' ? row.status === 'RUNNING' :
+        row.status === 'PLANNED' || row.status === 'RUNNING';
+      if (!allowed) throw new ConflictException({ code: 'TEST_STATE_CONFLICT' });
+      // Mantém a ordem temporal mesmo se o relógio do servidor recuar após o início.
+      const now = new Date(Math.max(Date.now(), row.startedAt?.getTime() ?? 0));
+      let data: Prisma.TestUpdateManyMutationInput;
+      if (action === 'start') data = { status: 'RUNNING', startedAt: now };
+      else if (action === 'finish') data = { ...input as FinishTestDto, endedAt: now };
+      else {
+        const { reason } = input as CancelTestDto;
+        const notes = reason === undefined ? undefined : row.notes ? `${row.notes}\n${reason}` : reason;
+        if (notes !== undefined && notes.length > 1000) throw new BadRequestException({ code: 'VALIDATION_ERROR' });
+        data = { status: 'CANCELLED', ...(row.status === 'RUNNING' ? { endedAt: now } : {}),
+          ...(notes !== undefined ? { notes } : {}) };
+      }
+      const changed = await tx.test.updateMany({ where: { ...where, status: row.status }, data });
+      if (changed.count !== 1) throw new ConflictException({ code: 'TEST_STATE_CONFLICT' });
+      const updated = await tx.test.findFirstOrThrow({ where: { id }, select: testSelect });
+      return publicTest(updated);
+    });
   }
 
   /** Bloqueia recursos contra desvinculação/alteração e persiste o snapshot do servidor. */

@@ -162,3 +162,35 @@ TDD: 41 casos RED antes da implementação; mais dois casos de recurso desaparec
 no bloqueio; GREEN final 26 suítes/279 testes. Lint/build/diff --check aprovados.
 Sem dependência/migration/banco externo. Próximo lote 6: start/finish/cancel.
 Locks, rollback e cascatas ainda requerem ensaio contra PostgreSQL real.
+
+## Lote 6 — plano autorizado em 07/10/2026
+
+Alterar test.dto.ts, tests.controller.ts, tests.service.ts e tests.spec.ts;
+atualizar REST/OpenAPI, índice e contexto. Reutilizar sessão/CSRF, projeção e
+autorização criador ou vínculo atual, inclusive ADMIN. POST start/finish/cancel
+retornam 200. DTO vazio estrito para start; finish/cancel conforme limites OpenAPI.
+Transação lê estado autorizado e faz updateMany condicionado ao estado anterior
+e acesso; zero alterações retorna TEST_STATE_CONFLICT. Ler projeção final na
+mesma transação. Horários do servidor; cancel PLANNED preserva horários nulos,
+cancel RUNNING define endedAt. Não alterar snapshot nem inventar medições.
+Programador decidiu acrescentar reason às notes preservando conteúdo existente;
+se combinação exceder 1000 caracteres, retornar VALIDATION_ERROR sem truncar.
+TDD HTTP cobre matriz de estados, validação, acesso/CSRF, preservação de dados,
+horários, falhas e disputa de escrita com double condicionado. Rodar test:unit,
+lint/build e diff --check. Concorrência PostgreSQL real segue ensaio separado.
+Sem migration, novas dependências ou integração MQTT neste lote.
+
+### Lote 6 entregue — 07/10/2026
+
+POST start/finish/cancel implementados com 200, sessão/CSRF e DTOs estritos.
+Estado autorizado é lido e updateMany exige o mesmo estado/acesso; resposta
+é relida sob o bloqueio da escrita na mesma transação. Conflitos retornam 409.
+Horários do servidor, endedAt nunca anterior a startedAt; campos ausentes
+preservados e null permitido conforme contrato. Motivo acrescentado às notes,
+sem truncamento; combinação acima de 1000 recusa cancelamento com 400.
+Baseline 279; 49 casos RED por rotas ausentes; dois casos extras de histórico
+e recuo do relógio. GREEN: 26 suítes/330 testes, lint/build aprovados.
+YAML OpenAPI válido. Scripts locais via npm.cmd após interromper pnpm que
+iniciou resolução de dependências; nenhum manifesto/lockfile alterado.
+Concorrência exercitada com double condicionado, sem prova PostgreSQL real.
+Próximo lote 7: suporte. Sem migration, .env, Docker, commit ou push.

@@ -541,8 +541,18 @@ paths:
       tags: [Tests]
       summary: Inicia teste planejado
       description: Body vazio; startedAt é atribuído pelo servidor.
+      parameters:
+        - $ref: '#/components/parameters/AuthOrigin'
+        - $ref: '#/components/parameters/CsrfToken'
       security:
         - accessCookie: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
       responses:
         '200':
           description: Teste iniciado em RUNNING.
@@ -550,6 +560,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -562,7 +576,10 @@ paths:
     post:
       tags: [Tests]
       summary: Conclui ou falha teste em execução
-      description: endedAt é atribuído pelo servidor.
+      description: endedAt é atribuído pelo servidor, nunca anterior a startedAt. Campos opcionais ausentes são preservados; null limpa o campo.
+      parameters:
+        - $ref: '#/components/parameters/AuthOrigin'
+        - $ref: '#/components/parameters/CsrfToken'
       security:
         - accessCookie: []
       requestBody:
@@ -578,6 +595,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestResponse'
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -592,6 +611,10 @@ paths:
     post:
       tags: [Tests]
       summary: Cancela teste planejado ou em execução
+      description: reason é acrescentado às notes com quebra de linha, preservando texto anterior. Combinação acima de 1000 caracteres retorna 400 sem cancelar ou truncar. endedAt é atribuído somente em RUNNING.
+      parameters:
+        - $ref: '#/components/parameters/AuthOrigin'
+        - $ref: '#/components/parameters/CsrfToken'
       security:
         - accessCookie: []
       requestBody:
@@ -607,6 +630,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestResponse'
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':

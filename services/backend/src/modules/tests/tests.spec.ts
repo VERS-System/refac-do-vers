@@ -34,7 +34,8 @@ describe('planejamento e leituras de testes', () => {
   const findUser = jest.fn(); const findSession = jest.fn();
   const findMany = jest.fn(); const findFirst = jest.fn(); const count = jest.fn(); const create = jest.fn();
   const installation = jest.fn(); const configuration = jest.fn(); const lock = jest.fn(); const transaction = jest.fn();
-  const tx = { test: { findMany, findFirst, count, create }, versInstallation: { findFirst: installation },
+  const updateMany = jest.fn();
+  const tx = { test: { findMany, findFirst, findFirstOrThrow: findFirst, count, create, updateMany }, versInstallation: { findFirst: installation },
     configuration: { findFirst: configuration }, $queryRaw: lock };
 
   /** Exercita a API local com sessão assinada e CSRF opcional nas escritas. */
@@ -68,6 +69,7 @@ describe('planejamento e leituras de testes', () => {
     installation.mockResolvedValue({ id: installationId, vehicleId, status: 'ACTIVE', vehicle: { model: 'Modelo' } });
     configuration.mockResolvedValue({ id: configurationId, activePiezoCount: 4, version: 2 }); lock.mockResolvedValue([{ id: userId }]);
     transaction.mockImplementation(async (callback: (db: typeof tx) => unknown) => callback(tx));
+    updateMany.mockResolvedValue({ count: 1 });
   });
   afterAll(async () => { if (app) await app.close(); process.env = originalEnv; });
 
@@ -164,5 +166,123 @@ describe('planejamento e leituras de testes', () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toMatchObject({ error: { code: resource === 'account' ? 'USER_NOT_FOUND' : 'INSTALLATION_NOT_FOUND' } });
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it.each(['start', 'finish', 'cancel'])('protege transição %s com sessão, CSRF e UUID', async (action) => {
+    const body = action === 'finish' ? { status: 'COMPLETED' } : {};
+    // CSRF global precede a autenticação e recusa ausência dos cookies.
+    expect((await request(`/${id}/${action}`, 'POST', body, false)).status).toBe(403);
+    expect((await request(`/${id}/${action}`, 'POST', body, true, false)).status).toBe(403);
+    expect((await request(`/ruim/${action}`, 'POST', body)).status).toBe(400);
+    findSession.mockResolvedValue({ userId, revokedAt: date });
+    expect((await request(`/${id}/${action}`, 'POST', body)).status).toBe(401);
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+  it('inicia com horário do servidor e devolve projeção atualizada', async () => {
+    findFirst.mockResolvedValueOnce(row).mockResolvedValueOnce({ ...row, status: 'RUNNING', startedAt: date });
+    const before = Date.now();
+    const response = await request(`/${id}/start`, 'POST');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ data: { status: 'RUNNING', startedAt: date.toISOString(), snapshot: { activePiezoCount: 4 } } });
+    const mutation = updateMany.mock.calls[0][0];
+    expect(mutation.where).toEqual({ id, ...accessWhere, status: 'PLANNED' });
+    expect(mutation.data).toEqual({ status: 'RUNNING', startedAt: expect.any(Date) });
+    expect(mutation.data.startedAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(mutation.data.startedAt.getTime()).toBeLessThanOrEqual(Date.now());
+    expect(findFirst.mock.calls[0][0].where).toEqual({ id, ...accessWhere });
+    expect(findFirst.mock.calls[1][0].select.vehicleId).toBeUndefined();
+    expect(transaction).toHaveBeenCalledTimes(1);
+  });
+  it.each(['COMPLETED', 'FAILED'])('finaliza RUNNING em %s aceitando zero/null sem alterar snapshot', async (status) => {
+    findFirst.mockResolvedValue({ ...row, status: 'RUNNING', startedAt: date });
+    const fields = { status, outcome: 'INCONCLUSIVE', averageEngineRpm: 0, averageSpeedKph: 0,
+      inclineDegrees: -15, vehicleWeightKg: null, notes: null };
+    expect((await request(`/${id}/finish`, 'POST', fields)).status).toBe(200);
+    expect(updateMany.mock.calls[0][0]).toEqual({ where: { id, ...accessWhere, status: 'RUNNING' },
+      data: { ...fields, endedAt: expect.any(Date) } });
+    expect(updateMany.mock.calls[0][0].data.endedAt.getTime()).toBeGreaterThanOrEqual(date.getTime());
+  });
+  it('preserva campos opcionais ausentes e aceita outcome null', async () => {
+    findFirst.mockResolvedValue({ ...row, status: 'RUNNING', startedAt: date, notes: 'Manter' });
+    expect((await request(`/${id}/finish`, 'POST', { status: 'COMPLETED', outcome: null })).status).toBe(200);
+    expect(updateMany.mock.calls[0][0].data).toEqual({ status: 'COMPLETED', outcome: null, endedAt: expect.any(Date) });
+  });
+  it('mantém endedAt a partir de startedAt se relógio recuar', async () => {
+    const future = new Date(Date.now() + 60_000);
+    findFirst.mockResolvedValue({ ...row, status: 'RUNNING', startedAt: future });
+    expect((await request(`/${id}/finish`, 'POST', { status: 'FAILED' })).status).toBe(200);
+    expect(updateMany.mock.calls[0][0].data.endedAt).toEqual(future);
+  });
+  it('permite cancelamento histórico pelo criador e grava motivo sem notes anteriores', async () => {
+    findFirst.mockResolvedValue({ ...row, installationId: null, configurationId: null });
+    expect((await request(`/${id}/cancel`, 'POST', { reason: 'Interrompido' })).status).toBe(200);
+    expect(updateMany.mock.calls[0][0].data).toEqual({ status: 'CANCELLED', notes: 'Interrompido' });
+  });
+  it.each(['PLANNED', 'RUNNING'])('cancela %s preservando notes e horários corretos', async (status) => {
+    findFirst.mockResolvedValue({ ...row, status, startedAt: status === 'RUNNING' ? date : null, notes: 'Anterior' });
+    expect((await request(`/${id}/cancel`, 'POST', { reason: 'Chuva' })).status).toBe(200);
+    expect(updateMany.mock.calls[0][0]).toEqual({ where: { id, ...accessWhere, status }, data: {
+      status: 'CANCELLED', notes: 'Anterior\nChuva', ...(status === 'RUNNING' ? { endedAt: expect.any(Date) } : {}) } });
+  });
+  it.each([undefined, {}])('cancela sem motivo e preserva notes: %p', async (body) => {
+    expect((await request(`/${id}/cancel`, 'POST', body)).status).toBe(200);
+    expect(updateMany.mock.calls[0][0].data).toEqual({ status: 'CANCELLED' });
+  });
+  it('recusa motivo combinado acima de 1000 sem truncar nem escrever', async () => {
+    findFirst.mockResolvedValue({ ...row, notes: 'a'.repeat(995) });
+    expect((await request(`/${id}/cancel`, 'POST', { reason: 'Chuva' })).status).toBe(400);
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+  it('aceita exatamente 1000 caracteres combinados', async () => {
+    findFirst.mockResolvedValue({ ...row, notes: 'a'.repeat(994) });
+    expect((await request(`/${id}/cancel`, 'POST', { reason: 'Chuva' })).status).toBe(200);
+    expect(updateMany.mock.calls[0][0].data.notes).toHaveLength(1000);
+  });
+  it.each(['PLANNED', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'].flatMap((status) =>
+    ['start', 'finish', 'cancel'].filter((action) => !(action === 'start' && status === 'PLANNED') &&
+      !(action === 'finish' && status === 'RUNNING') && !(action === 'cancel' && ['PLANNED', 'RUNNING'].includes(status)))
+      .map((action) => [status, action])))('recusa estado %s para %s', async (status, action) => {
+    findFirst.mockResolvedValue({ ...row, status });
+    const response = await request(`/${id}/${action}`, 'POST', action === 'finish' ? { status: 'COMPLETED' } : {});
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: 'TEST_STATE_CONFLICT' } });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+  it.each(['start', 'finish', 'cancel'])('recusa teste alheio/ausente em %s inclusive ADMIN', async (action) => {
+    findUser.mockResolvedValue({ id: userId, status: 'ACTIVE', roles: [{ role: 'ADMIN' }] });
+    findFirst.mockResolvedValue(null);
+    const response = await request(`/${id}/${action}`, 'POST', action === 'finish' ? { status: 'FAILED' } : {});
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: { code: 'TEST_NOT_FOUND' } });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+  it.each<[string, object]>([
+    ['start', { startedAt: date.toISOString() }], ['start', { status: 'RUNNING' }],
+    ['finish', {}], ['finish', { status: null }], ['finish', { status: 'RUNNING' }],
+    ...[{ outcome: 'INVALID' }, { averageEngineRpm: -1 }, { averageSpeedKph: -1 }, { vehicleWeightKg: 0 },
+      { vehicleWeightKg: '100' }, { averageEngineRpm: '0' }, { inclineDegrees: '2' }, { notes: 2 },
+      { notes: 'a'.repeat(1001) }, { endedAt: date.toISOString() }, { snapshot: {} }]
+      .map((fields): [string, object] => ['finish', { status: 'COMPLETED', ...fields }]),
+    ['cancel', { reason: null }], ['cancel', { reason: 2 }], ['cancel', { reason: 'a'.repeat(501) }],
+    ['cancel', { endedAt: date.toISOString() }],
+  ])('valida body de %s: %p', async (action, body) => {
+    expect((await request(`/${id}/${action}`, 'POST', body as object)).status).toBe(400);
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+  it('duas transições disputando o mesmo estado produzem um sucesso e um conflito', async () => {
+    let changed = false;
+    updateMany.mockImplementation(async () => {
+      if (changed) return { count: 0 };
+      changed = true; return { count: 1 };
+    });
+    const responses = await Promise.all([request(`/${id}/start`, 'POST', {}), request(`/${id}/cancel`, 'POST', {})]);
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+    expect(updateMany.mock.calls.every(([mutation]) => mutation.where.status === 'PLANNED')).toBe(true);
+  });
+  it('não expõe falha de persistência de transição', async () => {
+    updateMany.mockRejectedValue(new Error('segredo-sintetico'));
+    const response = await request(`/${id}/start`, 'POST', {});
+    expect(response.status).toBe(500);
+    expect(JSON.stringify(await response.json())).not.toContain('segredo-sintetico');
   });
 });

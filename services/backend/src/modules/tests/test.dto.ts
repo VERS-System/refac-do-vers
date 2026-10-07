@@ -1,7 +1,7 @@
 // Valida planejamento e filtros experimentais sem aceitar estado/snapshot do cliente.
 import { Transform } from 'class-transformer';
-import { TerrainType, TestStatus } from '@prisma/client';
-import { IsEnum, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Matches, MaxLength, Validate, ValidateIf } from 'class-validator';
+import { TerrainType, TestOutcome, TestStatus } from '@prisma/client';
+import { IsEnum, IsIn, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Matches, MaxLength, Min, Validate, ValidateIf } from 'class-validator';
 import { IsUtcRangeEndAfterStart, IsValidUtcDateTime, PaginationQueryDto } from '../../common/dto/pagination.dto';
 
 export class CreateTestDto {
@@ -57,4 +57,53 @@ export class TestQueryDto extends PaginationQueryDto {
   @Validate(IsValidUtcDateTime)
   @Validate(IsUtcRangeEndAfterStart)
   startedTo?: string;
+}
+
+// Não permite campos de estado ou horários no comando de início.
+export class StartTestDto {}
+
+export class FinishTestDto {
+  @IsIn(['COMPLETED', 'FAILED'])
+  status!: 'COMPLETED' | 'FAILED';
+
+  @IsOptional()
+  @IsEnum(TestOutcome)
+  outcome?: TestOutcome | null;
+
+  @Transform(({ obj, key }: { obj: Record<string, unknown>; key: string }) => obj[key])
+  @IsOptional()
+  @IsNumber({ allowInfinity: false, allowNaN: false })
+  @Min(0)
+  averageEngineRpm?: number | null;
+
+  @Transform(({ obj, key }: { obj: Record<string, unknown>; key: string }) => obj[key])
+  @IsOptional()
+  @IsNumber({ allowInfinity: false, allowNaN: false })
+  @Min(0)
+  averageSpeedKph?: number | null;
+
+  @Transform(({ obj, key }: { obj: Record<string, unknown>; key: string }) => obj[key])
+  @IsOptional()
+  @IsNumber({ allowInfinity: false, allowNaN: false })
+  inclineDegrees?: number | null;
+
+  @Transform(({ obj, key }: { obj: Record<string, unknown>; key: string }) => obj[key])
+  @IsOptional()
+  @IsNumber({ allowInfinity: false, allowNaN: false })
+  @IsPositive()
+  vehicleWeightKg?: number | null;
+
+  @Transform(({ obj, key }: { obj: Record<string, unknown>; key: string }) => obj[key])
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string | null;
+}
+
+export class CancelTestDto {
+  @Transform(({ obj, key }: { obj: Record<string, unknown>; key: string }) => obj[key])
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
 }

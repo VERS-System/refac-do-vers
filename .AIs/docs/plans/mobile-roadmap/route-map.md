@@ -45,8 +45,8 @@ Diagnóstico do veículo permanece fora do escopo e não possui rota.
 | Testes experimentais | 08 |
 | Perfil | 09 |
 | Veículos | 10 |
-| Suporte e revisão | 11 |
-| Viber | 12 |
+| Viber | 11 |
+| Suporte e revisão | 12 |
 
 Cada rota futura consome apenas os contratos públicos do backend
 correspondentes (ver `mobile-roadmap/README.md`, seção de encaixe).

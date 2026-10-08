@@ -146,3 +146,65 @@ describe('ViberScreen sem abas (fix da referência)', () => {
     ).toBeTruthy();
   });
 });
+
+describe('ViberScreen selos e referência (11d)', () => {
+  /** Avisa quando a resposta é inferência, sem esconder a mensagem. */
+  it('sinaliza inferência do Viber', () => {
+    const { getByTestId, getByText } = render(
+      <ViberScreen
+        messages={[{ id: 'm1', kind: 'inference', role: 'viber', text: 'Acho que a bateria rendeu bem.' }]}
+      />,
+    );
+
+    expect(getByText('Acho que a bateria rendeu bem.')).toBeTruthy();
+    expect(getByTestId('viber-kind-seal')).toBeTruthy();
+    expect(getByText('Inferência do Viber — pode conter erros')).toBeTruthy();
+  });
+
+  /** Avisa quando a resposta é recomendação. */
+  it('sinaliza recomendação do Viber', () => {
+    const { getByTestId, getByText } = render(
+      <ViberScreen
+        messages={[{ id: 'm1', kind: 'recommendation', role: 'viber', text: 'Vale revisar os piezos.' }]}
+      />,
+    );
+
+    expect(getByTestId('viber-kind-seal')).toBeTruthy();
+    expect(getByText('Recomendação do Viber — confira antes de agir')).toBeTruthy();
+  });
+
+  /** Não sela medição, explicação ou mensagem sem kind. */
+  it('omite o selo fora de inferência e recomendação', () => {
+    const { queryByTestId, rerender } = render(
+      <ViberScreen
+        messages={[{ id: 'm1', kind: 'measurement', role: 'viber', text: '12 Wh.' }]}
+      />,
+    );
+
+    expect(queryByTestId('viber-kind-seal')).toBeNull();
+
+    rerender(
+      <ViberScreen
+        messages={[{ id: 'm1', role: 'viber', text: 'Entendi.' }]}
+      />,
+    );
+
+    expect(queryByTestId('viber-kind-seal')).toBeNull();
+  });
+
+  /** Exibe o período de referência cru quando informado. */
+  it('exibe a referência informada e omite quando ausente', () => {
+    const { getByTestId, getByText, queryByTestId, rerender } = render(
+      <ViberScreen
+        messages={[{ id: 'm1', referenceLabel: 'Últimos 30 dias', role: 'viber', text: 'Resumo.' }]}
+      />,
+    );
+
+    expect(getByTestId('viber-reference')).toBeTruthy();
+    expect(getByText('Últimos 30 dias')).toBeTruthy();
+
+    rerender(<ViberScreen messages={[{ id: 'm1', role: 'viber', text: 'Resumo.' }]} />);
+
+    expect(queryByTestId('viber-reference')).toBeNull();
+  });
+});

@@ -37,6 +37,9 @@ type ViberScreenProps = {
 /** Remetente da mensagem, como na conversa com o assistente. */
 export type ViberRole = 'user' | 'viber';
 
+/** Natureza da resposta do Viber; só exibida, sem decidir nada. */
+export type ViberKind = 'measurement' | 'explanation' | 'inference' | 'recommendation';
+
 /** Mensagem da conversa; só carrega o que a props informa. */
 export type ViberMessage = {
   /** Identificador estável da mensagem. */
@@ -45,6 +48,10 @@ export type ViberMessage = {
   role: ViberRole;
   /** Texto cru; `null` omite a bolha. */
   text?: string | null;
+  /** Natureza da resposta; só `inference`/`recommendation` ganham selo. */
+  kind?: ViberKind | null;
+  /** Período ou base da resposta; cru, `null` omite a linha. */
+  referenceLabel?: string | null;
 };
 
 /**
@@ -96,6 +103,8 @@ export function ViberScreen({ draft, messages, onBack, onDraftChange, onSend, us
             message.role === 'viber' ? (
               <ViberAnswer
                 key={message.id}
+                kind={message.kind}
+                referenceLabel={message.referenceLabel}
                 text={message.text as string}
               />
             ) : (
@@ -164,7 +173,22 @@ function ViberComposer({
 /**
  * Exibe uma resposta do Viber à esquerda, com avatar da marca.
  */
-function ViberAnswer({ text }: { text: string }) {
+function ViberAnswer({
+  kind,
+  referenceLabel,
+  text,
+}: {
+  kind?: ViberKind | null;
+  referenceLabel?: string | null;
+  text: string;
+}) {
+  const seal =
+    kind === 'inference'
+      ? 'Inferência do Viber — pode conter erros'
+      : kind === 'recommendation'
+        ? 'Recomendação do Viber — confira antes de agir'
+        : null;
+
   return (
     <View style={styles.viberRow}>
       <View style={styles.viberAvatar}>
@@ -175,13 +199,29 @@ function ViberAnswer({ text }: { text: string }) {
           style={styles.viberAvatarImage}
         />
       </View>
-      <View
-        accessibilityLabel={`Viber: ${text}`}
-        accessibilityRole="text"
-        style={styles.viberBubble}
-        testID="viber-message"
-      >
-        <Text style={styles.viberText}>{text}</Text>
+      <View style={styles.viberColumn}>
+        <View
+          accessibilityLabel={`Viber: ${text}`}
+          accessibilityRole="text"
+          style={styles.viberBubble}
+          testID="viber-message"
+        >
+          <Text style={styles.viberText}>{text}</Text>
+        </View>
+        {seal ? (
+          <Text
+            accessibilityRole="text"
+            style={styles.kindSeal}
+            testID="viber-kind-seal"
+          >
+            {seal}
+          </Text>
+        ) : null}
+        {referenceLabel ? (
+          <Text style={styles.referenceText} testID="viber-reference">
+            {referenceLabel}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -228,6 +268,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     paddingVertical: theme.spacing.sm,
+  },
+  kindSeal: {
+    color: theme.colors.gray,
+    fontSize: 11,
+    marginTop: theme.spacing.xs,
+    maxWidth: '75%',
+  },
+  referenceText: {
+    color: theme.colors.gray,
+    fontSize: 11,
+    marginTop: theme.spacing.xs,
+    maxWidth: '75%',
   },
   emptyBlock: {
     paddingHorizontal: theme.spacing.lg,
@@ -303,6 +355,9 @@ const styles = StyleSheet.create({
     maxWidth: '75%',
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
+  },
+  viberColumn: {
+    flex: 1,
   },
   viberRow: {
     alignItems: 'flex-end',

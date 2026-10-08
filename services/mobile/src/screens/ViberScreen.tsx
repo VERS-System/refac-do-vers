@@ -16,6 +16,7 @@
 import { useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
 
@@ -38,7 +39,14 @@ type ViberScreenProps = {
   contextId?: string | null;
   /** Escolha do contexto; ausente mantém os chips sem efeito. */
   onContextChange?: (contextId: string) => void;
+  /** Estado visual atual; `idle` é a conversa normal. */
+  status?: ViberScreenStatus;
+  /** Repete a conversa no erro; ausente mantém o botão sem efeito. */
+  onRetry?: () => void;
 };
+
+/** Estados visuais do chat; a origem das respostas é o backend (ai-service futuro). */
+export type ViberScreenStatus = 'idle' | 'sending' | 'error' | 'unavailable' | 'empty';
 
 /** Remetente da mensagem, como na conversa com o assistente. */
 export type ViberRole = 'user' | 'viber';
@@ -82,7 +90,9 @@ export function ViberScreen({
   onBack,
   onContextChange,
   onDraftChange,
+  onRetry,
   onSend,
+  status,
   userInitial,
 }: ViberScreenProps) {
   const visibleMessages = (messages ?? []).filter((message) => message.text != null);
@@ -166,6 +176,43 @@ export function ViberScreen({
           </Text>
         </View>
       )}
+
+      {status === 'sending' ? (
+        <View style={styles.viberRow} testID="viber-sending">
+          <View style={styles.viberAvatar}>
+            <Image
+              accessibilityLabel="Avatar do Viber"
+              resizeMode="contain"
+              source={require('../assets/versAlt.png')}
+              style={styles.viberAvatarImage}
+            />
+          </View>
+          <View style={styles.viberBubble}>
+            <Text style={styles.viberText}>Viber está respondendo…</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {status === 'error' ? (
+        <View style={styles.stateBlock} testID="viber-error">
+          <Text accessibilityRole="alert" style={styles.stateText}>
+            Não foi possível conversar com o Viber.
+          </Text>
+          <PrimaryButton
+            accessibilityLabel="Tentar novamente"
+            label="TENTAR NOVAMENTE"
+            onPress={() => onRetry?.()}
+          />
+        </View>
+      ) : null}
+
+      {status === 'unavailable' ? (
+        <View style={styles.stateBlock} testID="viber-unavailable">
+          <Text accessibilityRole="alert" style={styles.stateText}>
+            Viber indisponível no momento.
+          </Text>
+        </View>
+      ) : null}
 
     </ScreenShell>
   );
@@ -424,6 +471,16 @@ const styles = StyleSheet.create({
   sendIdle: {
     color: theme.colors.gray,
     fontSize: 20,
+  },
+  stateBlock: {
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+  },
+  stateText: {
+    color: theme.colors.gray,
+    fontSize: 13,
+    textAlign: 'center',
   },
   suggestionChip: {
     backgroundColor: theme.colors.surface,

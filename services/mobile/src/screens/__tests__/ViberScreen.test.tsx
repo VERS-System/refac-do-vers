@@ -263,3 +263,48 @@ describe('ViberScreen atalhos e contexto (11e)', () => {
     expect(queryByTestId('viber-contexts')).toBeNull();
   });
 });
+
+describe('ViberScreen estados e falha (11f)', () => {
+  /** Mostra que o Viber está respondendo durante o envio. */
+  it('indica envio em andamento', () => {
+    const { getByTestId, getByText } = render(<ViberScreen status="sending" />);
+
+    expect(getByTestId('viber-sending')).toBeTruthy();
+    expect(getByText('Viber está respondendo…')).toBeTruthy();
+  });
+
+  /** Exibe o erro com repetição, sem apagar o digitado. */
+  it('exibe erro com tentar novamente e preserva o rascunho', () => {
+    const onRetry = jest.fn();
+    const { getByDisplayValue, getByRole, getByTestId, getByText } = render(
+      <ViberScreen draft="Oi" onRetry={onRetry} status="error" />,
+    );
+
+    expect(getByTestId('viber-error')).toBeTruthy();
+    expect(getByText('Não foi possível conversar com o Viber.')).toBeTruthy();
+    expect(getByDisplayValue('Oi')).toBeTruthy();
+
+    fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(getByDisplayValue('Oi')).toBeTruthy();
+  });
+
+  /** Avisa a indisponibilidade sem apagar o digitado. */
+  it('avisa indisponibilidade e preserva o digitado', () => {
+    const { getByDisplayValue, getByTestId, getByText } = render(
+      <ViberScreen draft="Oi" status="unavailable" />,
+    );
+
+    expect(getByTestId('viber-unavailable')).toBeTruthy();
+    expect(getByText('Viber indisponível no momento.')).toBeTruthy();
+    expect(getByDisplayValue('Oi')).toBeTruthy();
+  });
+
+  /** Mantém o vazio explícito no estado vazio. */
+  it('mantém o vazio no estado vazio', () => {
+    const { getByTestId } = render(<ViberScreen status="empty" />);
+
+    expect(getByTestId('viber-empty')).toBeTruthy();
+  });
+});

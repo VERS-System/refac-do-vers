@@ -56,7 +56,8 @@ locais, sem montar prompts nem acessar dados brutos.
   identificação acessível de usuário vs Viber; sem messages mantém o
   vazio; teste cobre ordem, papéis e omissão.
 - **11c — composição:** props `draft`/`onDraftChange`/`onSend` com campo e
-  `ENVIAR`; só repasse do texto, sem validação; rascunho interno sem
+  `ENVIAR` no rodapé fixo (`footer` do `ScreenShell`, sem `BottomNavigation`
+  no chat); só repasse do texto, sem validação; rascunho interno sem
   props para não travar a rota; teste cobre digitação e envio.
 - **11d — selos e referência:** prop `kind` por mensagem + `referenceLabel`
   cru; inferência/recomendação com aviso visível; medição sem selo de
@@ -90,10 +91,11 @@ locais, sem montar prompts nem acessar dados brutos.
   seta de envio `gray` (repouso) → `gold` (ativa); sem segunda
   identidade visual. Decisões da referência (regra 11, 07/10/2026): sem
   contorno de destaque ao digitar (paleta não tem azul); fixtures em PT
-  (padrão do app); avatar do Viber com `versLogo.png` (constante,
+  (padrão do app); avatar do Viber com `versAlt.png` (constante,
   padrão desde já) e avatar do usuário com inicial (foto do mockup
-  descartada — ~30px, sem qualidade); teclado nativo sem cobrir o
-  composer (layout 11g).
+  descartada — ~30px, sem qualidade); sem `BottomNavigation` no chat —
+  composer fixo no rodapé (`footer` do `ScreenShell`); teclado nativo sem
+  cobrir o composer (layout 11g).
 - Nomes e campos vindos dos contratos públicos quando existirem; tipos de
   mensagem do Viber como tipos visuais locais até o contrato do
   ai-service ser aprovado (regra 5 do roadmap).

@@ -1,31 +1,37 @@
 /**
- * Implementa a tela do Viber (Task 11, lotes 11a–11b).
+ * Implementa a tela do Viber (Task 11, lotes 11a–11c).
  *
  * Existe para dar à conversa com o assistente uma rota interna sem criar
- * aba nova: usa o `ScreenShell` padrão, o `AppHeader` com voltar por
- * callback e a `BottomNavigation` com a aba home de origem. O histórico
- * chega por props (fixtures até o contrato do ai-service), com bolhas no
- * padrão da referência (`telaNormal.png`): Viber à esquerda em `surface`
- * com texto `gold` e avatar da marca, usuário à direita em `gold` com
- * texto `dark` e inicial. Composição, selos, atalhos e estados chegam nos
- * próximos lotes. Nada é calculado, buscado, persistido ou decidido aqui;
- * prompts, dados e chaves pertencem ao backend/ai-service.
+ * aba nova e sem exibir as abas: usa o `ScreenShell` padrão, o `AppHeader`
+ * com voltar por callback e o composer fixo no rodapé, como na referência
+ * (`telaNormal.png`/`telaDigitação.png`). O histórico chega por props
+ * (fixtures até o contrato do ai-service), com bolhas no padrão da
+ * referência: Viber à esquerda em `surface` com texto `gold` e avatar da
+ * marca, usuário à direita em `gold` com texto `dark` e inicial. Selos,
+ * atalhos e estados chegam nos próximos lotes. Nada é calculado, buscado,
+ * persistido ou decidido aqui; prompts, dados e chaves pertencem ao
+ * backend/ai-service.
  */
 
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
-import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
 import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
 
 type ViberScreenProps = {
-  onTabPress?: (tab: MainTab) => void;
   /** Volta ao fluxo anterior; rota interna, sem regra de sessão. */
   onBack?: () => void;
   /** Mensagens da conversa; vêm prontas, sem buscar nada. */
   messages?: ViberMessage[];
   /** Inicial do usuário no avatar; ausente omite o avatar. */
   userInitial?: string | null;
+  /** Rascunho da composição; ausente usa estado visual interno. */
+  draft?: string | null;
+  /** Edição do rascunho; ausente só atualiza o modo interno. */
+  onDraftChange?: (text: string) => void;
+  /** Envio do texto; ausente mantém o botão sem efeito. */
+  onSend?: (text: string) => void;
 };
 
 /** Remetente da mensagem, como na conversa com o assistente. */
@@ -42,15 +48,39 @@ export type ViberMessage = {
 };
 
 /**
- * Renderiza o scaffold da conversa com o Viber e o histórico informado.
+ * Renderiza o scaffold da conversa com o Viber, o histórico e a composição.
  */
-export function ViberScreen({ messages, onBack, onTabPress, userInitial }: ViberScreenProps) {
+export function ViberScreen({ draft, messages, onBack, onDraftChange, onSend, userInitial }: ViberScreenProps) {
   const visibleMessages = (messages ?? []).filter((message) => message.text != null);
+  const [innerDraft, setInnerDraft] = useState('');
+  const isControlled = draft != null;
+  const currentDraft = isControlled ? (draft as string) : innerDraft;
 
   return (
     <ScreenShell
       contentContainerStyle={styles.scrollContent}
-      footer={<BottomNavigation activeTab="home" onTabPress={onTabPress} />}
+      footer={
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          testID="viber-keyboard-avoid"
+        >
+          <ViberComposer
+            draft={currentDraft}
+            onDraftChange={(text) => {
+              if (!isControlled) {
+                setInnerDraft(text);
+              }
+              onDraftChange?.(text);
+            }}
+            onSend={(text) => {
+              onSend?.(text);
+              if (!isControlled) {
+                setInnerDraft('');
+              }
+            }}
+          />
+        </KeyboardAvoidingView>
+      }
       testID="viber-screen"
     >
       <AppHeader
@@ -89,7 +119,45 @@ export function ViberScreen({ messages, onBack, onTabPress, userInitial }: Viber
           </Text>
         </View>
       )}
+
     </ScreenShell>
+  );
+}
+
+/**
+ * Compõe e envia mensagens; só repassa o texto, sem validar nada.
+ */
+function ViberComposer({
+  draft,
+  onDraftChange,
+  onSend,
+}: {
+  draft: string;
+  onDraftChange?: (text: string) => void;
+  onSend?: (text: string) => void;
+}) {
+  const hasText = draft.length > 0;
+
+  return (
+    <View style={styles.composerBlock} testID="viber-composer">
+      <TextInput
+        accessibilityLabel="Mensagem para o Viber"
+        onChangeText={onDraftChange}
+        placeholder="Fale com o Viber"
+        placeholderTextColor={theme.colors.gray}
+        selectionColor={theme.colors.gold}
+        style={styles.composerInput}
+        value={draft}
+      />
+      <Pressable
+        accessibilityLabel="Enviar mensagem"
+        accessibilityRole="button"
+        onPress={() => onSend?.(draft)}
+        style={styles.sendButton}
+      >
+        <Text style={hasText ? styles.sendActive : styles.sendIdle}>➤</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -143,6 +211,24 @@ function UserQuestion({ text, userInitial }: { text: string; userInitial?: strin
 }
 
 const styles = StyleSheet.create({
+  composerBlock: {
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.lg,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginHorizontal: theme.spacing.lg,
+    marginVertical: theme.spacing.md,
+    minHeight: 52,
+    paddingLeft: theme.spacing.md,
+    paddingRight: theme.spacing.sm,
+  },
+  composerInput: {
+    color: theme.colors.gold,
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: theme.spacing.sm,
+  },
   emptyBlock: {
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.xl,
@@ -154,6 +240,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+  },
+  sendActive: {
+    color: theme.colors.gold,
+    fontSize: 20,
+  },
+  sendButton: {
+    padding: theme.spacing.xs,
+  },
+  sendIdle: {
+    color: theme.colors.gray,
+    fontSize: 20,
   },
   userAvatar: {
     alignItems: 'center',

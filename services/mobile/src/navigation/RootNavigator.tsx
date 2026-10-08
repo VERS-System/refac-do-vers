@@ -58,7 +58,7 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
     }
 
     if (isViberVisible) {
-      return <ViberScreen onBack={() => setViberVisible(false)} onTabPress={setActiveTab} />;
+      return <ViberScreen onBack={() => setViberVisible(false)} />;
     }
 
     if (isTestsVisible) {

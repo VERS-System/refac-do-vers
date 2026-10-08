@@ -7,7 +7,8 @@
  * contrato do ai-service); nada é buscado, persistido ou decidido aqui.
  */
 
-import { fireEvent, render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 import { ViberScreen } from '../ViberScreen';
 
 describe('ViberScreen (11a)', () => {
@@ -73,5 +74,75 @@ describe('ViberScreen histórico (11b)', () => {
 
     expect(getByTestId('viber-empty')).toBeTruthy();
     expect(queryByTestId('viber-history')).toBeNull();
+  });
+});
+
+describe('ViberScreen composição (11c)', () => {
+  /** Repassa a digitação e o envio sem validar nada no cliente. */
+  it('repassa digitação e envio no modo controlado', () => {
+    const onDraftChange = jest.fn();
+    const onSend = jest.fn();
+    const { getByLabelText, getByRole } = render(
+      <ViberScreen draft="Olá, Viber!" onDraftChange={onDraftChange} onSend={onSend} />,
+    );
+
+    fireEvent.changeText(getByLabelText('Mensagem para o Viber'), 'Olá, Viber! e mais');
+    fireEvent.press(getByRole('button', { name: 'Enviar mensagem' }));
+
+    expect(onDraftChange).toHaveBeenCalledWith('Olá, Viber! e mais');
+    expect(onSend).toHaveBeenCalledWith('Olá, Viber!');
+  });
+
+  /** Mantém o digitado visível sem callbacks, sem travar a rota. */
+  it('mantém o digitado sem callbacks', () => {
+    const { getByDisplayValue, getByLabelText } = render(<ViberScreen />);
+
+    fireEvent.changeText(getByLabelText('Mensagem para o Viber'), 'Oi');
+
+    expect(getByDisplayValue('Oi')).toBeTruthy();
+  });
+
+  /** Limpa o campo após enviar no modo não-controlado. */
+  it('limpa o campo após enviar sem draft', () => {
+    const onSend = jest.fn();
+    const { getByLabelText, getByRole, queryByDisplayValue } = render(
+      <ViberScreen onSend={onSend} />,
+    );
+
+    fireEvent.changeText(getByLabelText('Mensagem para o Viber'), 'Oi');
+    fireEvent.press(getByRole('button', { name: 'Enviar mensagem' }));
+
+    expect(onSend).toHaveBeenCalledWith('Oi');
+    expect(queryByDisplayValue('Oi')).toBeNull();
+  });
+});
+
+describe('ViberScreen sem abas (fix da referência)', () => {
+  /** Troca a navegação por abas pelo composer fixo, como na referência. */
+  it('oculta as abas e mantém só o composer no rodapé', () => {
+    const { getByTestId, queryByRole } = render(<ViberScreen />);
+
+    expect(getByTestId('viber-composer')).toBeTruthy();
+    expect(queryByRole('button', { name: 'Início' })).toBeNull();
+    expect(queryByRole('button', { name: 'Bateria' })).toBeNull();
+    expect(queryByRole('button', { name: 'Perfil' })).toBeNull();
+  });
+
+  /** Garante altura mínima confortável ao composer, como na referência. */
+  it('dá altura mínima ao composer', () => {
+    const { getByTestId } = render(<ViberScreen />);
+
+    const style = StyleSheet.flatten(getByTestId('viber-composer').props.style);
+
+    expect(style.minHeight).toBe(52);
+  });
+
+  /** Mantém o composer acima do teclado, sem sumir atrás dele. */
+  it('envolve o composer no ajuste de teclado', () => {
+    const { getByTestId } = render(<ViberScreen />);
+
+    expect(
+      within(getByTestId('viber-keyboard-avoid')).getByTestId('viber-composer'),
+    ).toBeTruthy();
   });
 });

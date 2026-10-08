@@ -308,3 +308,51 @@ describe('ViberScreen estados e falha (11f)', () => {
     expect(getByTestId('viber-empty')).toBeTruthy();
   });
 });
+
+describe('ViberScreen acessibilidade e layout (11g)', () => {
+  /** Expõe nome+papel em todos os botões: voltar, atalhos, contexto, envio e erro. */
+  it('expõe nome acessível em botões e atalhos', () => {
+    const { getAllByRole } = render(
+      <ViberScreen
+        contextId="instalacao"
+        contexts={[
+          { id: 'instalacao', label: 'Instalação' },
+          { id: 'teste-atual', label: 'Teste atual' },
+        ]}
+        messages={[{ id: 'm1', role: 'viber', text: 'Olá!' }]}
+        onBack={jest.fn()}
+        onRetry={jest.fn()}
+        status="error"
+      />,
+    );
+
+    const buttons = getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(7);
+
+    for (const button of buttons) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+  });
+
+  /** Renderiza mensagem longa sem estourar a bolha. */
+  it('renderiza mensagem longa', () => {
+    const long = 'A'.repeat(500);
+    const { getByText } = render(
+      <ViberScreen messages={[{ id: 'm1', role: 'viber', text: long }]} />,
+    );
+
+    expect(getByText(long)).toBeTruthy();
+  });
+
+  /** Trata links como texto permitido, sem navegação própria. */
+  it('exibe links como texto', () => {
+    const { getByText } = render(
+      <ViberScreen
+        messages={[{ id: 'm1', role: 'viber', text: 'Saiba mais em https://vers.com/vers' }]}
+      />,
+    );
+
+    expect(getByText('Saiba mais em https://vers.com/vers')).toBeTruthy();
+  });
+});

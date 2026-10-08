@@ -32,6 +32,12 @@ type ViberScreenProps = {
   onDraftChange?: (text: string) => void;
   /** Envio do texto; ausente mantém o botão sem efeito. */
   onSend?: (text: string) => void;
+  /** Contextos autorizados para a conversa; vêm prontos, sem buscar nada. */
+  contexts?: ViberContext[];
+  /** Contexto atual; só marca entre os autorizados informados. */
+  contextId?: string | null;
+  /** Escolha do contexto; ausente mantém os chips sem efeito. */
+  onContextChange?: (contextId: string) => void;
 };
 
 /** Remetente da mensagem, como na conversa com o assistente. */
@@ -54,14 +60,43 @@ export type ViberMessage = {
   referenceLabel?: string | null;
 };
 
+/** Contexto autorizado da conversa; só exibido entre os informados. */
+export type ViberContext = {
+  /** Identificador estável do contexto. */
+  id: string;
+  /** Rótulo cru do recurso autorizado. */
+  label: string;
+};
+
+/** Atalhos do chat; só preenchem o rascunho, sem navegar nem buscar dados. */
+const VIBER_SUGGESTIONS = ['Battery usage', 'Money economy'];
+
 /**
  * Renderiza o scaffold da conversa com o Viber, o histórico e a composição.
  */
-export function ViberScreen({ draft, messages, onBack, onDraftChange, onSend, userInitial }: ViberScreenProps) {
+export function ViberScreen({
+  contextId,
+  contexts,
+  draft,
+  messages,
+  onBack,
+  onContextChange,
+  onDraftChange,
+  onSend,
+  userInitial,
+}: ViberScreenProps) {
   const visibleMessages = (messages ?? []).filter((message) => message.text != null);
   const [innerDraft, setInnerDraft] = useState('');
   const isControlled = draft != null;
   const currentDraft = isControlled ? (draft as string) : innerDraft;
+
+  /** Preenche o rascunho; no modo interno atualiza o campo direto. */
+  const applyDraft = (text: string) => {
+    if (!isControlled) {
+      setInnerDraft(text);
+    }
+    onDraftChange?.(text);
+  };
 
   return (
     <ScreenShell
@@ -71,14 +106,17 @@ export function ViberScreen({ draft, messages, onBack, onDraftChange, onSend, us
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           testID="viber-keyboard-avoid"
         >
+          {contexts && contexts.length > 0 ? (
+            <ViberContextBar
+              contextId={contextId}
+              contexts={contexts}
+              onContextChange={onContextChange}
+            />
+          ) : null}
+          <ViberSuggestions onSuggest={applyDraft} />
           <ViberComposer
             draft={currentDraft}
-            onDraftChange={(text) => {
-              if (!isControlled) {
-                setInnerDraft(text);
-              }
-              onDraftChange?.(text);
-            }}
+            onDraftChange={applyDraft}
             onSend={(text) => {
               onSend?.(text);
               if (!isControlled) {
@@ -130,6 +168,63 @@ export function ViberScreen({ draft, messages, onBack, onDraftChange, onSend, us
       )}
 
     </ScreenShell>
+  );
+}
+
+/**
+ * Lista os atalhos do chat; só preenchem o rascunho, sem navegar.
+ */
+function ViberSuggestions({ onSuggest }: { onSuggest: (text: string) => void }) {
+  return (
+    <View style={styles.suggestionsRow} testID="viber-suggestions">
+      {VIBER_SUGGESTIONS.map((suggestion) => (
+        <Pressable
+          accessibilityLabel={suggestion}
+          accessibilityRole="button"
+          key={suggestion}
+          onPress={() => onSuggest(suggestion)}
+          style={styles.suggestionChip}
+        >
+          <Text style={styles.suggestionText}>{suggestion}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * Escolhe o contexto só entre os autorizados informados.
+ */
+function ViberContextBar({
+  contextId,
+  contexts,
+  onContextChange,
+}: {
+  contextId?: string | null;
+  contexts: ViberContext[];
+  onContextChange?: (contextId: string) => void;
+}) {
+  return (
+    <View style={styles.contextsRow} testID="viber-contexts">
+      {contexts.map((context) => {
+        const selected = contextId === context.id;
+
+        return (
+          <Pressable
+            accessibilityLabel={context.label}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            key={context.id}
+            onPress={() => onContextChange?.(context.id)}
+            style={[styles.contextChip, selected ? styles.contextChipSelected : null]}
+          >
+            <Text style={selected ? styles.contextTextSelected : styles.contextText}>
+              {context.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -269,6 +364,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingVertical: theme.spacing.sm,
   },
+  contextChip: {
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginRight: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+  },
+  contextChipSelected: {
+    backgroundColor: theme.colors.tabActive,
+    borderColor: theme.colors.gold,
+  },
+  contextText: {
+    color: theme.colors.gray,
+    fontSize: 12,
+  },
+  contextTextSelected: {
+    color: theme.colors.white,
+    fontSize: 12,
+  },
+  contextsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
+  },
   kindSeal: {
     color: theme.colors.gray,
     fontSize: 11,
@@ -303,6 +424,23 @@ const styles = StyleSheet.create({
   sendIdle: {
     color: theme.colors.gray,
     fontSize: 20,
+  },
+  suggestionChip: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.lg,
+    marginRight: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+  },
+  suggestionText: {
+    color: theme.colors.gold,
+    fontSize: 12,
+  },
+  suggestionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
   },
   userAvatar: {
     alignItems: 'center',

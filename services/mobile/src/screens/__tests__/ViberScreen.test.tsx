@@ -208,3 +208,58 @@ describe('ViberScreen selos e referência (11d)', () => {
     expect(queryByTestId('viber-reference')).toBeNull();
   });
 });
+
+describe('ViberScreen atalhos e contexto (11e)', () => {
+  /** Preenche o rascunho ao tocar nos atalhos, sem navegar. */
+  it('preenche o rascunho com os atalhos', () => {
+    const onDraftChange = jest.fn();
+    const { getByRole } = render(
+      <ViberScreen draft="" onDraftChange={onDraftChange} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Battery usage' }));
+
+    expect(onDraftChange).toHaveBeenCalledWith('Battery usage');
+
+    const uncontrolled = render(<ViberScreen />);
+    fireEvent.press(uncontrolled.getByRole('button', { name: 'Money economy' }));
+
+    expect(uncontrolled.getByDisplayValue('Money economy')).toBeTruthy();
+  });
+
+  /** Lista só os contextos autorizados e notifica a escolha. */
+  it('seleciona contexto entre os autorizados', () => {
+    const onContextChange = jest.fn();
+    const { getByRole } = render(
+      <ViberScreen
+        contexts={[
+          { id: 'instalacao', label: 'Instalação' },
+          { id: 'teste-atual', label: 'Teste atual' },
+        ]}
+        onContextChange={onContextChange}
+      />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Teste atual' }));
+
+    expect(onContextChange).toHaveBeenCalledWith('teste-atual');
+  });
+
+  /** Marca o contexto atual e omite o seletor sem autorizados. */
+  it('marca o contexto atual e omite sem autorizados', () => {
+    const { getByRole, queryByTestId, rerender } = render(
+      <ViberScreen
+        contextId="instalacao"
+        contexts={[{ id: 'instalacao', label: 'Instalação' }]}
+      />,
+    );
+
+    expect(getByRole('button', { name: 'Instalação' }).props.accessibilityState).toEqual(
+      expect.objectContaining({ selected: true }),
+    );
+
+    rerender(<ViberScreen />);
+
+    expect(queryByTestId('viber-contexts')).toBeNull();
+  });
+});

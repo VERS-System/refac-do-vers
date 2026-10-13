@@ -646,6 +646,7 @@ paths:
     get:
       tags: [Data]
       summary: Lista amostras de telemetria validada do teste
+      description: Implementado na F06 lote 6.3; pai autorizado, amostras e contagem no mesmo snapshot. Teste inacessível usa TEST_NOT_FOUND; null e zero preservados.
       security:
         - accessCookie: []
       parameters:
@@ -673,6 +674,12 @@ paths:
     get:
       tags: [Data]
       summary: Lista resumos de energia da instalação
+      description: >-
+        Implementado na F06 6.6. Exige vínculo próprio inclusive ADMIN; pai,
+        resumos e contagem usam o mesmo snapshot. Consulta versão ativa, ordena
+        por periodStart/id e preserva qualidade e decimais como strings.
+        Inclui resumos associados do tipo TEST quando armazenados; periodType
+        seleciona o tipo. GET não dispara recomputação.
       security:
         - accessCookie: []
       parameters:
@@ -700,6 +707,11 @@ paths:
     get:
       tags: [Data]
       summary: Lista resumos de energia do teste histórico
+      description: >-
+        Implementado na F06 6.6. Criador histórico ou vínculo atual, inclusive
+        ADMIN; pai, resumos e contagem usam o mesmo snapshot. Consulta versão
+        ativa e ordena por periodStart/id, preservando referências null e
+        decimais como strings. GET não dispara recomputação.
       security:
         - accessCookie: []
       parameters:
@@ -725,6 +737,14 @@ paths:
     get:
       tags: [Data]
       summary: Compara resumos TEST de dois a cinco testes autorizados
+      description: >-
+        Implementado na F06 6.7. Todos os testes exigem acesso próprio ou do
+        criador histórico, inclusive ADMIN, no mesmo snapshot. Qualquer ausência
+        ou falta de acesso retorna TEST_NOT_FOUND para a operação inteira.
+        Seleciona o resumo TEST mais recente da versão ativa por periodStart,
+        calculatedAt e id. Ausência ou INVALID vira null sem fallback antigo;
+        GOOD/PARTIAL preservam qualidade. Mantém ordem e IDs enviados, sem
+        recomputar, ranquear ou inferir eficiência.
       security:
         - accessCookie: []
       parameters:
@@ -960,14 +980,14 @@ components:
     PeriodFrom:
       name: periodFrom
       in: query
-      description: Início inclusivo em UTC.
+      description: Limite inclusivo sobre periodStart em UTC, válido isoladamente.
       schema:
         type: string
         format: date-time
     PeriodTo:
       name: periodTo
       in: query
-      description: Fim exclusivo em UTC.
+      description: Limite exclusivo sobre periodStart em UTC, posterior a periodFrom quando informado.
       schema:
         type: string
         format: date-time
@@ -977,7 +997,9 @@ components:
       required: true
       style: form
       explode: true
-      description: Entre dois e cinco UUIDs distintos, repetidos na query string.
+      description: >-
+        Entre dois e cinco UUIDs v4 distintos, repetidos na query string.
+        Unicidade ignora caixa. Não aceita CSV, JSON ou colchetes.
       schema:
         type: array
         minItems: 2
@@ -1480,6 +1502,12 @@ components:
     EnergySummary:
       type: object
       additionalProperties: false
+      description: >-
+        Intervalo semiaberto UTC. TEST somente após encerramento; leitura no fim
+        fecha o último delta sem entrar na contagem. Deltas repartidos entre
+        períodos são estimativas proporcionais ao tempo e recebem PARTIAL.
+        Energia trapezoidal não substitui energia do contador. Pico e contagem
+        usam somente leituras reais dentro do intervalo.
       required: [id, installationId, testId, periodType, periodStart, periodEnd, recoveredEnergyWh, vehicleEnergyUsedWh, averagePowerW, peakPowerW, moneySaved, currencyCode, energyTariffPerKwh, sampleCount, quality, calculatedAt]
       properties:
         id:
@@ -1538,6 +1566,7 @@ components:
           type: string
           format: uuid
         summary:
+          description: Resumo TEST mais recente da versão ativa, ou null se ausente/INVALID.
           oneOf:
             - $ref: '#/components/schemas/EnergySummary'
             - type: 'null'

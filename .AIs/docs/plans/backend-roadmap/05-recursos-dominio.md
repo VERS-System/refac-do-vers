@@ -8,7 +8,9 @@ Lotes 1–7 implementados até 13/10/2026: perfil, veículos, instalações/conf
 planejamento/ciclo de testes e criação/consultas próprias de suporte.
 Lote 8 entregue em 13/10/2026: regressão/conferência concluídas, pronta para
 revisão final do programador. Backend 378 testes, lint/build e shared-types
-test:unit/lint/build aprovados. A fase não foi encerrada automaticamente.
+test:unit/lint/build aprovados. Após esclarecimento dos limites, programador
+orientou avançar em 13/10/2026: recorte executável concluído, mantendo pendências
+reais e capacidades administrativas abaixo fora dessa entrega.
 
 ## Limites da entrega por lotes
 

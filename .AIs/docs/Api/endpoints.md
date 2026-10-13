@@ -14,7 +14,8 @@
 
 **Estado em 13/10/2026:** health, auth, perfil, veículos, leituras de instalações/configurações,
 planejamento/ciclo de testes e criação/consultas próprias de suporte estão registrados
-no backend (F05 lotes 1–7). Telemetria, resumos e comparação permanecem contratos futuros.
+no backend (F05 lotes 1–7). A F06 lote 6.3 acrescenta consulta de telemetria por
+teste; resumos e comparação permanecem contratos futuros.
 
 As operações da fundação incluem `GET /users/me`, `PATCH /users/me`, `GET /health/live`, `GET /health/ready`,
 `GET /auth/csrf`, `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`,
@@ -416,6 +417,38 @@ O intervalo deve ter início anterior ao fim. Resultados são ordenados por
 
 ## Telemetria, resumos e comparação
 
+`GET /tests/{testId}/telemetry` implementado na F06 lote 6.3. Reutiliza
+sessão/guards e filtro compartilhado de teste: criador histórico ou vínculo
+atual, inclusive para ADMIN. Pai autorizado, amostras e contagem usam a mesma
+transação RepeatableRead; amostras também filtram o acesso pela relação Test.
+Teste ausente/alheio usa TEST_NOT_FOUND, sem retornar lista vazia ou consultar
+amostras. Teste autorizado sem leituras retorna lista vazia.
+
+Filtros capturedFrom/capturedTo UTC (isolados ou juntos), início inclusivo e
+fim exclusivo, quality VALID/PARTIAL/SUSPECT/INVALID; campos extras e datas
+impossíveis/invertidas são recusados. Página 1/tamanho 20, máximo 100; ordem
+capturedAt/id crescente. Projeção explícita dos campos públicos preserva null e
+zero, sem deviceId, messageId, installationId, sampleIndex ou createdAt internos.
+Não recalcula medições nem deduplica leituras neste endpoint. F06 lote 6.6
+implementa também as duas consultas de resumos abaixo. F06 lote 6.7 entrega
+comparação; as 32 operações contratadas estão implementadas. Fechamento da
+fase e ensaios reais permanecem separados no lote 6.8.
+
+Resumos exigem pai autorizado, listagem e contagem no mesmo RepeatableRead.
+Filtram somente a versão ativa do cálculo, não editável pela query, com
+ordem periodStart/id crescente, página 1/tamanho 20 e máximo 100. periodType
+é opcional e aceita TEST/HOUR/DAY/MONTH; periodFrom inclusivo e periodTo exclusivo
+filtram periodStart, em UTC, juntos ou isoladamente. Extras, datas impossíveis,
+intervalos invertidos/iguais e UUIDs inválidos retornam VALIDATION_ERROR.
+Teste usa criador histórico ou vínculo atual; instalação exige vínculo próprio,
+inclusive para ADMIN. Resumos também filtram acesso pela relação do recurso.
+Ausente/alheio retorna TEST_NOT_FOUND ou INSTALLATION_NOT_FOUND antes de consultar
+resumos; recurso autorizado sem dados retorna lista vazia. Consulta da instalação
+inclui os resumos associados, inclusive TEST quando armazenado; periodType
+seleciona o tipo. Qualidade é preservada, inclusive INVALID, sem inferir energia
+válida. Decimal de dinheiro/tarifa vira string exata e null/zero são preservados.
+Não expõe calculationVersion/createdAt internos nem dispara recomputação no GET.
+
 Estas rotas de consulta exigem access cookie e seguem as mesmas regras de acesso
 dos testes e instalações. Um teste histórico permanece consultável por seu
 criador depois da exclusão do veículo. Ausência ou falta de acesso retorna
@@ -444,11 +477,43 @@ ESP32 para comparação, sem substituir o cálculo do backend.
 `null` sem tarifa e premissas documentadas. A ausência de dados não produz
 resumo artificial.
 
-Na comparação, `testIds` é repetido de 2 a 5 vezes na query string, sem IDs
-duplicados. O resultado contém `items` na mesma ordem, cada um com `testId` e
+F06 lote 6.5 implementa a recomputação interna, sem novas rotas de escrita.
+Resumos TEST são gerados apenas para testes encerrados (COMPLETED, FAILED ou
+CANCELLED com startedAt/endedAt e duração positiva). A leitura exatamente no
+fim fecha o último delta, mas não integra sampleCount do intervalo semiaberto.
+HOUR/DAY/MONTH são períodos UTC da instalação, um por chamada interna, com
+testId null. Contadores não atravessam origens dispositivo/teste diferentes.
+Deltas que atravessam fronteiras são repartidos proporcionalmente ao tempo:
+essa repartição é estimada e sinalizada como PARTIAL, sem alegar medição direta
+do subperíodo. A estimativa trapezoidal de energia permanece separada/interna,
+sem substituir recoveredEnergyWh. Média ponderada recorta potência por
+interpolação; pico e sampleCount usam apenas amostras reais dentro do intervalo.
+Não há extrapolação além das leituras. Sem delta calculável, não se persiste
+zero artificial e eventual derivação obsoleta da mesma chave/versão é removida.
+Históricos com origem deviceId ausente dentro do período são preservados,
+sem substituir resultados por uma recomputação de proveniência incompleta.
+Concorrência/rollback reais dependem do ensaio PostgreSQL isolado preparado;
+ingestão futura deve compartilhar os locks veículo/instalação/teste.
+
+Na comparação implementada na F06 lote 6.7, `testIds` é repetido de 2 a 5
+vezes na query string, com UUIDs v4 distintos inclusive sem diferenciar caixa.
+CSV, JSON, colchetes e filtros extras são recusados com VALIDATION_ERROR.
+O resultado contém `items` na mesma ordem, cada um com `testId` e
 `summary` `TEST` ou `null` quando o teste autorizado não possui resumo válido.
 Se algum teste for inacessível, a operação inteira retorna `404`. Resumos
 inválidos não entram como energia recuperada válida.
+
+Consulta relacional seleciona os testes com o filtro de acesso comum, inclusive
+criador histórico e ADMIN exigindo acesso, em RepeatableRead. Traz no máximo
+um resumo TEST da versão ativa por teste, ordenado por periodStart decrescente,
+calculatedAt decrescente e id crescente. O mais recente INVALID vira null,
+sem substituí-lo por resumo antigo válido; GOOD/PARTIAL mantêm sua qualidade.
+Ordem e representação dos IDs enviados são preservadas, mesmo com UUID em
+maiúsculas. Datas/decimais usam a projeção pública das outras consultas.
+Ausente/alheio usa TEST_NOT_FOUND sem resposta parcial. Não há recomputação,
+ranking, eficiência inferida, cobertura percentual ou nova rota de qualidade.
+Contexto de cada teste permanece identificado por testId e disponível no GET
+/tests/{testId} já contratado.
 
 Os intervalos UTC são inclusivos no início e exclusivos no fim; início deve
 ser anterior ao fim. Amostras são ordenadas por `capturedAt` e resumos por

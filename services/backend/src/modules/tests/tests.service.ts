@@ -5,6 +5,7 @@ import { TestRecord } from '../../../../../packages/shared-types/src/tests';
 import { PaginatedResponse } from '../../../../../packages/shared-types/src/api';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CancelTestDto, CreateTestDto, FinishTestDto, TestQueryDto } from './test.dto';
+import { testAccessWhere } from '../auth/resource-access.service';
 
 const testSelect = { id: true, installationId: true, configurationId: true, createdById: true,
   name: true, status: true, terrain: true, snapshotVehicleModel: true, snapshotTestLocation: true,
@@ -12,11 +13,6 @@ const testSelect = { id: true, installationId: true, configurationId: true, crea
   vehicleWeightKg: true, averageEngineRpm: true, averageSpeedKph: true, inclineDegrees: true,
   outcome: true, notes: true, createdAt: true, updatedAt: true } satisfies Prisma.TestSelect;
 type TestRow = Prisma.TestGetPayload<{ select: typeof testSelect }>;
-
-/** Permite o criador histórico ou a conta atualmente vinculada à instalação. */
-function accessWhere(userId: string): Prisma.TestWhereInput {
-  return { OR: [{ createdById: userId }, { installation: { vehicle: { users: { some: { userId } } } } }] };
-}
 
 /** Monta o snapshot público e serializa instantes sem expor campos internos. */
 function publicTest(row: TestRow): TestRecord {
@@ -35,7 +31,7 @@ export class TestsService {
   /** Lista contexto autorizado e contagem no mesmo snapshot com filtros semiabertos. */
   async list(userId: string, query: TestQueryDto): Promise<PaginatedResponse<TestRecord>> {
     const { page, pageSize, installationId, status, startedFrom, startedTo } = query;
-    const where: Prisma.TestWhereInput = { ...accessWhere(userId),
+    const where: Prisma.TestWhereInput = { ...testAccessWhere(userId),
       ...(installationId !== undefined ? { installationId } : {}), ...(status !== undefined ? { status } : {}),
       ...(startedFrom || startedTo ? { startedAt: {
         ...(startedFrom ? { gte: new Date(startedFrom) } : {}), ...(startedTo ? { lt: new Date(startedTo) } : {}) } } : {}) };
@@ -50,7 +46,7 @@ export class TestsService {
 
   /** Consulta somente teste acessível, incluindo histórico sem instalação pelo criador. */
   async detail(userId: string, id: string): Promise<TestRecord> {
-    const row = await this.prisma.test.findFirst({ where: { id, ...accessWhere(userId) }, select: testSelect });
+    const row = await this.prisma.test.findFirst({ where: { id, ...testAccessWhere(userId) }, select: testSelect });
     if (!row) throw new NotFoundException({ code: 'TEST_NOT_FOUND' });
     return publicTest(row);
   }
@@ -59,7 +55,7 @@ export class TestsService {
   async transition(userId: string, id: string, action: 'start' | 'finish' | 'cancel',
     input: FinishTestDto | CancelTestDto = {}): Promise<TestRecord> {
     return this.prisma.$transaction(async (tx) => {
-      const where = { id, ...accessWhere(userId) };
+      const where = { id, ...testAccessWhere(userId) };
       const row = await tx.test.findFirst({ where, select: testSelect });
       if (!row) throw new NotFoundException({ code: 'TEST_NOT_FOUND' });
       const allowed = action === 'start' ? row.status === 'PLANNED' : action === 'finish' ? row.status === 'RUNNING' :

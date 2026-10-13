@@ -55,6 +55,16 @@ permanecem nulos sem fonte e premissas aprovadas.
 
 ## Suporte e auditoria
 
+### Unicidade dos resumos — conferência F06 em 13/10/2026
+
+Os índices únicos parciais da migration incluem calculation_version. Para teste,
+a chave é (test_id, period_type, period_start, calculation_version) quando test_id
+está presente. Para instalação sem teste, a chave usa installation_id no lugar
+de test_id, exigindo installation_id presente e test_id nulo. Ambos IDs nulos
+ficam fora desses índices; não garantem recomputação desse histórico.
+@@index no Prisma não substitui as constraints SQL complementares. Detalhes e
+limites de concorrência no plano F06; nenhuma migration foi criada nesta conferência.
+
 | Tabela | Chave e campos de negócio | Relações e restrições principais |
 | --- | --- | --- |
 | `support_requests` | `id`; `requester_id?`, `vehicle_id?`, `installation_id?`, `reason` limitado a 1000 caracteres, `status` | FKs tornam-se nulas na exclusão; `created_at`, `updated_at`. Estados `OPEN`, `IN_REVIEW`, `SCHEDULED`, `RESOLVED`, `CANCELLED`. Conteúdo de `reason` requer validação no service. |

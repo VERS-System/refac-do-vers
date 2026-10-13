@@ -1,9 +1,10 @@
 <!-- Planeja a F06 em entregas pequenas, sujeitas à validação do programador. -->
 # F06 — Dados, analytics e fixtures
 
-Estado: proposta para validação. Este documento não autoriza implementação.
-A F05 permanece como está. F07, F08 e F09 serão detalhadas posteriormente,
-uma fase por vez, após validação do programador.
+Estado em 13/10/2026: F06 iniciada pelo lote documental 6.1, após orientação
+do programador para avançar e esclarecimento dos limites da F05. Cada lote
+continua separado; não há autorização automática para todos os lotes ou banco
+remoto. F07 depende de seu marco; F08/F09 permanecem futuras.
 
 ## Objetivo e dependências
 
@@ -28,8 +29,8 @@ da seguinte. Validar este plano não significa executar todas de uma vez.
   de consulta; resolver as decisões abaixo antes de implementar cálculos.
 - Manter paginação por `page/pageSize` já contratada; cursor, exportação e
   filtros novos exigem alteração explícita do contrato.
-- Definir chave de recomputação dos resumos. O schema atual possui índices,
-  mas não uma restrição única que garanta idempotência concorrente.
+- Reutilizar os índices únicos parciais já presentes na migration inicial para
+  a chave de recomputação; confirmar limites de referências históricas removidas.
 
 Saída: regras documentadas e aprovadas, exemplos numéricos esperados e
 eventual necessidade de migration identificada, sem aplicação no banco.
@@ -160,3 +161,96 @@ Schema/constraints só serão alterados com justificativa de integridade.
 
 Este planejamento altera somente documentação. Nenhuma dependência nova,
 migration aplicada, acesso a `.env`, conexão externa, commit ou push.
+
+## Lote 6.1 — regras e inventário, 13/10/2026
+
+Escopo documental autorizado: este plano, roadmaps F05/F06, dicionário e contexto.
+Conferidos shared-types, contratos, schema, migration e SQL complementar. Sem
+código, fixtures carregadas, dependências ou migration. Programador aprovou
+potência média ponderada pelo tempo, contagem de amostras aproveitáveis e PARTIAL
+quando houver ausência/reinício, sem inventar cadência/limiar temporal.
+
+### Cálculos e limites
+
+- P = V × I com entradas finitas/aproveitáveis; ausência é null, zero é medição.
+  devicePowerW continua separado. Faixas físicas dependem do hardware da F07.
+- Energia principal: soma dos deltas não negativos de accumulatedEnergyWh entre
+  amostras consecutivas aproveitáveis do mesmo dispositivo/segmento. Queda do
+  contador abre segmento; não somar o novo valor absoluto ou atravessar reinício.
+  Ausência/invalidade interrompe segmento, sem preencher com estimativa de potência.
+- Ordenar por deviceId e capturedAt/id; deduplicar identidade da amostra.
+  Timestamp igual não cria intervalo positivo. Valores conflitantes no mesmo
+  instante interrompem/sinalizam segmento, sem escolher medição arbitrariamente.
+- Estimativa separada: soma de (P1+P2)/2 × segundos/3600, com extremos aproveitáveis
+  e duração positiva. Média = soma dos trapézios em W·s / duração aproveitável em s;
+  sem duração calculável fica null. Pico vem das potências aproveitáveis.
+- Aproveitável exige campos necessários finitos e qualidade VALID ou PARTIAL.
+  SUSPECT/INVALID interrompem segmento. sampleCount conta amostras distintas
+  aproveitáveis em [início,fim), não mensagens, duplicatas ou pontos interpolados.
+  Não é percentual de cobertura. GOOD não comprova cobertura sem cadência conhecida.
+- Sem delta calculável, resultado interno não tem energia; não persistir resumo
+  artificial recoveredEnergyWh=0. Zero exige delta medido zero. Sem dados não
+  criar resumo; registros INVALID não são energia válida na comparação.
+- HOUR/DAY/MONTH usam fronteiras UTC semiabertas. Estimativa por potência é
+  recortada por interpolação linear; ler vizinhos permite cortar segmentos,
+  mas não aumenta sampleCount. A distribuição do delta do contador entre períodos
+  permanece para decisão antes da 6.4/6.5, conforme pendências abaixo.
+- Não unir dispositivos diferentes nem tratar todos os deviceId=null como uma
+  origem. Preservar resumo histórico existente quando falta proveniência para
+  recalcular; não alterar schema por antecipação.
+- Consumo permanece null. Sem entrada aprovada de tarifa/moeda, moneySaved,
+  currencyCode e energyTariffPerKwh ficam null. Simulação futura usa Decimal,
+  Wh/1000 × tarifaPorKwh, com strings no JSON e nenhuma tarifa fixa.
+- Consultas preservam page/pageSize (1/20, máximo 100), filtros e intervalos do
+  OpenAPI. Testes permitem criador histórico ou vínculo atual; instalação exige
+  vínculo próprio inclusive ADMIN. Falta de acesso e ausência usam o mesmo 404.
+
+### Exemplos para fixtures
+
+| Caso | Entrada | Resultado esperado |
+| --- | --- | --- |
+| Potência | 4 V × 0,5 A | 2 W |
+| Contador | mesmo device: 10, 10,1, 10,3 Wh | 0,3 Wh |
+| Reinício | 10, 10,1, 0, 0,05 Wh | 0,15 Wh; trecho do reinício indeterminado; PARTIAL |
+| Ausência | 10, null, 10,3 Wh | indeterminado; sem inventar zero ou 0,3 Wh |
+| Zero | 10, 10 Wh em instantes distintos | 0 Wh calculável |
+| Trapézio | 2→4 W em 60 s | 0,05 Wh estimado; média 3 W |
+| Irregular | 2→4 W em 60 s e 4→4 W em 120 s | 0,183333… Wh estimado; média 3,666666… W |
+| Duplicata | repetir mesma amostra | energia e sampleCount não aumentam |
+| Fronteira | 2→4 W de 00:59:30 a 01:00:30 UTC | 0,020833… e 0,029166… Wh estimados nas duas horas |
+
+### Recomposição idempotente
+
+Correção do inventário antigo: @@index comuns não representam toda a migration.
+Ela já contém índices únicos parciais:
+
+1. Teste: (test_id, period_type, period_start, calculation_version), WHERE test_id
+   IS NOT NULL, inclusive após installation_id ficar null.
+2. Instalação: (installation_id, period_type, period_start, calculation_version),
+   WHERE installation_id IS NOT NULL AND test_id IS NULL.
+
+Usar calculationVersion=1 para primeira fórmula, outra versão ao mudar fórmula.
+Recomputação atualiza a mesma chave, valores, periodEnd e calculatedAt.
+Consultas usarão versão ativa explicitamente, sem misturar versões como períodos
+duplicados. Prisma não oferece upsert por essas chaves só pelos @@index comuns:
+na 6.5 escolher conflito SQL com predicado ou escrita serializada por recurso.
+Índice único impede duplicatas, mas não cálculo obsoleto: bloquear recurso e
+ler/calcular/persistir na mesma transação, mantendo ordem de locks da F05.
+Ensaiar concorrência e amostras atrasadas em PostgreSQL isolado na 6.5.
+Ambos IDs null ficam fora dos índices: não criar/recomputar sem origem identificada.
+Preservar históricos em leitura. Nenhuma migration necessária demonstrada na 6.1.
+
+### Pendências delimitadas
+
+- Antes de 6.4/6.5: aprovar repartição proporcional ao tempo de delta do contador
+  cruzando fronteira UTC. Essa distribuição é estimativa, embora o delta total
+  seja medido; não deve ser apresentada como medição direta do subperíodo.
+- Antes de persistir TEST: definir fim para teste em execução e inclusão do
+  último delta; fronteira exclusiva não pode descartar energia silenciosamente.
+- Antes da simulação monetária: contratar a entrada de tarifa/moeda; até lá null.
+- Recálculo histórico sem deviceId exige proveniência segura se for necessário.
+- F07 fecha contador real/reboot, cadência, faixas, unidades e atraso.
+
+Saída: regras aprovadas e exemplos registrados; chaves existentes confirmadas;
+decisões específicas acima permanecem abertas para os respectivos lotes.
+Próximo 6.2: fixtures pequenas determinísticas, sem carga remota ou novas rotas.

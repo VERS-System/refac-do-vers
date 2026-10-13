@@ -4,6 +4,13 @@
 
 ## Objetivo
 
+Em andamento em 13/10/2026 pelo lote documental 6.1 do
+[plano executável](../backend-phase-6-execution-roadmap.md). Regras de contador,
+estimativa/média ponderada, qualidade e exemplos registrados; índices únicos
+parciais da migration confirmados. Próximo: fixtures do lote 6.2.
+Distribuição do contador nas fronteiras e entrada de tarifa seguem pendentes
+antes dos respectivos cálculos; sem código, migration ou carga na 6.1.
+
 Entregar consultas e cálculos completos usando dados sintéticos antes de
 depender do ESP32 ou do broker.
 

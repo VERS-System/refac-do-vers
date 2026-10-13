@@ -16,7 +16,7 @@ arquitetura; estes documentos definem como executar cada fase.
 | 03 | [APIs e rotas](03-apis-rotas.md) | Concluída | Fase 02 |
 | 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Concluída — revisão e PR confirmados pelo programador em 06/10/2026 | Fase 03 |
 | 05 | [Recursos de domínio](05-recursos-dominio.md) | Recorte executável concluído — avanço aprovado em 13/10/2026; pendências reais preservadas | Fase 04 |
-| 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Em andamento — lotes 6.1–6.7 implementados, comparação entregue; fechamento e ensaio PostgreSQL pendentes | Fase 05 |
+| 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Recorte local pronto para revisão — lotes 6.1–6.8 entregues; aceite e ensaio PostgreSQL pendentes | Fase 05 |
 | 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Bloqueada pelo marco MQTT | Fase 06 + hardware/simulador |
 | 08 | [Tempo real](08-tempo-real.md) | Planejada | Fase 07 |
 | 09 | [Operação e entrega](09-operacao-entrega.md) | Planejada | Fases 00–08 |
@@ -53,6 +53,7 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Plano executável da Fase 4](../backend-phase-4-execution-roadmap.md)
 - [Plano executável da Fase 5](../backend-phase-5-execution-roadmap.md)
 - [Plano executável da Fase 6 — em andamento](../backend-phase-6-execution-roadmap.md)
+- [Fechamento local e matriz de revisão da Fase 6](../backend-phase-6-closure-13-10-2026.md)
 - [Proposta de plano executável da Fase 7 — aguardando validação](../backend-phase-7-execution-roadmap.md)
 - [Schema v2 proposto](../schema-mobile-mqtt.md)
 - [Roadmap estratégico de Backend e MQTT](../backend-mqtt-roadmap.md)

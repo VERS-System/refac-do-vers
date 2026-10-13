@@ -518,3 +518,33 @@ Cobertura de ordem, 2/5 IDs, duplicatas equivalentes, formatos, USER/ADMIN,
 histórico, versões, qualidade, projeção e erros. HTTP/JWT reais com Prisma
 simulado; ensaios PostgreSQL continuam pendentes. Próximo 6.8: fechamento e
 revisão da F06, sem início automático da F07 e sem alegar garantias SQL reais.
+
+## Lote 6.8 — plano autorizado
+
+Programador pediu próximo lote. Revisão e matriz em
+[fechamento local](backend-phase-6-closure-13-10-2026.md). Criar teste de volume
+telemetry-volume.spec.ts com 10 mil amostras, oracles analíticos, ordem invertida,
+duplicatas e conservação em recortes UTC. Sem produção nova por antecipação.
+Executar test:unit/lint/build do backend e shared-types; tipos de test/db sem
+conectar, OpenAPI e métodos/caminhos/guards dos controllers compilados.
+Conferir os dez cenários e cobertura HTTP já existentes em vez de repetir
+implementação de testes. Registrar duração observada do ensaio sem SLA arbitrário.
+Atualizar relatório, roadmaps/índices/guia/contexto após validação. F06 fica
+pronta para revisão do recorte local, mantendo SQL/integrações/tarifa reais
+pendentes; não presumir encerramento ou autorização do marco MQTT da F07.
+
+### Lote 6.8 — fechamento local entregue para revisão
+
+Criado telemetry-volume.spec.ts, sem alteração de produção. Ensaio de 10 mil
+amostras constante/linear: ordem invertida, duplicatas e conservação do contador
+e estimativa em três recortes UTC aprovados, com PARTIAL nas fronteiras entre
+leituras e contagem 3600/3600/2800. Tempo observado do bloco: 414,8 ms isolado;
+457,3 ms na regressão, sem SLA de banco ou produção.
+Backend 32 suítes/579 testes, lint/build e tipos incluindo test/db aprovados.
+Shared-types test:unit/lint/build aprovados. OpenAPI/referências, 32 operações
+compiladas (método/caminho/status), guards de dados e campos das fixtures
+compartilhadas conferidos. Matriz, escopo e pendências no relatório vinculado.
+Roadmap resumido reconciliado com contratos/decisões efetivamente implementados.
+F06 pronta para revisão do recorte local; SQL/concorrência/rollback, integração
+cliente e tarifa reais continuam pendentes. F07 não iniciada automaticamente.
+Sem .env, banco, serviço externo, migration, Docker, dependência, commit ou push.

@@ -646,6 +646,7 @@ paths:
     get:
       tags: [Data]
       summary: Lista amostras de telemetria validada do teste
+      description: Implementado na F06 lote 6.3; pai autorizado, amostras e contagem no mesmo snapshot. Teste inacessível usa TEST_NOT_FOUND; null e zero preservados.
       security:
         - accessCookie: []
       parameters:

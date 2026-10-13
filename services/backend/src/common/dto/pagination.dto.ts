@@ -54,12 +54,13 @@ export class IsUtcRangeEndAfterStart implements ValidatorConstraintInterface {
       return true;
     }
 
-    const source = args.object as UtcDateRangeQueryDto;
-    if (typeof source.startedFrom !== 'string') {
+    const source = args.object as Record<string, unknown>;
+    const start = source[args.constraints?.[0] ?? 'startedFrom'];
+    if (typeof start !== 'string') {
       return true;
     }
 
-    return new Date(source.startedFrom).getTime() < new Date(value).getTime();
+    return new Date(start).getTime() < new Date(value).getTime();
   }
 
   defaultMessage(): string {

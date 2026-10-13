@@ -16,7 +16,7 @@ arquitetura; estes documentos definem como executar cada fase.
 | 03 | [APIs e rotas](03-apis-rotas.md) | Concluída | Fase 02 |
 | 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Concluída — revisão e PR confirmados pelo programador em 06/10/2026 | Fase 03 |
 | 05 | [Recursos de domínio](05-recursos-dominio.md) | Recorte executável concluído — avanço aprovado em 13/10/2026; pendências reais preservadas | Fase 04 |
-| 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Em andamento — lotes 6.1–6.2: regras, chaves e fixtures determinísticas | Fase 05 |
+| 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Em andamento — lotes 6.1–6.3: regras, fixtures e consulta de telemetria | Fase 05 |
 | 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Bloqueada pelo marco MQTT | Fase 06 + hardware/simulador |
 | 08 | [Tempo real](08-tempo-real.md) | Planejada | Fase 07 |
 | 09 | [Operação e entrega](09-operacao-entrega.md) | Planejada | Fases 00–08 |

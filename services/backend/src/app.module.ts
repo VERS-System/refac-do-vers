@@ -21,6 +21,7 @@ import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { InstallationsModule } from './modules/installations/installations.module';
 import { TestsModule } from './modules/tests/tests.module';
 import { SupportModule } from './modules/support/support.module';
+import { DataModule } from './modules/data/data.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { SupportModule } from './modules/support/support.module';
     InstallationsModule,
     TestsModule,
     SupportModule,
+    DataModule,
   ],
   providers: [
     AuditPolicyService,

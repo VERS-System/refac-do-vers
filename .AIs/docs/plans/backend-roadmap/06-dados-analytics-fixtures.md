@@ -9,8 +9,10 @@ Em andamento em 13/10/2026 pelo lote documental 6.1 do
 estimativa/média ponderada, qualidade e exemplos registrados; índices únicos
 parciais da migration confirmados. Lote 6.2 entregue: dez cenários sintéticos
 em memória, factory restrita a dev/test, com oracles explícitos e testes.
-Backend 28 suítes/391 testes, lint/build aprovados. Próximo: consulta de
-telemetria do lote 6.3. Nenhum dado carregado no banco.
+Lote 6.3 entregue em 13/10/2026, com acesso histórico, filtros e paginação.
+Backend 29 suítes/423 testes, lint/build aprovados. Próximo 6.4, cálculos de
+potência/energia. Nenhum dado carregado
+no banco; consultas foram verificadas por HTTP com Prisma simulado.
 Distribuição do contador nas fronteiras e entrada de tarifa seguem pendentes
 antes dos respectivos cálculos; sem código, migration ou carga na 6.1.
 

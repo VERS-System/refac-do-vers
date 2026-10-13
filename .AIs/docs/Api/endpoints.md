@@ -14,7 +14,8 @@
 
 **Estado em 13/10/2026:** health, auth, perfil, veículos, leituras de instalações/configurações,
 planejamento/ciclo de testes e criação/consultas próprias de suporte estão registrados
-no backend (F05 lotes 1–7). Telemetria, resumos e comparação permanecem contratos futuros.
+no backend (F05 lotes 1–7). A F06 lote 6.3 acrescenta consulta de telemetria por
+teste; resumos e comparação permanecem contratos futuros.
 
 As operações da fundação incluem `GET /users/me`, `PATCH /users/me`, `GET /health/live`, `GET /health/ready`,
 `GET /auth/csrf`, `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`,
@@ -415,6 +416,22 @@ O intervalo deve ter início anterior ao fim. Resultados são ordenados por
 `VALIDATION_ERROR` (`400`).
 
 ## Telemetria, resumos e comparação
+
+`GET /tests/{testId}/telemetry` implementado na F06 lote 6.3. Reutiliza
+sessão/guards e filtro compartilhado de teste: criador histórico ou vínculo
+atual, inclusive para ADMIN. Pai autorizado, amostras e contagem usam a mesma
+transação RepeatableRead; amostras também filtram o acesso pela relação Test.
+Teste ausente/alheio usa TEST_NOT_FOUND, sem retornar lista vazia ou consultar
+amostras. Teste autorizado sem leituras retorna lista vazia.
+
+Filtros capturedFrom/capturedTo UTC (isolados ou juntos), início inclusivo e
+fim exclusivo, quality VALID/PARTIAL/SUSPECT/INVALID; campos extras e datas
+impossíveis/invertidas são recusados. Página 1/tamanho 20, máximo 100; ordem
+capturedAt/id crescente. Projeção explícita dos campos públicos preserva null e
+zero, sem deviceId, messageId, installationId, sampleIndex ou createdAt internos.
+Não recalcula medições nem deduplica leituras neste endpoint. Após essa entrega
+há 29 operações implementadas de 32; duas consultas de resumos e comparação
+permanecem futuras. Contratos de resumos abaixo continuam previstos para F06.
 
 Estas rotas de consulta exigem access cookie e seguem as mesmas regras de acesso
 dos testes e instalações. Um teste histórico permanece consultável por seu

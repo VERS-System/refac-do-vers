@@ -14,8 +14,8 @@ e regras de acesso da F05 necessários a cada entrega estarem concluídos.
 
 Fontes: [F06](backend-roadmap/06-dados-analytics-fixtures.md),
 [contratos REST](../Api/endpoints.md), OpenAPI e schema Prisma atuais.
-O módulo `data` existente está vazio; seu uso será decidido pelo fluxo real,
-sem criar um segundo backend ou uma infraestrutura analítica independente.
+No baseline o módulo `data` estava vazio; passou a conter fixtures na 6.2 e
+consulta de telemetria na 6.3, sem outro backend ou infraestrutura analítica.
 
 ## Sequência proposta
 
@@ -288,3 +288,35 @@ simples. Baseline 378; RED por factory ausente; GREEN 28 suítes/391 testes (13
 novos), lint/build e diff --check aprovados via npm.cmd. Sem dependências/schema,
 env, migration, Docker, banco externo, front, commit/push.
 Próximo lote 6.3: GET /tests/:testId/telemetry, usando as fixtures e acesso F05.
+
+## Lote 6.3 — plano autorizado
+
+Implementar GET /tests/:testId/telemetry em modules/data (DTO/controller/service/
+module/teste HTTP), registrar AppModule. Reutilizar paginação, datas UTC e
+guards; parametrizar nome inicial do validador de intervalo mantendo default
+startedFrom e seus callers. Centralizar filtro de acesso de teste em
+auth/resource-access.service.ts, reutilizando-o no TestsService e DataService.
+Pai autorizado, amostras e contagem na mesma transação RepeatableRead; ausência
+ou acesso alheio TEST_NOT_FOUND, inclusive ADMIN. Crianças também filtram acesso.
+Projeção explícita pública, null/zero preservados, datas UTC, ordem capturedAt/id.
+page/pageSize 1/20 máximo 100; intervalo [capturedFrom,capturedTo), quality enum.
+TDD HTTP antes do código com fixtures 6.2, falhas/validação/acesso/histórico.
+Regressão test:unit, lint/build, OpenAPI e diff --check; atualizar contratos,
+roadmaps e contexto. Sem cálculos, MQTT, banco real, schema ou dependências.
+
+### Lote 6.3 entregue
+
+GET /tests/:testId/telemetry registrado via DataModule, com filtros/paginação
+contratados e projeção explícita sem origem interna. Pai, leituras e contagem
+em RepeatableRead; acesso pelo criador histórico ou vínculo atual, inclusive
+ADMIN. Filtro compartilhado em auth/resource-access.service.ts substitui a
+duplicação no TestsService sem mudar suas regras. Validador UTC aceita nome
+inicial parametrizado, mantendo startedFrom por padrão e constraints ausentes.
+
+Baseline anterior 391; 32 casos RED por rota ausente; GREEN final 29 suítes/
+423 testes, lint/build e diff --check aprovados via npm.cmd. Regressão identificou
+constraints ausentes nos callers antigos, corrigida antes do GREEN. OpenAPI
+parseado e referências/rota compilada conferidas. Dependências sintéticas,
+JWT/HTTP reais; nenhum ensaio SQL, cálculo, ingestão, migration, .env, Docker,
+front, commit/push. Próximo lote 6.4: cálculo de potência/energia, sujeito às
+decisões de fronteiras já registradas; não implementar resumos/tarifa por antecipação.

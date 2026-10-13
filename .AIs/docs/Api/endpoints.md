@@ -12,10 +12,13 @@
 - Respostas incluem `requestId` para correlação.
 - Nenhuma resposta contém senha, access token ou refresh token.
 
-**Estado em 06/10/2026:** `GET /users/me`, `PATCH /users/me`, `GET /health/live`, `GET /health/ready`,
+**Estado em 13/10/2026:** health, auth, perfil, veículos, leituras de instalações/configurações,
+planejamento/ciclo de testes e criação/consultas próprias de suporte estão registrados
+no backend (F05 lotes 1–7). Telemetria, resumos e comparação permanecem contratos futuros.
+
+As operações da fundação incluem `GET /users/me`, `PATCH /users/me`, `GET /health/live`, `GET /health/ready`,
 `GET /auth/csrf`, `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`,
-`POST /auth/logout` e `POST /auth/logout-all` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
-contratos aprovados para fases futuras.
+`POST /auth/logout` e `POST /auth/logout-all`.
 
 ### Auditoria mínima de autenticação
 
@@ -445,6 +448,21 @@ ser anterior ao fim. Amostras são ordenadas por `capturedAt` e resumos por
 intervalos ou lista de IDs inválidos retornam `VALIDATION_ERROR` (`400`).
 
 ## Solicitações de revisão
+
+As três rotas estão implementadas na F05 lote 7. POST exige Origin permitido e
+CSRF vinculado à sessão. A criação verifica vínculo e instalação na transação,
+bloqueando conta e veículo contra exclusão; estado OPEN e solicitante vêm do servidor.
+Leituras filtram o solicitante da sessão, inclusive ADMIN, mantendo seu histórico
+quando veículo/instalação forem excluídos. Paginação 1/20, máximo 100; lista e
+contagem usam RepeatableRead. UUIDs, filtros extras e campos extras são rejeitados.
+
+Motivo precisa ser string não vazia, até 1000 caracteres. Verificação rejeita
+padrões de CPF (inclusive inválido), placa brasileira, JWT, chaves privadas e
+prefixos reconhecíveis de chaves de API; também recusa termos CPF/CRLV/RENAVAM,
+senha/password/token/credencial/authorization/API key/secret e caracteres de
+controle, preservando tabulação/quebras de linha. Responde VALIDATION_ERROR sem
+repetir o conteúdo. O filtro é conservador e não garante detectar todo segredo
+arbitrário em texto livre; padrões adicionais exigem exemplos e testes.
 
 O usuário autenticado pode abrir e acompanhar solicitações próprias de revisão
 do sistema VERS. As rotas exigem access cookie. Não há contrato público para

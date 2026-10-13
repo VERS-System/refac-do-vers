@@ -4,7 +4,9 @@
 
 Em andamento em 06/10/2026 após confirmação de revisão/PR da F04.
 Execução por lotes no [plano da F05](../backend-phase-5-execution-roadmap.md).
-Lote inicial: perfil próprio (`GET/PATCH /users/me`).
+Lotes 1–7 implementados até 13/10/2026: perfil, veículos, instalações/configurações,
+planejamento/ciclo de testes e criação/consultas próprias de suporte.
+Próximo lote 8: regressão/conferência e revisão final da fase.
 
 ## Objetivo
 

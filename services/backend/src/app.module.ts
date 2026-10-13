@@ -20,6 +20,7 @@ import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { InstallationsModule } from './modules/installations/installations.module';
 import { TestsModule } from './modules/tests/tests.module';
+import { SupportModule } from './modules/support/support.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { TestsModule } from './modules/tests/tests.module';
     VehiclesModule,
     InstallationsModule,
     TestsModule,
+    SupportModule,
   ],
   providers: [
     AuditPolicyService,

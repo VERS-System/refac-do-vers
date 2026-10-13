@@ -767,6 +767,10 @@ paths:
     post:
       tags: [Support]
       summary: Abre solicitação de revisão
+      description: Motivo validado sem documentos ou credenciais; vínculo e instalação verificados dentro da transação.
+      parameters:
+        - $ref: '#/components/parameters/AuthOrigin'
+        - $ref: '#/components/parameters/CsrfToken'
       security:
         - accessCookie: []
       requestBody:
@@ -782,6 +786,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SupportRequestResponse'
+        '403':
+          $ref: '#/components/responses/CsrfError'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -803,6 +809,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SupportRequestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -1559,7 +1567,12 @@ components:
           type: string
           minLength: 1
           maxLength: 1000
-          description: Motivo sem documentos pessoais, placa ou segredos.
+          description: >-
+            Motivo não vazio nem somente espaços; sem CPF (inclusive inválido),
+            placa brasileira, documentos, JWT, chaves privadas, padrões de chaves
+            de API ou termos de credenciais. Caracteres de controle são recusados,
+            exceto tabulação e quebras de linha. Filtro conservador de padrões,
+            sem garantia de identificar todo segredo arbitrário em texto livre.
     SupportRequest:
       type: object
       additionalProperties: false

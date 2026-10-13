@@ -194,3 +194,40 @@ YAML OpenAPI válido. Scripts locais via npm.cmd após interromper pnpm que
 iniciou resolução de dependências; nenhum manifesto/lockfile alterado.
 Concorrência exercitada com double condicionado, sem prova PostgreSQL real.
 Próximo lote 7: suporte. Sem migration, .env, Docker, commit ou push.
+
+## Lote 7 — plano autorizado em 13/10/2026
+
+Criar modules/support (DTO, service, controller, module e teste HTTP), registrar
+AppModule; atualizar contratos, índice e contexto. GET/POST support-requests e
+GET support-requests/:supportRequestId, sem transições administrativas.
+Reutilizar JWT/CSRF, paginação 1/20 máximo 100 e envelopes existentes.
+Leituras filtram requesterId da sessão, inclusive ADMIN; histórico com referências
+nulas permanece acessível ao solicitante. Ordem createdAt desc/id asc e listas
+em RepeatableRead. Projeção só dos campos contratados, datas UTC.
+Criação bloqueia conta e veículo nessa ordem, verifica vínculo dentro da transação
+e instalação opcional do mesmo veículo acessível antes de gravar OPEN/requesterId.
+Ausência/alheio usa 404 de domínio; nenhuma instalação é presumida ou criada.
+DTO rejeita extras/null/tipos coercíveis, motivo vazio e acima de 1000 caracteres.
+Programador exigiu verificação do conteúdo: rejeitar padrões reconhecíveis de CPF
+(inclusive inválido), placa, documentos, JWT e credenciais; não repetir conteúdo
+em erros/logs. Esse filtro não comprova detecção de todo segredo em texto livre.
+TDD HTTP antes da implementação: rotas, sessão/CSRF, validação, conteúdo proibido,
+vínculo, instalação incompatível, histórico, paginação/projeção e falhas de banco.
+test:unit, lint/build e diff --check. Sem dependências/migration/serviços externos.
+Locks/rollback/cascatas reais permanecem ensaio PostgreSQL separado.
+
+### Lote 7 entregue — 13/10/2026
+
+GET/POST support-requests e GET support-requests/:supportRequestId registrados.
+Leituras próprias inclusive ADMIN, histórico com FKs nulas, lista RepeatableRead.
+Criação transacional bloqueia conta/veículo e verifica vínculo/instalação antes
+de gravar OPEN. DTO estrito e filtro conservador de conteúdo sensível aprovado
+pelo programador; erro sem ecoar motivo. Limite de 1000 e paginação 1/20/100.
+TDD: baseline 26 suítes/330 testes; 45 casos RED por rotas ausentes. GREEN final
+27 suítes/378 testes (48 novos), lint/build e diff --check aprovados. OpenAPI
+parseado e referências locais/CSRF conferidos. Corrigida incompatibilidade inicial
+do decorator NotMatches ausente na biblioteca instalada, usando validator nativo.
+Scripts npm.cmd locais conforme exceção documentada do pnpm; dependências intactas.
+Somente HTTP/JWT reais com Prisma simulado; banco real e concorrência não ensaiados.
+Sem migration, .env, Docker, commit/push. Próximo lote 8: fechamento da F05,
+após revisão desta entrega pelo programador; fase ainda em andamento.

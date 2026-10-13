@@ -242,11 +242,10 @@ Preservar históricos em leitura. Nenhuma migration necessária demonstrada na 6
 
 ### Pendências delimitadas
 
-- Antes de 6.4/6.5: aprovar repartição proporcional ao tempo de delta do contador
-  cruzando fronteira UTC. Essa distribuição é estimativa, embora o delta total
-  seja medido; não deve ser apresentada como medição direta do subperíodo.
-- Antes de persistir TEST: definir fim para teste em execução e inclusão do
-  último delta; fronteira exclusiva não pode descartar energia silenciosamente.
+- Resolvido no lote 6.5: repartição proporcional ao tempo do delta cruzando
+  fronteira UTC, indicando PARTIAL por estimativa do subperíodo.
+- Resolvido no lote 6.5: TEST somente após encerramento; endedAt fecha o
+  intervalo e leitura terminal fecha o último delta sem entrar na contagem.
 - Antes da simulação monetária: contratar a entrada de tarifa/moeda; até lá null.
 - Recálculo histórico sem deviceId exige proveniência segura se for necessário.
 - F07 fecha contador real/reboot, cadência, faixas, unidades e atraso.
@@ -320,3 +319,183 @@ parseado e referências/rota compilada conferidas. Dependências sintéticas,
 JWT/HTTP reais; nenhum ensaio SQL, cálculo, ingestão, migration, .env, Docker,
 front, commit/push. Próximo lote 6.4: cálculo de potência/energia, sujeito às
 decisões de fronteiras já registradas; não implementar resumos/tarifa por antecipação.
+
+## Lote 6.4 — plano autorizado
+
+Programador autorizou começar. Criar telemetry-calculation.ts e seu teste em
+modules/data; atualizar este plano, roadmap F06/índice e contexto diário.
+Função pura sobre uma série inteira fornecida pelo caller, sem consulta ou
+persistência: potência recalculada de V/I, contador como energia principal,
+trapézios como estimativa separada, média ponderada e pico. Versão inicial 1.
+Entrada Prisma projetada apenas nos campos usados; sem alterar dados de entrada.
+Ordenação por origem/tempo/ID; deduplicação por ID e por mensagem/sampleIndex.
+Identidades ou instantes conflitantes interrompem segmentos sem escolher valores
+arbitrários. Não misturar testes/dispositivos nem unir origens deviceId=null.
+Campos finitos e não negativos são aproveitáveis apenas em VALID/PARTIAL;
+ausência interrompe somente o cálculo dependente do campo. Reinício interrompe
+contador, sem interromper potência válida. Zero medido permanece zero.
+sampleCount conta amostras distintas com potência ou contador aproveitável;
+qualidade do resultado principal é INVALID sem delta de contador calculável,
+PARTIAL com falhas detectadas, GOOD nos demais casos. Estimativa pode existir
+independentemente da qualidade da energia principal. Datas inválidas são
+rejeitadas, overflow lança erro em vez de retornar números não finitos.
+TDD com dez fixtures e casos de isolamento, conflitos, identidade, qualidade,
+ausência independente, datas e extremos numéricos. test:unit, lint/build e
+diff --check. Nenhuma integração com rota de leitura ou AppModule necessária:
+caller de produção virá na recomputação/F07. Sem novas dependências ou schema.
+Repartição do contador em períodos, fronteira final TEST, tarifa/moeda e
+persistência permanecem para os respectivos lotes; API sem período neste lote.
+
+### Lote 6.4 entregue
+
+Calculador puro versão 1 em telemetry-calculation.ts: V × I independente de
+powerW/devicePowerW persistidos, deltas do contador, trapézios separados, média
+ponderada, pico, contagem e qualidade da energia principal. Ordena sem alterar
+entrada, separa dispositivo/teste, deduplica identidades e interrompe conflitos.
+Ausência interrompe somente o campo dependente; reinício não adiciona valor
+absoluto e não corta a estimativa por potência válida. Origens nulas não são
+unidas. Datas inválidas e overflow falham explicitamente. Não presume cadência.
+Sem contador calculável, energia principal null/INVALID mesmo com estimativa;
+caller futuro não deve persistir um zero artificial ou promover essa estimativa.
+
+TDD: baseline 29 suítes/423 testes; RED por módulo ausente; GREEN 30 suítes/
+453 testes (30 novos), lint/build aprovados via npm.cmd. Dez oracles de fixtures
+e casos de identidade, origens, conflito, ausência, qualidade e limites numéricos.
+Sem caller de produção antecipado: F06 6.5 e F07 reutilizarão as funções.
+Nenhuma rota, dependência, schema, migration, banco, Docker, .env ou front alterado.
+Próximo 6.5: resumos/recomputação, após decisões de fronteiras e fim de TEST.
+
+## Lote 6.5 — plano autorizado
+
+Programador pediu próximo lote e definiu: repartir deltas de contador
+proporcionalmente ao tempo, indicando PARTIAL onde houver recorte; TEST somente
+após encerramento, com endedAt como fim. Leitura exatamente no fim fecha o
+último delta, mas não entra em sampleCount de [início,fim). Não extrapolar.
+Estas decisões resolvem as pendências de fronteiras/TEST acima; tarifa/moeda
+permanecem sem contrato e serão null, assim como consumo do veículo.
+
+Alterar telemetry-calculation.ts/spec para receber intervalo opcional e recortar
+segmentos: contador proporcional, potência por interpolação linear dos extremos;
+contagem/pico só de leituras reais dentro do intervalo. Preservar comportamento
+6.4 para série inteira. Validar instantes finitos e início anterior ao fim.
+Criar energy-summary.service.ts/spec, registrar e exportar no DataModule.
+Serviço interno, sem endpoint novo: recomputeTest produz TEST encerrado;
+recomputePeriod produz HOUR/DAY/MONTH de instalação, um período UTC alinhado por
+chamada. Os clientes consultarão TEST do teste e calendário da instalação.
+Preservar separação por device/test para não atravessar testes diferentes.
+
+Dentro de uma transação ReadCommitted, bloquear veículo, instalação e teste
+nessa ordem antes de ler/calcular/persistir; recomputações do mesmo recurso se
+serializam. F07 deverá usar os mesmos locks para escrita de amostras. Ler apenas
+campos de cálculo, intervalo e vizinhos imediatos por origem, incluindo empates;
+groupBy busca timestamps vizinhos sem trazer o histórico inteiro para a aplicação.
+Reusar índices únicos parciais existentes, findFirst/update por ID ou create sob
+lock. Chave usa recurso/período/início/versão, instalação sem testId para calendário.
+Atualizar valores e calculatedAt sem duplicar resumos; não persistir estimativa
+de energia em recoveredEnergyWh. Campo estimado continua interno ao calculador.
+Sem delta calculável, remover somente resumo derivado da mesma chave/versão,
+evitando resultado obsoleto ou zero artificial. Se houver deviceId=null, manter
+resumo histórico existente sem sobrescrever por energia de origem incompleta.
+Não recalcular nem criar TEST PLANNED/RUNNING ou encerrado sem intervalo positivo.
+
+TDD de fronteiras, interpolação, conservação, UTC/leap year, ausência/reinício,
+locks antes de leitura, chave/versão, repetição, erro e preservação histórica.
+Preparar teste PostgreSQL de concorrência/recomputação/rollback para instância
+sintética local existente; execução real permanece sujeita a autorização de
+ambiente isolado. test:unit, lint/build e diff --check obrigatórios neste lote.
+Atualizar endpoints/OpenAPI apenas para semântica, plano, roadmap/índice e
+contexto. Sem schema/migration, tarifa, novo endpoint, job, worker ou banco remoto.
+
+### Lote 6.5 implementado — validação unitária concluída
+
+Calculador 6.4 estendido com recorte opcional, contador proporcional e potência
+interpolada; série inteira mantém seus 30 casos anteriores. EnergySummaryService
+registrado/exportado no DataModule, sem chamada automática ou rota pública.
+TEST encerrado e calendário UTC da instalação usam uma transação ReadCommitted,
+locks de origem e chave/versão existentes, atualizando a mesma identidade.
+Timestamp vizinho consultado por groupBy de origem inclui empates no findMany.
+Medições sem dispositivo dentro do intervalo preservam histórico; origem removida
+distante não impede recomputar período novo. Sem delta, remove apenas derivação
+obsoleta da chave/versão ativa. Consumo/tarifa/moeda/economia permanecem null.
+
+RED de serviço ausente e assinatura sem intervalo confirmado antes do código.
+Um caso adicional de origem histórica distante revelou bloqueio indevido;
+RED confirmado e corrigido no escopo temporal. GREEN: 31 suítes/484 testes,
+lint/build e tsc --noEmit incluindo test/db aprovados. 31 testes unitários novos
+em relação à entrega 6.4. Suíte energy-summary.db-spec.ts preparada com três
+ensaios reais: concorrência, chegada tardia e rollback após escrita. Não executada;
+garantias PostgreSQL permanecem pendentes de ambiente isolado autorizado.
+Contrato atualizado apenas em descrição, sem campos/rotas novos ou migration.
+Próximo 6.6: consultas de resumos usando versão ativa; futura F07 chamará
+recomputação sob o mesmo protocolo de locks. Sem banco real, .env ou Docker.
+
+## Lote 6.6 — plano autorizado
+
+Programador pediu próximo lote. Alterar DataController/DataService/data.spec.ts,
+criar summary-query.dto.ts e atualizar contratos, roadmap/índice e contexto.
+GET tests/:testId/energy-summaries e installations/:installationId/energy-summaries
+reutilizam sessão, guards, parâmetros UUID existentes, paginação e validadores UTC.
+Controller passa a ter caminhos completos, preservando tests/:testId/telemetry.
+DTO aceita somente page/pageSize, periodType TEST/HOUR/DAY/MONTH e limites UTC
+periodFrom/periodTo, isolados ou juntos, início inclusivo/fim exclusivo sobre
+periodStart. Defaults 1/20, máximo 100, ordem periodStart/id crescente.
+Pai autorizado, projeção e contagem em RepeatableRead; teste pelo criador ou
+vínculo atual, instalação por vínculo próprio inclusive ADMIN. Crianças incluem
+o mesmo filtro de relação; ausência/alheio retorna código 404 do recurso antes
+de consultar resumos. Teste histórico com instalação null permanece acessível.
+Selecionar somente versão ativa, sem misturar versões. Instalação consulta
+resumos ligados a ela conforme contrato, inclusive TEST se armazenado; filtro
+periodType escolhe o tipo. Sem filtro de qualidade novo ou exclusão silenciosa
+de INVALID: a qualidade pública mantém seu valor, comparação F06 6.7 fará seu
+tratamento. Projeção explícita sem calculationVersion/createdAt internos,
+datas UTC, dinheiro/tarifa Decimal.toString, null/zero preservados.
+TDD HTTP/JWT com Prisma simulado antes das rotas: filtros, defaults, limites,
+acesso, histórico, paginação, versão, projeção, decimais e falhas genéricas.
+test:unit, lint/build, OpenAPI/rotas e diff --check; sem recomputar em GET,
+schema, dependência, migration, .env, banco, MQTT, Docker, front ou commit/push.
+
+### Lote 6.6 entregue
+
+As duas consultas registradas no DataController com caminhos completos;
+telemetria mantém o mesmo URL/guards. SummaryQueryDto reutiliza paginação e
+validação UTC. DataService verifica pai, lista e conta resumos em RepeatableRead,
+filtrando acesso na própria relação e somente versão ativa. Ordem periodStart/id,
+periodType opcional, filtros semiabertos de periodStart, page/pageSize 1/20/100.
+Projeção explícita, datas UTC, Decimal como strings e null/zero/qualidade
+preservados. Teste histórico sem instalação acessível pelo criador. Instalação
+inclui resumos associados conforme contrato, sem excluir TEST silenciosamente.
+Nenhum GET recalcula ou expõe campos internos, nenhuma regra nova de qualidade.
+
+TDD: 67 casos HTTP RED por rotas ausentes, 32 casos de telemetria preservados.
+GREEN final: 31 suítes/551 testes, lint/build aprovados via npm.cmd. Testes com
+JWT/HTTP reais e Prisma simulado cobrem filtros, paginação, acesso USER/ADMIN,
+histórico, projeção/decimais, versão e falhas genéricas. Sem ensaio PostgreSQL.
+Próximo 6.7: comparação de 2–5 testes autorizados preservando ordem e qualidade.
+Suíte db 6.5 continua preparada, sem execução/garantia real de concorrência.
+
+## Lote 6.7 — plano autorizado
+
+Programador pediu próximo lote. Alterar DataController/DataService/data.spec.ts,
+criar comparison-query.dto.ts e atualizar contratos, roadmap/índice e contexto.
+GET /test-comparisons exige sessão/guards existentes. Query somente testIds
+repetidos, array de 2–5 UUID v4 distintos; não aceitar CSV, JSON, identidade,
+versão ou filtros extras. Unicidade considera caixa de UUID sem coercão de
+tipos; saída preserva ordem e representação dos IDs enviados.
+Consultar testes autorizados pelo filtro comum, inclusive histórico do criador
+e ADMIN exigindo acesso, em RepeatableRead. Projeção relacional traz no máximo
+um resumo TEST da versão ativa por teste: periodStart decrescente, depois
+calculatedAt decrescente e id crescente. Escolher mais recente antes de avaliar
+qualidade; INVALID vira null sem recorrer a um resumo antigo válido. Ausência
+também vira null. GOOD/PARTIAL mantêm campos/qualidade, sem ranking, eficiência,
+percentual de cobertura ou inferência nova. Contexto continua identificável por
+testId e consultável pelo GET /tests existente; não ampliar contrato com snapshot.
+Qualquer teste ausente/alheio faz toda operação retornar TEST_NOT_FOUND, sem
+resultado parcial. Filtro no pai restringe a relação de resumos; um snapshot
+preserva autorização e dados. Reusar publicSummary para datas/decimais/null,
+sem consulta de cada teste em loop, recomputação, paginação ou rota de qualidade.
+TDD HTTP/JWT antes da rota: ordem, 2/5 IDs, duplicatas equivalentes, limites,
+formato estrito, acesso USER/ADMIN, histórico, ausência/INVALID/PARTIAL, projeção,
+versão, falhas genéricas e regressão das consultas existentes. test:unit,
+lint/build, OpenAPI/rotas e diff --check. Sem schema, dependências, .env,
+DB/MQTT/Docker, front, migration, commit ou push. Ensaios PostgreSQL seguem
+pendentes, sem iniciar F07; próximo 6.8 será fechamento da F06.

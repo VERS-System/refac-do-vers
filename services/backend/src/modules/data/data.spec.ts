@@ -1,10 +1,12 @@
-// Verifica consulta de telemetria por HTTP/JWT reais com fonte sintética isolada.
+// Verifica telemetria e resumos por HTTP/JWT reais com fonte sintética isolada.
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { Server } from 'http';
 import { AddressInfo } from 'net';
+import { EnergySummary, Prisma } from '@prisma/client';
+import { energySummaryFixture } from '../../../../../packages/shared-types/src/fixtures';
 import { configureApplication } from '../../main';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginAttemptsService } from '../auth/login-attempts.service';
@@ -13,11 +15,21 @@ import { createTelemetryFixtures } from './fixtures/telemetry.fixtures';
 const userId = '00000000-0000-4000-8000-000000000001';
 const sid = '00000000-0000-4000-8000-000000000002';
 const testId = '00000000-0000-4000-8000-000000000301';
+const installationId = '00000000-0000-4000-8000-000000000201';
 const secret = 'access-sintetico-com-mais-de-16-caracteres';
 const accessWhere = { OR: [{ createdById: userId }, { installation: { vehicle: { users: { some: { userId } } } } }] };
 const publicKeys = ['id', 'testId', 'capturedAt', 'voltageV', 'currentA', 'powerW', 'devicePowerW',
   'accumulatedEnergyWh', 'accelerationXMs2', 'accelerationYMs2', 'accelerationZMs2', 'vibrationRmsMs2',
   'temperatureC', 'activePiezoCount', 'quality'];
+const summaryKeys = Object.keys(energySummaryFixture);
+
+/** Converte a fixture pública em linha Prisma com campos internos para verificar a projeção. */
+function summaryRow(): EnergySummary {
+  return { ...energySummaryFixture, installationId, periodStart: new Date(energySummaryFixture.periodStart),
+    periodEnd: new Date(energySummaryFixture.periodEnd), calculatedAt: new Date(energySummaryFixture.calculatedAt),
+    createdAt: new Date('2026-09-22T12:06:00Z'), calculationVersion: 1,
+    moneySaved: new Prisma.Decimal('0.123456'), energyTariffPerKwh: new Prisma.Decimal('0.12345678'), currencyCode: 'BRL' };
+}
 
 describe('consulta autorizada de telemetria', () => {
   let app: INestApplication;
@@ -26,11 +38,20 @@ describe('consulta autorizada de telemetria', () => {
   const originalEnv = { ...process.env };
   const findUser = jest.fn(); const findSession = jest.fn();
   const findTest = jest.fn(); const findMany = jest.fn(); const count = jest.fn(); const transaction = jest.fn();
-  const tx = { test: { findFirst: findTest }, telemetrySample: { findMany, count } };
+  const findInstallation = jest.fn(); const findSummaries = jest.fn(); const countSummaries = jest.fn();
+  const tx = { test: { findFirst: findTest }, telemetrySample: { findMany, count },
+    versInstallation: { findFirst: findInstallation }, energySummary: { findMany: findSummaries, count: countSummaries } };
 
   /** Envia leitura sem CSRF e usa exclusivamente o cookie de sessão quando solicitado. */
   function request(query = '', token: string | null = access, id = testId): Promise<Response> {
     return fetch(`${url}/api/v1/tests/${id}/telemetry${query}`, { headers: token === null ? {} : { Cookie: `vers_access=${token}` } });
+  }
+
+  /** Consulta resumos com cookie de sessão e permite trocar ID sem enviar identidade no body. */
+  function summaryRequest(resource: 'tests' | 'installations', query = '', token: string | null = access,
+    id = resource === 'tests' ? testId : installationId): Promise<Response> {
+    return fetch(`${url}/api/v1/${resource}/${id}/energy-summaries${query}`,
+      { headers: token === null ? {} : { Cookie: `vers_access=${token}` } });
   }
 
   beforeAll(async () => {
@@ -54,6 +75,8 @@ describe('consulta autorizada de telemetria', () => {
     findSession.mockResolvedValue({ id: sid, userId, expiresAt: new Date(Date.now() + 60_000), revokedAt: null });
     findTest.mockResolvedValue({ id: testId });
     findMany.mockResolvedValue(createTelemetryFixtures().regular.samples); count.mockResolvedValue(3);
+    findInstallation.mockResolvedValue({ id: installationId });
+    findSummaries.mockResolvedValue([summaryRow()]); countSummaries.mockResolvedValue(1);
     transaction.mockImplementation(async (callback: (db: typeof tx) => unknown) => callback(tx));
   });
   afterAll(async () => { if (app) await app.close(); process.env = originalEnv; });
@@ -140,5 +163,113 @@ describe('consulta autorizada de telemetria', () => {
     if (operation === 'count') count.mockRejectedValue(failure);
     const response = await request(); expect(response.status).toBe(500);
     expect(JSON.stringify(await response.json())).not.toContain('segredo-sintetico');
+  });
+
+  describe.each(['tests', 'installations'] as const)('resumos por %s', (resource) => {
+    const installationAccess = { vehicle: { users: { some: { userId } } } };
+    const source = resource === 'tests' ? { testId, test: accessWhere } :
+      { installationId, installation: installationAccess };
+    const parent = resource === 'tests' ? findTest : findInstallation;
+    const id = resource === 'tests' ? testId : installationId;
+
+    it('consulta pai, versão ativa e filtros no mesmo snapshot, com decimais públicos exatos', async () => {
+      countSummaries.mockResolvedValue(3);
+      const response = await summaryRequest(resource,
+        '?page=2&pageSize=2&periodType=DAY&periodFrom=2026-09-22T00:00:00Z&periodTo=2026-09-23T00:00:00Z');
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.meta).toEqual({ page: 2, pageSize: 2, totalItems: 3, totalPages: 2 });
+      expect(body.requestId).toBe(response.headers.get('x-request-id'));
+      expect(body.data[0]).toMatchObject({ periodStart: energySummaryFixture.periodStart,
+        periodEnd: energySummaryFixture.periodEnd, calculatedAt: energySummaryFixture.calculatedAt,
+        moneySaved: '0.123456', energyTariffPerKwh: '0.12345678', vehicleEnergyUsedWh: null });
+      expect(Object.keys(body.data[0]).sort()).toEqual([...summaryKeys].sort());
+      expect(parent.mock.calls[0][0]).toEqual({ where: { id,
+        ...(resource === 'tests' ? accessWhere : installationAccess) }, select: { id: true } });
+      expect(findSummaries.mock.calls[0][0]).toMatchObject({ where: { ...source, calculationVersion: 1,
+        periodType: 'DAY', periodStart: { gte: new Date('2026-09-22T00:00:00Z'), lt: new Date('2026-09-23T00:00:00Z') } },
+        skip: 2, take: 2, orderBy: [{ periodStart: 'asc' }, { id: 'asc' }] });
+      expect(Object.keys(findSummaries.mock.calls[0][0].select).sort()).toEqual([...summaryKeys].sort());
+      expect(countSummaries.mock.calls[0][0].where).toEqual(findSummaries.mock.calls[0][0].where);
+      expect(transaction.mock.calls[0][1]).toEqual({ isolationLevel: 'RepeatableRead' });
+      expect(parent.mock.invocationCallOrder[0]).toBeLessThan(findSummaries.mock.invocationCallOrder[0]);
+    });
+    it('retorna vazio autorizado com defaults 1/20 e sem resumo artificial', async () => {
+      findSummaries.mockResolvedValue([]); countSummaries.mockResolvedValue(0);
+      const response = await summaryRequest(resource);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ data: [], meta: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 } });
+      expect(findSummaries.mock.calls[0][0]).toMatchObject({ skip: 0, take: 20,
+        where: { ...source, calculationVersion: 1 } });
+      expect(findSummaries.mock.calls[0][0].where.periodType).toBeUndefined();
+      expect(findSummaries.mock.calls[0][0].where.periodStart).toBeUndefined();
+    });
+    it('preserva zero, null e qualidade sem promover INVALID ou expor versão/createdAt', async () => {
+      findSummaries.mockResolvedValue([{ ...summaryRow(), recoveredEnergyWh: 0, averagePowerW: 0,
+        peakPowerW: null, sampleCount: 0, quality: 'INVALID', moneySaved: new Prisma.Decimal(0),
+        energyTariffPerKwh: null }]);
+      const response = await summaryRequest(resource); expect(response.status).toBe(200);
+      const { data } = await response.json();
+      expect(data[0]).toMatchObject({ recoveredEnergyWh: 0, averagePowerW: 0, peakPowerW: null,
+        sampleCount: 0, quality: 'INVALID', moneySaved: '0', energyTariffPerKwh: null });
+      expect(Object.keys(data[0]).sort()).toEqual([...summaryKeys].sort());
+    });
+    it.each(['TEST', 'HOUR', 'DAY', 'MONTH'])('aceita período %s sem inferir outra regra', async (periodType) => {
+      expect((await summaryRequest(resource, '?periodType=' + periodType)).status).toBe(200);
+      expect(findSummaries.mock.calls[0][0].where.periodType).toBe(periodType);
+    });
+    it.each(['periodFrom', 'periodTo'])('aceita limite isolado %s e tamanho máximo', async (field) => {
+      expect((await summaryRequest(resource, `?${field}=2026-09-22T00:00:00Z&pageSize=100`)).status).toBe(200);
+      expect(findSummaries.mock.calls[0][0].where.periodStart).toEqual({
+        [field === 'periodFrom' ? 'gte' : 'lt']: new Date('2026-09-22T00:00:00Z') });
+      expect(findSummaries.mock.calls[0][0].take).toBe(100);
+    });
+    it.each(['USER', 'ADMIN'])('404 de recurso alheio ou ausente para %s precede consulta de resumos', async (role) => {
+      findUser.mockResolvedValue({ id: userId, status: 'ACTIVE', roles: [{ role }] }); parent.mockResolvedValue(null);
+      const response = await summaryRequest(resource); expect(response.status).toBe(404);
+      expect(await response.json()).toMatchObject({ error: { code: resource === 'tests' ? 'TEST_NOT_FOUND' : 'INSTALLATION_NOT_FOUND' } });
+      expect(parent.mock.calls[0][0].where).toEqual({ id, ...(resource === 'tests' ? accessWhere : installationAccess) });
+      expect(findSummaries).not.toHaveBeenCalled(); expect(countSummaries).not.toHaveBeenCalled();
+    });
+    it.each(['?page=0', '?pageSize=101', '?pageSize=0', '?page=1.5', '?periodType=VALID',
+      '?periodType=DAY&periodType=HOUR', '?periodFrom=2026-02-31T00:00:00Z', '?periodTo=ruim',
+      '?periodFrom=2026-09-22T00:00:00-03:00', '?periodFrom=2026-09-23T00:00:00Z&periodTo=2026-09-22T00:00:00Z',
+      '?periodFrom=2026-09-22T00:00:00Z&periodTo=2026-09-22T00:00:00Z', '?calculationVersion=2',
+      '?quality=GOOD', '?userId=' + userId, '?capturedFrom=2026-09-22T00:00:00Z'])('recusa filtro inválido %s', async (query) => {
+      const response = await summaryRequest(resource, query); expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: { code: 'VALIDATION_ERROR' } });
+      expect(transaction).not.toHaveBeenCalled();
+    });
+    it('recusa UUID inválido antes da consulta', async () => {
+      expect((await summaryRequest(resource, '', access, 'ruim')).status).toBe(400);
+      expect(transaction).not.toHaveBeenCalled();
+    });
+    it.each([null, 'malformado'])('exige cookie válido %s', async (token) => {
+      expect((await summaryRequest(resource, '', token)).status).toBe(401);
+      expect(transaction).not.toHaveBeenCalled();
+    });
+    it('recusa sessão revogada antes de acessar resumos', async () => {
+      findSession.mockResolvedValue({ userId, revokedAt: new Date() });
+      expect((await summaryRequest(resource)).status).toBe(401);
+      expect(transaction).not.toHaveBeenCalled();
+    });
+    it.each(['parent', 'rows', 'count'])('falha de %s não expõe detalhes de persistência', async (operation) => {
+      const error = new Error('segredo-sintetico');
+      if (operation === 'parent') parent.mockRejectedValue(error);
+      if (operation === 'rows') findSummaries.mockRejectedValue(error);
+      if (operation === 'count') countSummaries.mockRejectedValue(error);
+      const response = await summaryRequest(resource); expect(response.status).toBe(500);
+      expect(JSON.stringify(await response.json())).not.toContain('segredo-sintetico');
+    });
+  });
+  it('criador consulta resumos históricos após instalação removida com referências null', async () => {
+    findTest.mockResolvedValue({ id: testId, createdById: userId, installationId: null });
+    findSummaries.mockResolvedValue([{ ...summaryRow(), installationId: null, moneySaved: null,
+      currencyCode: null, energyTariffPerKwh: null }]);
+    const response = await summaryRequest('tests'); expect(response.status).toBe(200);
+    expect((await response.json()).data[0]).toMatchObject({ testId, installationId: null,
+      moneySaved: null, currencyCode: null, energyTariffPerKwh: null });
+    expect(findSummaries.mock.calls[0][0].where.test).toEqual(accessWhere);
+    expect(findInstallation).not.toHaveBeenCalled();
   });
 });

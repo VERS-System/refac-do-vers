@@ -10,11 +10,17 @@ estimativa/média ponderada, qualidade e exemplos registrados; índices únicos
 parciais da migration confirmados. Lote 6.2 entregue: dez cenários sintéticos
 em memória, factory restrita a dev/test, com oracles explícitos e testes.
 Lote 6.3 entregue em 13/10/2026, com acesso histórico, filtros e paginação.
-Backend 29 suítes/423 testes, lint/build aprovados. Próximo 6.4, cálculos de
-potência/energia. Nenhum dado carregado
-no banco; consultas foram verificadas por HTTP com Prisma simulado.
-Distribuição do contador nas fronteiras e entrada de tarifa seguem pendentes
-antes dos respectivos cálculos; sem código, migration ou carga na 6.1.
+Lote 6.4 entregue: calculador puro versão 1 de potência/energia, contador
+separado da estimativa trapezoidal, média ponderada, deduplicação e segmentos.
+Lote 6.5 implementado: recomputação interna de TEST encerrado e períodos UTC
+HOUR/DAY/MONTH da instalação. Repartição proporcional aprovada com PARTIAL;
+leitura terminal fecha delta sem entrar na contagem. Locks e chave/versão
+existentes, histórico sem origem preservado. Lote 6.6 entregue: consultas
+paginadas de resumos por teste/instalação, acesso histórico, versão ativa,
+filtros UTC e decimais como strings. Backend 31 suítes/551 testes, lint/build
+aprovados; suíte PostgreSQL preparada, ainda não executada. Próximo 6.7:
+comparação de testes. Nenhum dado carregado no banco; evidência de concorrência/
+rollback real e entrada de tarifa continuam pendentes.
 
 Entregar consultas e cálculos completos usando dados sintéticos antes de
 depender do ESP32 ou do broker.

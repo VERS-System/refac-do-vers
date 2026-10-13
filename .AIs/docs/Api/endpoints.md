@@ -429,9 +429,24 @@ fim exclusivo, quality VALID/PARTIAL/SUSPECT/INVALID; campos extras e datas
 impossíveis/invertidas são recusados. Página 1/tamanho 20, máximo 100; ordem
 capturedAt/id crescente. Projeção explícita dos campos públicos preserva null e
 zero, sem deviceId, messageId, installationId, sampleIndex ou createdAt internos.
-Não recalcula medições nem deduplica leituras neste endpoint. Após essa entrega
-há 29 operações implementadas de 32; duas consultas de resumos e comparação
-permanecem futuras. Contratos de resumos abaixo continuam previstos para F06.
+Não recalcula medições nem deduplica leituras neste endpoint. F06 lote 6.6
+implementa também as duas consultas de resumos abaixo: 31 operações de 32;
+comparação permanece futura para o lote 6.7.
+
+Resumos exigem pai autorizado, listagem e contagem no mesmo RepeatableRead.
+Filtram somente a versão ativa do cálculo, não editável pela query, com
+ordem periodStart/id crescente, página 1/tamanho 20 e máximo 100. periodType
+é opcional e aceita TEST/HOUR/DAY/MONTH; periodFrom inclusivo e periodTo exclusivo
+filtram periodStart, em UTC, juntos ou isoladamente. Extras, datas impossíveis,
+intervalos invertidos/iguais e UUIDs inválidos retornam VALIDATION_ERROR.
+Teste usa criador histórico ou vínculo atual; instalação exige vínculo próprio,
+inclusive para ADMIN. Resumos também filtram acesso pela relação do recurso.
+Ausente/alheio retorna TEST_NOT_FOUND ou INSTALLATION_NOT_FOUND antes de consultar
+resumos; recurso autorizado sem dados retorna lista vazia. Consulta da instalação
+inclui os resumos associados, inclusive TEST quando armazenado; periodType
+seleciona o tipo. Qualidade é preservada, inclusive INVALID, sem inferir energia
+válida. Decimal de dinheiro/tarifa vira string exata e null/zero são preservados.
+Não expõe calculationVersion/createdAt internos nem dispara recomputação no GET.
 
 Estas rotas de consulta exigem access cookie e seguem as mesmas regras de acesso
 dos testes e instalações. Um teste histórico permanece consultável por seu
@@ -460,6 +475,24 @@ ESP32 para comparação, sem substituir o cálculo do backend.
 `energyTariffPerKwh` são decimais serializados como strings e permanecem
 `null` sem tarifa e premissas documentadas. A ausência de dados não produz
 resumo artificial.
+
+F06 lote 6.5 implementa a recomputação interna, sem novas rotas de escrita.
+Resumos TEST são gerados apenas para testes encerrados (COMPLETED, FAILED ou
+CANCELLED com startedAt/endedAt e duração positiva). A leitura exatamente no
+fim fecha o último delta, mas não integra sampleCount do intervalo semiaberto.
+HOUR/DAY/MONTH são períodos UTC da instalação, um por chamada interna, com
+testId null. Contadores não atravessam origens dispositivo/teste diferentes.
+Deltas que atravessam fronteiras são repartidos proporcionalmente ao tempo:
+essa repartição é estimada e sinalizada como PARTIAL, sem alegar medição direta
+do subperíodo. A estimativa trapezoidal de energia permanece separada/interna,
+sem substituir recoveredEnergyWh. Média ponderada recorta potência por
+interpolação; pico e sampleCount usam apenas amostras reais dentro do intervalo.
+Não há extrapolação além das leituras. Sem delta calculável, não se persiste
+zero artificial e eventual derivação obsoleta da mesma chave/versão é removida.
+Históricos com origem deviceId ausente dentro do período são preservados,
+sem substituir resultados por uma recomputação de proveniência incompleta.
+Concorrência/rollback reais dependem do ensaio PostgreSQL isolado preparado;
+ingestão futura deve compartilhar os locks veículo/instalação/teste.
 
 Na comparação, `testIds` é repetido de 2 a 5 vezes na query string, sem IDs
 duplicados. O resultado contém `items` na mesma ordem, cada um com `testId` e

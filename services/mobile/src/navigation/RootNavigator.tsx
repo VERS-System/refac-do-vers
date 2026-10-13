@@ -15,7 +15,9 @@ import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { TestsScreen } from '../screens/TestsScreen';
+import { VehiclesScreen } from '../screens/VehiclesScreen';
 import { VersSystemScreen } from '../screens/VersSystemScreen';
+import { ViberScreen } from '../screens/ViberScreen';
 import type { MainTab } from '../components/BottomNavigation';
 import { SplashScreen } from '../screens/SplashScreen';
 
@@ -43,12 +45,22 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
   const [activeTab, setActiveTab] = useState<MainTab>('home');
   const [isHistoryVisible, setHistoryVisible] = useState(false);
   const [isTestsVisible, setTestsVisible] = useState(false);
+  const [isVehiclesVisible, setVehiclesVisible] = useState(false);
+  const [isViberVisible, setViberVisible] = useState(false);
 
   if (isSplashVisible) {
     return <SplashScreen />;
   }
 
   if (isAuthenticated) {
+    if (isVehiclesVisible) {
+      return <VehiclesScreen onBack={() => setVehiclesVisible(false)} onTabPress={setActiveTab} />;
+    }
+
+    if (isViberVisible) {
+      return <ViberScreen onBack={() => setViberVisible(false)} />;
+    }
+
     if (isTestsVisible) {
       return <TestsScreen activeTab={activeTab} onBack={() => setTestsVisible(false)} onTabPress={setActiveTab} />;
     }
@@ -72,10 +84,16 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
     }
 
     if (activeTab === 'profile') {
-      return <ProfileScreen onTabPress={setActiveTab} profile={DEMO_PROFILE} />;
+      return (
+        <ProfileScreen
+          onOpenVehicles={() => setVehiclesVisible(true)}
+          onTabPress={setActiveTab}
+          profile={DEMO_PROFILE}
+        />
+      );
     }
 
-    return <HomeScreen onOpenVersSystem={() => setActiveTab('vers')} onTabPress={setActiveTab} />;
+    return <HomeScreen onOpenVersSystem={() => setActiveTab('vers')} onOpenViber={() => setViberVisible(true)} onTabPress={setActiveTab} />;
   }
 
   return <AuthNavigator onAuthenticated={onAuthenticated} />;

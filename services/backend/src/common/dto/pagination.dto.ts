@@ -21,7 +21,7 @@ const UTC_DATE_TIME_PATTERN =
  * Compara a representacao canonica para rejeitar datas corrigidas pelo Date.
  */
 @ValidatorConstraint({ name: 'isValidUtcDateTime', async: false })
-class IsValidUtcDateTime implements ValidatorConstraintInterface {
+export class IsValidUtcDateTime implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
     if (typeof value !== 'string' || !UTC_DATE_TIME_PATTERN.test(value)) {
       return false;
@@ -48,7 +48,7 @@ class IsValidUtcDateTime implements ValidatorConstraintInterface {
  * Existe para impedir consultas abertas ou invertidas antes dos casos de dominio.
  */
 @ValidatorConstraint({ name: 'isUtcRangeEndAfterStart', async: false })
-class IsUtcRangeEndAfterStart implements ValidatorConstraintInterface {
+export class IsUtcRangeEndAfterStart implements ValidatorConstraintInterface {
   validate(value: unknown, args: ValidationArguments): boolean {
     if (typeof value !== 'string') {
       return true;

@@ -16,6 +16,11 @@ import { AuditPolicyService } from './common/audit/audit-policy.service';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CsrfGuard } from './modules/auth/csrf.guard';
+import { UsersModule } from './modules/users/users.module';
+import { VehiclesModule } from './modules/vehicles/vehicles.module';
+import { InstallationsModule } from './modules/installations/installations.module';
+import { TestsModule } from './modules/tests/tests.module';
+import { SupportModule } from './modules/support/support.module';
 
 @Module({
   imports: [
@@ -40,6 +45,11 @@ import { CsrfGuard } from './modules/auth/csrf.guard';
     PrismaModule,
     HealthModule,
     AuthModule,
+    UsersModule,
+    VehiclesModule,
+    InstallationsModule,
+    TestsModule,
+    SupportModule,
   ],
   providers: [
     AuditPolicyService,

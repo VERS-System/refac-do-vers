@@ -7,6 +7,30 @@
 
 ## Docker Compose
 
+### Iniciar somente as APIs no Windows
+
+Abra o Docker Desktop com containers Linux e execute `rodar-apis.bat` na raiz
+(duplo clique ou terminal). Ele reconstrói e inicia backend, ai-service e Redis
+usando o Compose existente, sem iniciar web, dashboard ou mobile. Usa a pasta
+do próprio script mesmo quando chamado de outro diretório.
+
+A configuração local da raiz precisa conter DATABASE_URL e os segredos distintos
+JWT_ACCESS_SECRET/JWT_REFRESH_SECRET, conforme `.env.example`; API_PREFIX deve
+ser `api/v1`. O launcher não cria configuração nem aplica migrations. O banco
+continua no Neon. A IA atual expõe health e documentação FastAPI.
+
+- Backend: `http://localhost:3000/api/v1/health/live`.
+- Readiness: `http://localhost:3000/api/v1/health/ready` (exige banco e Redis).
+- IA: `http://localhost:8000/health` e `http://localhost:8000/docs`.
+- Logs: `docker compose logs -f backend ai-service`.
+- Parar: `docker compose stop backend ai-service redis` (preserva volumes).
+
+O comando detached inicia containers; confirmação de banco disponível vem do
+readiness, não apenas da saída do launcher. Portas 3000, 8000 e 6379 precisam
+estar disponíveis. Após alterar o backend, execute o .bat novamente para rebuild.
+Self-check sem Docker real: `powershell -NoProfile -ExecutionPolicy Bypass -File
+scripts/test-rodar-apis.ps1`.
+
 O ambiente de desenvolvimento local é gerenciado por Docker Compose.
 O arquivo `docker-compose.yml` na raiz define os serviços:
 

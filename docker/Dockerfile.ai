@@ -16,8 +16,8 @@ COPY services/ai-service/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia o código do serviço
-COPY services/ai-service/ ./services/ai-service/
+COPY services/ai-service/src/ ./src/
 
 EXPOSE 8000
 
-CMD ["uvicorn", "services.ai-service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

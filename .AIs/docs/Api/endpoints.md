@@ -12,10 +12,21 @@
 - Respostas incluem `requestId` para correlação.
 - Nenhuma resposta contém senha, access token ou refresh token.
 
-**Estado em 05/10/2026:** `GET /health/live`, `GET /health/ready`,
+**Estado em 13/10/2026:** health, auth, perfil, veículos, leituras de instalações/configurações,
+planejamento/ciclo de testes e criação/consultas próprias de suporte estão registrados
+no backend (F05 lotes 1–7). Telemetria, resumos e comparação permanecem contratos futuros.
+
+As operações da fundação incluem `GET /users/me`, `PATCH /users/me`, `GET /health/live`, `GET /health/ready`,
 `GET /auth/csrf`, `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`,
-`POST /auth/logout` e `POST /auth/logout-all` estão registrados no backend. As demais rotas deste documento e do OpenAPI são
-contratos aprovados para fases futuras.
+`POST /auth/logout` e `POST /auth/logout-all`.
+
+Conferência final da F05 em 13/10/2026, após pull do mobile: 32 operações
+contratadas, 28 implementadas (2 health, 6 auth e 20 de domínio). As quatro
+consultas futuras são telemetria por teste, resumos por instalação/teste e
+comparação. Metadados dos controllers compilados conferidos com status de
+sucesso e Origin/CSRF nas mutações de domínio; referências OpenAPI válidas.
+Backend: 378 testes, lint/build aprovados; shared-types: testes de contrato,
+lint/build aprovados. Essa evidência usa banco simulado, sem ensaio SQL real.
 
 ### Auditoria mínima de autenticação
 
@@ -198,6 +209,13 @@ Este lote não registra `/users`, `/vehicles`, `/installations` ou `/tests`.
 
 Payload de atualização:
 
+GET/PATCH estão registrados na F05. PATCH exige Origin permitido e
+X-CSRF-Token vinculado à sessão, aceita pelo menos um dos campos abaixo e
+rejeita campos extras. Ausência preserva o campo; null o limpa. Nome tem até
+120 caracteres e avatar exige URI absoluta sem espaços; não há busca remota
+do avatar. Email, papéis e status não são editáveis. Perfil removido entre
+autenticação e consulta/escrita retorna USER_NOT_FOUND (404).
+
 ```json
 {
   "displayName": "Ana Souza",
@@ -211,6 +229,12 @@ específico e não substituem os papéis globais. `TECHNICIAN` não integra o
 contrato inicial.
 
 ## Veículos
+
+F05 lotes 2–3 implementam as cinco rotas abaixo.
+POST, PATCH e DELETE exigem Origin permitido e token CSRF.
+Listagem usa página 1/tamanho 20, máximo 100, ordenada por criação decrescente
+e ID como desempate. Ausência de vínculo retorna `VEHICLE_NOT_FOUND`, inclusive
+para ADMIN. Cadastro serializa escritas por conta antes de definir o principal.
 
 Todas as operações exigem access cookie e verificam o vínculo do usuário com o
 objeto solicitado.
@@ -250,6 +274,8 @@ O payload permite apenas `brand`, `model`, `modelYear` e `isPrimary`. Enviar
 `isPrimary: true` promove o veículo e remove o estado principal do anterior na
 mesma transação. Placa, relacionamento e identificadores de usuário não são
 alteráveis por este endpoint.
+`null` limpa marca/modelo/ano; campos ausentes são preservados. Body vazio é
+inválido. `isPrimary: false` não desmarca o principal existente.
 
 ### Exclusão
 
@@ -267,8 +293,18 @@ alteráveis por este endpoint.
   identificadores específicos são removidos; testes e telemetria permanecem
   com snapshot de modelo, local informado, piezos e condições do experimento,
   sem placa.
+- mensagens MQTT brutas dos dispositivos são apagadas na mesma transação após
+  o último vínculo, conforme autorização do programador; amostras normalizadas
+  e resumos permanecem, com referências removidas pelas FKs existentes;
+- substituto inválido, alheio ou obrigatório ausente retorna `VALIDATION_ERROR`.
 
 ## Instalações e configurações
+
+As quatro rotas abaixo estão implementadas na F05 lote 4. Listagem de
+instalações ordena por criação decrescente e ID como desempate; filtros de
+veículo alheio retornam lista vazia. Listas usam página 1/tamanho 20, máximo 100.
+Dispositivo ativo é o não revogado (revokedAt null e status diferente de REVOKED).
+Listagem de configurações verifica instalação e paginação no mesmo snapshot.
 
 As rotas deste recorte são somente de leitura e exigem access cookie. A API
 retorna apenas instalações vinculadas a veículos acessíveis ao usuário.
@@ -306,6 +342,13 @@ de alteração; usar `409` quando uma transição for impedida pelo estado atual
 acesso. Parâmetros ou filtros inválidos retornam `VALIDATION_ERROR`.
 
 ## Testes experimentais
+
+F05 lotes 5–6 implementam GET/POST `/tests`, GET `/tests/{testId}` e
+POST start/finish/cancel. POST exige Origin permitido e CSRF.
+Instalação ausente/alheia usa `INSTALLATION_NOT_FOUND`; configuração ausente
+ou de outra instalação usa `CONFIGURATION_NOT_FOUND`. Instalação não ativa
+retorna `INSTALLATION_STATE_CONFLICT` (409). Conta, veículo e instalação são
+bloqueados antes de criar o snapshot. Texto vazio ou só espaços é inválido.
 
 As rotas exigem access cookie. O usuário pode criar testes para uma instalação
 de veículo a que tem acesso e consultar os testes que criou ou aos quais ainda
@@ -354,6 +397,18 @@ atomicamente; duas transições concorrentes não podem ter sucesso sobre o mesm
 estado anterior. Repetição ou transição inválida retorna
 `TEST_STATE_CONFLICT` (`409`) com o estado atual consultável por `GET`.
 
+As transições retornam 200 com o teste atualizado e exigem o mesmo acesso por
+criador ou vínculo atual, inclusive ADMIN. Campos extras são rejeitados;
+horários e snapshot não podem ser enviados. Escrita condicionada ao estado
+anterior e acesso ocorre na mesma transação que a leitura da resposta.
+Campos opcionais ausentes em finish são preservados; null limpa o campo.
+RPM/velocidade devem ser finitos e não negativos; peso finito positivo;
+inclinação finita. Se o relógio recuar, endedAt não fica anterior a startedAt.
+O motivo de cancelamento (até 500 caracteres) é acrescentado às notes, separado
+por uma quebra de linha quando houver texto anterior. Combinação acima de
+1000 caracteres retorna VALIDATION_ERROR sem cancelar nem truncar. Sem motivo,
+notes são preservadas. Cancelamento PLANNED mantém horários nulos.
+
 `startedFrom` é inclusivo e `startedTo` é exclusivo; ambos usam ISO 8601 UTC.
 O intervalo deve ter início anterior ao fim. Resultados são ordenados por
 `createdAt` decrescente, com `id` como desempate. Filtros inválidos retornam
@@ -401,6 +456,21 @@ ser anterior ao fim. Amostras são ordenadas por `capturedAt` e resumos por
 intervalos ou lista de IDs inválidos retornam `VALIDATION_ERROR` (`400`).
 
 ## Solicitações de revisão
+
+As três rotas estão implementadas na F05 lote 7. POST exige Origin permitido e
+CSRF vinculado à sessão. A criação verifica vínculo e instalação na transação,
+bloqueando conta e veículo contra exclusão; estado OPEN e solicitante vêm do servidor.
+Leituras filtram o solicitante da sessão, inclusive ADMIN, mantendo seu histórico
+quando veículo/instalação forem excluídos. Paginação 1/20, máximo 100; lista e
+contagem usam RepeatableRead. UUIDs, filtros extras e campos extras são rejeitados.
+
+Motivo precisa ser string não vazia, até 1000 caracteres. Verificação rejeita
+padrões de CPF (inclusive inválido), placa brasileira, JWT, chaves privadas e
+prefixos reconhecíveis de chaves de API; também recusa termos CPF/CRLV/RENAVAM,
+senha/password/token/credencial/authorization/API key/secret e caracteres de
+controle, preservando tabulação/quebras de linha. Responde VALIDATION_ERROR sem
+repetir o conteúdo. O filtro é conservador e não garante detectar todo segredo
+arbitrário em texto livre; padrões adicionais exigem exemplos e testes.
 
 O usuário autenticado pode abrir e acompanhar solicitações próprias de revisão
 do sistema VERS. As rotas exigem access cookie. Não há contrato público para

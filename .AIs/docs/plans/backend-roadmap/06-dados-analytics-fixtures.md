@@ -17,9 +17,11 @@ HOUR/DAY/MONTH da instalação. Repartição proporcional aprovada com PARTIAL;
 leitura terminal fecha delta sem entrar na contagem. Locks e chave/versão
 existentes, histórico sem origem preservado. Lote 6.6 entregue: consultas
 paginadas de resumos por teste/instalação, acesso histórico, versão ativa,
-filtros UTC e decimais como strings. Backend 31 suítes/551 testes, lint/build
-aprovados; suíte PostgreSQL preparada, ainda não executada. Próximo 6.7:
-comparação de testes. Nenhum dado carregado no banco; evidência de concorrência/
+filtros UTC e decimais como strings. Lote 6.7 entregue: comparação de 2–5
+testes autorizados, ordem preservada e resumo TEST ativo ausente/INVALID como
+null. Backend 31 suítes/578 testes, lint/build aprovados; suíte PostgreSQL
+preparada, ainda não executada. Próximo 6.8: fechamento da F06.
+Nenhum dado carregado no banco; evidência de concorrência/
 rollback real e entrada de tarifa continuam pendentes.
 
 Entregar consultas e cálculos completos usando dados sintéticos antes de

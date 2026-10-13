@@ -499,3 +499,22 @@ versão, falhas genéricas e regressão das consultas existentes. test:unit,
 lint/build, OpenAPI/rotas e diff --check. Sem schema, dependências, .env,
 DB/MQTT/Docker, front, migration, commit ou push. Ensaios PostgreSQL seguem
 pendentes, sem iniciar F07; próximo 6.8 será fechamento da F06.
+
+### Lote 6.7 entregue
+
+GET /test-comparisons registrado com guards existentes. DTO exige 2–5 UUIDs
+v4 distintos sem diferenciar caixa, parâmetros repetidos e allowlist estrita.
+DataService faz uma chamada relacional Prisma aos testes autorizados, trazendo
+no máximo um resumo TEST ativo por pai em RepeatableRead. Ordem determinística
+por periodStart/calculatedAt/id; resumo ausente/INVALID vira null sem fallback
+antigo. GOOD/PARTIAL preservados com projeção pública reutilizada. UUID canônico
+localiza resumo, mas a saída mantém ordem e representação dos IDs enviados.
+Ausente/alheio aborta toda comparação com TEST_NOT_FOUND, sem resultado parcial.
+Contexto pelo testId/GET existente; sem indicadores ou contrato novos.
+
+TDD: 27 testes HTTP RED por rota ausente, 99 anteriores do módulo preservados.
+GREEN isolado 126; final 31 suítes/578 testes, lint/build aprovados via npm.cmd.
+Cobertura de ordem, 2/5 IDs, duplicatas equivalentes, formatos, USER/ADMIN,
+histórico, versões, qualidade, projeção e erros. HTTP/JWT reais com Prisma
+simulado; ensaios PostgreSQL continuam pendentes. Próximo 6.8: fechamento e
+revisão da F06, sem início automático da F07 e sem alegar garantias SQL reais.

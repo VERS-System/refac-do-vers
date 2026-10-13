@@ -1,7 +1,7 @@
-// Consulta amostras e resumos públicos com autorização e paginação no mesmo snapshot.
+// Consulta amostras, resumos e comparação com autorização no mesmo snapshot.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { EnergySummary, TelemetrySample } from '../../../../../packages/shared-types/src/telemetry';
+import { EnergySummary, TelemetrySample, TestComparison } from '../../../../../packages/shared-types/src/telemetry';
 import { PaginatedResponse } from '../../../../../packages/shared-types/src/api';
 import { PrismaService } from '../../prisma/prisma.service';
 import { testAccessWhere } from '../auth/resource-access.service';
@@ -84,6 +84,21 @@ export class DataService {
       const parent = await tx.versInstallation.findFirst({ where: { id: installationId, ...access }, select: { id: true } });
       if (!parent) throw new NotFoundException({ code: 'INSTALLATION_NOT_FOUND' });
       return this.summaries(tx, { installationId, installation: access }, query);
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+  }
+
+  /** Exige acesso a todos os testes e preserva ordem, sem promover resumo INVALID ou antigo. */
+  async compare(userId: string, testIds: string[]): Promise<TestComparison> {
+    return this.prisma.$transaction(async (tx) => {
+      const tests = await tx.test.findMany({ where: { id: { in: testIds }, ...testAccessWhere(userId) },
+        select: { id: true, energySummaries: { where: { periodType: 'TEST', calculationVersion: TELEMETRY_CALCULATION_VERSION },
+          take: 1, orderBy: [{ periodStart: 'desc' }, { calculatedAt: 'desc' }, { id: 'asc' }], select: summarySelect } } });
+      if (tests.length !== testIds.length) throw new NotFoundException({ code: 'TEST_NOT_FOUND' });
+      const summaries = new Map(tests.map((test) => [test.id.toLowerCase(), test.energySummaries[0]]));
+      return { items: testIds.map((testId) => {
+        const summary = summaries.get(testId.toLowerCase());
+        return { testId, summary: summary && summary.quality !== 'INVALID' ? publicSummary(summary) : null };
+      }) };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 

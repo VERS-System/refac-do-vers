@@ -737,6 +737,14 @@ paths:
     get:
       tags: [Data]
       summary: Compara resumos TEST de dois a cinco testes autorizados
+      description: >-
+        Implementado na F06 6.7. Todos os testes exigem acesso próprio ou do
+        criador histórico, inclusive ADMIN, no mesmo snapshot. Qualquer ausência
+        ou falta de acesso retorna TEST_NOT_FOUND para a operação inteira.
+        Seleciona o resumo TEST mais recente da versão ativa por periodStart,
+        calculatedAt e id. Ausência ou INVALID vira null sem fallback antigo;
+        GOOD/PARTIAL preservam qualidade. Mantém ordem e IDs enviados, sem
+        recomputar, ranquear ou inferir eficiência.
       security:
         - accessCookie: []
       parameters:
@@ -989,7 +997,9 @@ components:
       required: true
       style: form
       explode: true
-      description: Entre dois e cinco UUIDs distintos, repetidos na query string.
+      description: >-
+        Entre dois e cinco UUIDs v4 distintos, repetidos na query string.
+        Unicidade ignora caixa. Não aceita CSV, JSON ou colchetes.
       schema:
         type: array
         minItems: 2
@@ -1556,6 +1566,7 @@ components:
           type: string
           format: uuid
         summary:
+          description: Resumo TEST mais recente da versão ativa, ou null se ausente/INVALID.
           oneOf:
             - $ref: '#/components/schemas/EnergySummary'
             - type: 'null'

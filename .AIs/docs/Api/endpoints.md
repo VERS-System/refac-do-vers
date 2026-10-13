@@ -430,8 +430,9 @@ impossíveis/invertidas são recusados. Página 1/tamanho 20, máximo 100; ordem
 capturedAt/id crescente. Projeção explícita dos campos públicos preserva null e
 zero, sem deviceId, messageId, installationId, sampleIndex ou createdAt internos.
 Não recalcula medições nem deduplica leituras neste endpoint. F06 lote 6.6
-implementa também as duas consultas de resumos abaixo: 31 operações de 32;
-comparação permanece futura para o lote 6.7.
+implementa também as duas consultas de resumos abaixo. F06 lote 6.7 entrega
+comparação; as 32 operações contratadas estão implementadas. Fechamento da
+fase e ensaios reais permanecem separados no lote 6.8.
 
 Resumos exigem pai autorizado, listagem e contagem no mesmo RepeatableRead.
 Filtram somente a versão ativa do cálculo, não editável pela query, com
@@ -494,11 +495,25 @@ sem substituir resultados por uma recomputação de proveniência incompleta.
 Concorrência/rollback reais dependem do ensaio PostgreSQL isolado preparado;
 ingestão futura deve compartilhar os locks veículo/instalação/teste.
 
-Na comparação, `testIds` é repetido de 2 a 5 vezes na query string, sem IDs
-duplicados. O resultado contém `items` na mesma ordem, cada um com `testId` e
+Na comparação implementada na F06 lote 6.7, `testIds` é repetido de 2 a 5
+vezes na query string, com UUIDs v4 distintos inclusive sem diferenciar caixa.
+CSV, JSON, colchetes e filtros extras são recusados com VALIDATION_ERROR.
+O resultado contém `items` na mesma ordem, cada um com `testId` e
 `summary` `TEST` ou `null` quando o teste autorizado não possui resumo válido.
 Se algum teste for inacessível, a operação inteira retorna `404`. Resumos
 inválidos não entram como energia recuperada válida.
+
+Consulta relacional seleciona os testes com o filtro de acesso comum, inclusive
+criador histórico e ADMIN exigindo acesso, em RepeatableRead. Traz no máximo
+um resumo TEST da versão ativa por teste, ordenado por periodStart decrescente,
+calculatedAt decrescente e id crescente. O mais recente INVALID vira null,
+sem substituí-lo por resumo antigo válido; GOOD/PARTIAL mantêm sua qualidade.
+Ordem e representação dos IDs enviados são preservadas, mesmo com UUID em
+maiúsculas. Datas/decimais usam a projeção pública das outras consultas.
+Ausente/alheio usa TEST_NOT_FOUND sem resposta parcial. Não há recomputação,
+ranking, eficiência inferida, cobertura percentual ou nova rota de qualidade.
+Contexto de cada teste permanece identificado por testId e disponível no GET
+/tests/{testId} já contratado.
 
 Os intervalos UTC são inclusivos no início e exclusivos no fim; início deve
 ser anterior ao fim. Amostras são ordenadas por `capturedAt` e resumos por

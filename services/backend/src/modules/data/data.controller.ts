@@ -1,6 +1,6 @@
-// Publica telemetria e resumos com sessão existente e filtros validados.
+// Publica telemetria, resumos e comparação com sessão existente e filtros validados.
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { EnergySummary, TelemetrySample } from '../../../../../packages/shared-types/src/telemetry';
+import { EnergySummary, TelemetrySample, TestComparison } from '../../../../../packages/shared-types/src/telemetry';
 import { PaginatedResponse } from '../../../../../packages/shared-types/src/api';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -10,6 +10,7 @@ import { DataService } from './data.service';
 import { TelemetryQueryDto, TelemetryTestParamDto } from './telemetry-query.dto';
 import { SummaryQueryDto } from './summary-query.dto';
 import { InstallationParamDto } from '../installations/installation-query.dto';
+import { ComparisonQueryDto } from './comparison-query.dto';
 
 @Controller()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -36,5 +37,11 @@ export class DataController {
   installationSummaries(@CurrentUser() user: AuthPrincipal, @Param() params: InstallationParamDto,
     @Query() query: SummaryQueryDto): Promise<PaginatedResponse<EnergySummary>> {
     return this.data.installationSummaries(user.id, params.installationId, query);
+  }
+
+  /** Compara somente os testes da lista validada usando a conta definida pelo guard. */
+  @Get('test-comparisons')
+  compare(@CurrentUser() user: AuthPrincipal, @Query() query: ComparisonQueryDto): Promise<TestComparison> {
+    return this.data.compare(user.id, query.testIds);
   }
 }

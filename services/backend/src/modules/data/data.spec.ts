@@ -1,4 +1,4 @@
-// Verifica telemetria e resumos por HTTP/JWT reais com fonte sintética isolada.
+// Verifica telemetria, resumos e comparação por HTTP/JWT com fonte sintética isolada.
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -16,6 +16,9 @@ const userId = '00000000-0000-4000-8000-000000000001';
 const sid = '00000000-0000-4000-8000-000000000002';
 const testId = '00000000-0000-4000-8000-000000000301';
 const installationId = '00000000-0000-4000-8000-000000000201';
+const comparisonIds = [testId, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  '00000000-0000-4000-8000-000000000303', '00000000-0000-4000-8000-000000000304',
+  '00000000-0000-4000-8000-000000000305'];
 const secret = 'access-sintetico-com-mais-de-16-caracteres';
 const accessWhere = { OR: [{ createdById: userId }, { installation: { vehicle: { users: { some: { userId } } } } }] };
 const publicKeys = ['id', 'testId', 'capturedAt', 'voltageV', 'currentA', 'powerW', 'devicePowerW',
@@ -31,6 +34,11 @@ function summaryRow(): EnergySummary {
     moneySaved: new Prisma.Decimal('0.123456'), energyTariffPerKwh: new Prisma.Decimal('0.12345678'), currencyCode: 'BRL' };
 }
 
+/** Usa parâmetros repetidos do contrato, sem transformar a lista em CSV ou JSON. */
+function comparisonQuery(ids: readonly string[]): string {
+  return '?' + ids.map((id) => 'testIds=' + encodeURIComponent(id)).join('&');
+}
+
 describe('consulta autorizada de telemetria', () => {
   let app: INestApplication;
   let url: string;
@@ -39,7 +47,8 @@ describe('consulta autorizada de telemetria', () => {
   const findUser = jest.fn(); const findSession = jest.fn();
   const findTest = jest.fn(); const findMany = jest.fn(); const count = jest.fn(); const transaction = jest.fn();
   const findInstallation = jest.fn(); const findSummaries = jest.fn(); const countSummaries = jest.fn();
-  const tx = { test: { findFirst: findTest }, telemetrySample: { findMany, count },
+  const findTests = jest.fn();
+  const tx = { test: { findFirst: findTest, findMany: findTests }, telemetrySample: { findMany, count },
     versInstallation: { findFirst: findInstallation }, energySummary: { findMany: findSummaries, count: countSummaries } };
 
   /** Envia leitura sem CSRF e usa exclusivamente o cookie de sessão quando solicitado. */
@@ -51,6 +60,12 @@ describe('consulta autorizada de telemetria', () => {
   function summaryRequest(resource: 'tests' | 'installations', query = '', token: string | null = access,
     id = resource === 'tests' ? testId : installationId): Promise<Response> {
     return fetch(`${url}/api/v1/${resource}/${id}/energy-summaries${query}`,
+      { headers: token === null ? {} : { Cookie: `vers_access=${token}` } });
+  }
+
+  /** Consulta comparação sem body ou CSRF e permite ensaiar formatos inválidos da query. */
+  function comparisonRequest(query = comparisonQuery(comparisonIds.slice(0, 2)), token: string | null = access): Promise<Response> {
+    return fetch(`${url}/api/v1/test-comparisons${query}`,
       { headers: token === null ? {} : { Cookie: `vers_access=${token}` } });
   }
 
@@ -77,6 +92,8 @@ describe('consulta autorizada de telemetria', () => {
     findMany.mockResolvedValue(createTelemetryFixtures().regular.samples); count.mockResolvedValue(3);
     findInstallation.mockResolvedValue({ id: installationId });
     findSummaries.mockResolvedValue([summaryRow()]); countSummaries.mockResolvedValue(1);
+    findTests.mockResolvedValue([{ id: testId, energySummaries: [summaryRow()] },
+      { id: comparisonIds[1], energySummaries: [] }]);
     transaction.mockImplementation(async (callback: (db: typeof tx) => unknown) => callback(tx));
   });
   afterAll(async () => { if (app) await app.close(); process.env = originalEnv; });
@@ -271,5 +288,104 @@ describe('consulta autorizada de telemetria', () => {
       moneySaved: null, currencyCode: null, energyTariffPerKwh: null });
     expect(findSummaries.mock.calls[0][0].where.test).toEqual(accessWhere);
     expect(findInstallation).not.toHaveBeenCalled();
+  });
+
+  describe('comparação de testes', () => {
+    it('preserva ordem enviada e projeta um resumo TEST ativo por teste no mesmo snapshot', async () => {
+      const ids = [comparisonIds[1], testId];
+      const response = await comparisonRequest(comparisonQuery(ids)); expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.requestId).toBe(response.headers.get('x-request-id'));
+      expect(Object.keys(body.data)).toEqual(['items']);
+      expect(body.data.items.map((item: { testId: string }) => item.testId)).toEqual(ids);
+      expect(body.data.items[0]).toEqual({ testId: ids[0], summary: null });
+      expect(Object.keys(body.data.items[1]).sort()).toEqual(['summary', 'testId']);
+      expect(Object.keys(body.data.items[1].summary).sort()).toEqual([...summaryKeys].sort());
+      expect(body.data.items[1].summary).toMatchObject({ moneySaved: '0.123456',
+        energyTariffPerKwh: '0.12345678', periodStart: energySummaryFixture.periodStart, quality: 'GOOD' });
+      const query = findTests.mock.calls[0][0];
+      expect(query.where).toEqual({ id: { in: ids }, ...accessWhere });
+      expect(query.select.id).toBe(true);
+      expect(query.select.energySummaries).toMatchObject({ where: { periodType: 'TEST', calculationVersion: 1 },
+        take: 1, orderBy: [{ periodStart: 'desc' }, { calculatedAt: 'desc' }, { id: 'asc' }] });
+      expect(Object.keys(query.select.energySummaries.select).sort()).toEqual([...summaryKeys].sort());
+      expect(transaction.mock.calls[0][1]).toEqual({ isolationLevel: 'RepeatableRead' });
+      expect(findTests).toHaveBeenCalledTimes(1);
+      expect(findSummaries).not.toHaveBeenCalled(); expect(countSummaries).not.toHaveBeenCalled();
+    });
+    it('aceita cinco testes sem consulta individual de cada pai', async () => {
+      findTests.mockResolvedValue(comparisonIds.map((id) => ({ id, energySummaries: [] })));
+      const response = await comparisonRequest(comparisonQuery(comparisonIds)); expect(response.status).toBe(200);
+      expect((await response.json()).data.items).toEqual(comparisonIds.map((testId) => ({ testId, summary: null })));
+      expect(findTests).toHaveBeenCalledTimes(1);
+    });
+    it('mantém ID em maiúsculas na saída e encontra seu resumo pelo UUID canônico', async () => {
+      findTests.mockResolvedValue([{ id: testId, energySummaries: [] },
+        { id: comparisonIds[1], energySummaries: [{ ...summaryRow(), testId: comparisonIds[1] }] }]);
+      const ids = [comparisonIds[1].toUpperCase(), testId];
+      const response = await comparisonRequest(comparisonQuery(ids)); expect(response.status).toBe(200);
+      const { items } = (await response.json()).data;
+      expect(items[0]).toMatchObject({ testId: ids[0], summary: { testId: comparisonIds[1] } });
+      expect(items[1]).toEqual({ testId, summary: null });
+    });
+    it('INVALID mais recente vira null sem escolher o resumo antigo válido', async () => {
+      findTests.mockResolvedValue([{ id: testId, energySummaries: [{ ...summaryRow(), quality: 'INVALID' }, summaryRow()] },
+        { id: comparisonIds[1], energySummaries: [] }]);
+      const response = await comparisonRequest(); expect(response.status).toBe(200);
+      expect((await response.json()).data.items).toEqual(comparisonIds.slice(0, 2).map((testId) => ({ testId, summary: null })));
+      expect(findTests.mock.calls[0][0].select.energySummaries.where.quality).toBeUndefined();
+    });
+    it('PARTIAL permanece explícito e zero medido não vira ausência', async () => {
+      findTests.mockResolvedValue([{ id: testId, energySummaries: [{ ...summaryRow(), quality: 'PARTIAL', recoveredEnergyWh: 0 }] },
+        { id: comparisonIds[1], energySummaries: [] }]);
+      const response = await comparisonRequest(); expect(response.status).toBe(200);
+      expect((await response.json()).data.items[0].summary).toMatchObject({ quality: 'PARTIAL', recoveredEnergyWh: 0 });
+    });
+    it('preserva resumo histórico sem instalação, autorizado pelo criador', async () => {
+      findTests.mockResolvedValue([{ id: testId, createdById: userId, installationId: null,
+        energySummaries: [{ ...summaryRow(), installationId: null, moneySaved: null, energyTariffPerKwh: null }] },
+      { id: comparisonIds[1], energySummaries: [] }]);
+      const response = await comparisonRequest(); expect(response.status).toBe(200);
+      expect((await response.json()).data.items[0].summary).toMatchObject({ installationId: null,
+        moneySaved: null, energyTariffPerKwh: null });
+      expect(findTests.mock.calls[0][0].where.OR).toEqual(accessWhere.OR);
+      expect(findInstallation).not.toHaveBeenCalled();
+    });
+    it.each(['USER', 'ADMIN'])('qualquer teste ausente/alheio retorna 404 da operação inteira para %s', async (role) => {
+      findUser.mockResolvedValue({ id: userId, status: 'ACTIVE', roles: [{ role }] });
+      findTests.mockResolvedValue([{ id: testId, energySummaries: [summaryRow()] }]);
+      const response = await comparisonRequest(); expect(response.status).toBe(404);
+      const body = await response.json(); expect(body).toMatchObject({ error: { code: 'TEST_NOT_FOUND' } });
+      expect(body).not.toHaveProperty('data');
+      expect(JSON.stringify(body)).not.toContain(energySummaryFixture.id);
+      expect(findTests.mock.calls[0][0].where).toEqual({ id: { in: comparisonIds.slice(0, 2) }, ...accessWhere });
+    });
+    it.each(['', comparisonQuery([testId]), comparisonQuery([...comparisonIds, sid]),
+      comparisonQuery([testId, testId]), comparisonQuery([comparisonIds[1], comparisonIds[1].toUpperCase()]),
+      comparisonQuery(['ruim', testId]), comparisonQuery(['', testId]), '?testIds=' + comparisonIds.slice(0, 2).join(','),
+      '?testIds=' + encodeURIComponent(JSON.stringify(comparisonIds.slice(0, 2))),
+      '?testIds[]=' + testId + '&testIds[]=' + comparisonIds[1],
+      comparisonQuery(comparisonIds.slice(0, 2)) + '&userId=' + userId,
+      comparisonQuery(comparisonIds.slice(0, 2)) + '&calculationVersion=2',
+      comparisonQuery(comparisonIds.slice(0, 2)) + '&periodType=TEST',
+      comparisonQuery(comparisonIds.slice(0, 2)) + '&quality=GOOD',
+      comparisonQuery(comparisonIds.slice(0, 2)) + '&page=1'])('recusa query fora do contrato: %s', async (query) => {
+      const response = await comparisonRequest(query); expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: { code: 'VALIDATION_ERROR' } });
+      expect(transaction).not.toHaveBeenCalled();
+    });
+    it.each([null, 'malformado'])('exige access cookie válido: %s', async (token) => {
+      expect((await comparisonRequest(undefined, token)).status).toBe(401);
+      expect(transaction).not.toHaveBeenCalled();
+    });
+    it('recusa sessão revogada antes de consultar qualquer teste', async () => {
+      findSession.mockResolvedValue({ userId, revokedAt: new Date() });
+      expect((await comparisonRequest()).status).toBe(401); expect(findTests).not.toHaveBeenCalled();
+    });
+    it('falha da consulta não expõe detalhes internos', async () => {
+      findTests.mockRejectedValue(new Error('segredo-sintetico'));
+      const response = await comparisonRequest(); expect(response.status).toBe(500);
+      expect(JSON.stringify(await response.json())).not.toContain('segredo-sintetico');
+    });
   });
 });

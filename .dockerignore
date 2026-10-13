@@ -1,0 +1,17 @@
+# Evita enviar segredos, dependencias locais e artefatos ao builder Docker.
+.git
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+**/dist
+**/coverage
+**/__pycache__
+**/.venv
+**/*.tsbuildinfo
+.AIs
+.agents
+.codex
+.aws
+.idea
+output

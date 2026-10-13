@@ -7,7 +7,10 @@
 Em andamento em 13/10/2026 pelo lote documental 6.1 do
 [plano executável](../backend-phase-6-execution-roadmap.md). Regras de contador,
 estimativa/média ponderada, qualidade e exemplos registrados; índices únicos
-parciais da migration confirmados. Próximo: fixtures do lote 6.2.
+parciais da migration confirmados. Lote 6.2 entregue: dez cenários sintéticos
+em memória, factory restrita a dev/test, com oracles explícitos e testes.
+Backend 28 suítes/391 testes, lint/build aprovados. Próximo: consulta de
+telemetria do lote 6.3. Nenhum dado carregado no banco.
 Distribuição do contador nas fronteiras e entrada de tarifa seguem pendentes
 antes dos respectivos cálculos; sem código, migration ou carga na 6.1.
 

@@ -254,3 +254,37 @@ Preservar históricos em leitura. Nenhuma migration necessária demonstrada na 6
 Saída: regras aprovadas e exemplos registrados; chaves existentes confirmadas;
 decisões específicas acima permanecem abertas para os respectivos lotes.
 Próximo 6.2: fixtures pequenas determinísticas, sem carga remota ou novas rotas.
+
+## Lote 6.2 — plano autorizado
+
+Criar modules/data/fixtures/telemetry.fixtures.ts e telemetry.fixtures.spec.ts;
+atualizar plano/roadmap/contexto. Reutilizar fixture pública sintética como base,
+com datas/referências no formato Prisma para doubles de consulta e cálculos.
+Factory restrita a NODE_ENV=development/test, sem conexão, escrita de banco ou
+registro no AppModule. Cada chamada devolve dados novos, sem alterar fixtures
+compartilhadas. Séries: regular, irregular, lacuna, ausência, zero, duplicata,
+fora de ordem, atraso, valores inválidos e reinício. Resultados esperados
+explícitos, sem implementar o calculador futuro para gerar seu próprio oracle.
+TDD antes do código; verificar restrição de ambiente, identidade sintética,
+isolamento, semântica dos casos e números simples independentes. test:unit,
+lint/build e diff --check. Sem carregador de banco antecipado ou rota pública.
+Fronteiras do contador/tarifa/TEST seguem pendências dos lotes de cálculo.
+
+### Lote 6.2 entregue
+
+Factory de dez cenários e oracles explícitos em modules/data/fixtures, reutilizando
+fixture sintética compartilhada e campos/datas Prisma. Sem registro do módulo
+ou carregador de banco. Geração somente NODE_ENV=development/test; dados novos
+entre cenários/chamadas, sem alterar fixtures públicas. IDs se repetem entre
+cenários isolados; não concatenar essas séries como seed único. NaN/Infinity são
+entradas de teste em memória, não JSON válido ou dados para persistência.
+
+Casos regular/irregular, lacuna/ausência, zero, duplicata, fora de ordem, atraso,
+inválido e reinício; resultados da série inteira, sem presumir fronteira final
+de TEST ou repartição do contador entre períodos. Reinício segmenta contador;
+potência válida continua produzindo estimativa independente, sem somá-la à energia.
+Testes verificam restrição de ambiente, IDs/datas, isolamento, semântica e números
+simples. Baseline 378; RED por factory ausente; GREEN 28 suítes/391 testes (13
+novos), lint/build e diff --check aprovados via npm.cmd. Sem dependências/schema,
+env, migration, Docker, banco externo, front, commit/push.
+Próximo lote 6.3: GET /tests/:testId/telemetry, usando as fixtures e acesso F05.

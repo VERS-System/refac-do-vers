@@ -15,7 +15,7 @@ arquitetura; estes documentos definem como executar cada fase.
 | 02 | [Schema e migrations](02-schema-migrations.md) | Concluída | Fase 01 |
 | 03 | [APIs e rotas](03-apis-rotas.md) | Concluída | Fase 02 |
 | 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Concluída — revisão e PR confirmados pelo programador em 06/10/2026 | Fase 03 |
-| 05 | [Recursos de domínio](05-recursos-dominio.md) | Em andamento — lotes 1–7: perfil, veículos, instalações/configurações, ciclo de testes e suporte | Fase 04 |
+| 05 | [Recursos de domínio](05-recursos-dominio.md) | Lotes 1–8 entregues — pronta para revisão final do programador; ensaios reais pendentes | Fase 04 |
 | 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Planejada | Fase 05 |
 | 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Bloqueada pelo marco MQTT | Fase 06 + hardware/simulador |
 | 08 | [Tempo real](08-tempo-real.md) | Planejada | Fase 07 |

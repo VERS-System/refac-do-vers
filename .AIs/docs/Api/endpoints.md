@@ -20,6 +20,14 @@ As operações da fundação incluem `GET /users/me`, `PATCH /users/me`, `GET /h
 `GET /auth/csrf`, `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`,
 `POST /auth/logout` e `POST /auth/logout-all`.
 
+Conferência final da F05 em 13/10/2026, após pull do mobile: 32 operações
+contratadas, 28 implementadas (2 health, 6 auth e 20 de domínio). As quatro
+consultas futuras são telemetria por teste, resumos por instalação/teste e
+comparação. Metadados dos controllers compilados conferidos com status de
+sucesso e Origin/CSRF nas mutações de domínio; referências OpenAPI válidas.
+Backend: 378 testes, lint/build aprovados; shared-types: testes de contrato,
+lint/build aprovados. Essa evidência usa banco simulado, sem ensaio SQL real.
+
 ### Auditoria mínima de autenticação
 
 As cinco mutações de auth tentam persistir `auth.register`, `auth.login`,

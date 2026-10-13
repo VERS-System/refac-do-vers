@@ -6,7 +6,19 @@ Em andamento em 06/10/2026 após confirmação de revisão/PR da F04.
 Execução por lotes no [plano da F05](../backend-phase-5-execution-roadmap.md).
 Lotes 1–7 implementados até 13/10/2026: perfil, veículos, instalações/configurações,
 planejamento/ciclo de testes e criação/consultas próprias de suporte.
-Próximo lote 8: regressão/conferência e revisão final da fase.
+Lote 8 entregue em 13/10/2026: regressão/conferência concluídas, pronta para
+revisão final do programador. Backend 378 testes, lint/build e shared-types
+test:unit/lint/build aprovados. A fase não foi encerrada automaticamente.
+
+## Limites da entrega por lotes
+
+As etapas abaixo conservam a visão estratégica. O recorte executável entregue
+implementa perfil, veículos, leituras de instalações/configurações, ciclo de
+testes e suporte próprio. Provisionamento/revogação de dispositivos, mutações
+de instalações/configurações e transições administrativas do suporte continuam
+dependentes de contratos e decisões operacionais. Não foram implementados.
+Concorrência/rollback/cascatas dos services ainda exigem ensaio PostgreSQL real;
+os testes HTTP usam persistência sintética. Detalhes e matriz no plano da F05.
 
 ## Objetivo
 

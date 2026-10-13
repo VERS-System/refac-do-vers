@@ -231,3 +231,56 @@ Scripts npm.cmd locais conforme exceção documentada do pnpm; dependências int
 Somente HTTP/JWT reais com Prisma simulado; banco real e concorrência não ensaiados.
 Sem migration, .env, Docker, commit/push. Próximo lote 8: fechamento da F05,
 após revisão desta entrega pelo programador; fase ainda em andamento.
+
+## Lote 8 — plano autorizado em 13/10/2026
+
+Programador solicitou próximo lote após commit do suporte e pull do front.
+Checkout limpo em 4762795; pull acrescentou telas/navegação mobile e contextos.
+Preservar essas alterações. Conferir controllers registrados, contratos OpenAPI,
+status HTTP, guards/CSRF e shared-types; executar regressão backend e testes de
+contrato, lint/build. Não criar endpoints administrativos sem contrato nem
+antecipar F06. Corrigir código somente se a revisão ou testes revelarem defeito.
+Arquivos previstos: este plano, backend-roadmap/README.md e 05-recursos-dominio.md,
+Api/endpoints.md e contexto diário. Sem dependências, schema, banco ou front.
+Registrar matriz contrato × implementação e pendências reais. Entrega pronta
+para revisão final não comprova ensaio PostgreSQL nem autoriza encerrar a fase
+automaticamente ou iniciar outra sem revisão do programador.
+
+### Lote 8 entregue — 13/10/2026
+
+Regressão após pull 4762795: backend 27 suítes/378 testes, lint e build aprovados;
+shared-types test:unit (compilação dos contratos), lint e build aprovados via
+scripts npm.cmd locais. Metadados dos controllers compilados conferidos com o
+OpenAPI: todas as 28 operações implementadas têm resposta de sucesso compatível,
+guards nos cinco controllers de domínio e Origin/CSRF em suas mutações.
+OpenAPI parseado e todas as referências locais resolvidas.
+
+| Grupo | Operações contratadas | Implementadas |
+| --- | ---: | ---: |
+| Health | 2 | 2 |
+| Auth | 6 | 6 |
+| Perfil | 2 | 2 |
+| Veículos | 5 | 5 |
+| Instalações/configurações | 4 | 4 |
+| Testes experimentais | 6 | 6 |
+| Suporte | 3 | 3 |
+| Telemetria/resumos/comparação (F06) | 4 | 0 |
+| Total | 32 | 28 |
+
+Revisão dos services e casos HTTP existentes confirma recorte de perfil,
+vínculos, snapshots, estado experimental e suporte próprio. Guards/CSRF,
+validação, projeção pública, histórico e conflitos simulados cobertos pelas
+suítes dos lotes. Não foi necessário alterar código nem criar testes duplicados.
+Somente documentação de fechamento/contexto alterada; front preservado.
+
+**F05 pronta para revisão final do programador, sem encerramento automático.**
+O recorte executável dos oito lotes não inclui provisionamento de dispositivo,
+criação/manutenção de instalação/configuração ou transições administrativas de
+suporte: continuam sem contratos/decisões operacionais aprovados. O roadmap
+estratégico menciona essas capacidades, mas não demonstra que foram entregues.
+
+Pendências: ensaio PostgreSQL real de concorrência, rollback e cascatas;
+integração nativa de cookies/Origin/CSRF; ativação de conta e origens de produção;
+limite do filtro de texto livre e marco MQTT. Não houve banco/Redis/broker reais,
+migration, .env, Docker, commit/push ou teste do front. Próxima etapa prevista,
+após revisão: F06 6.1, fechar regras/chave de recomputação e decisões restantes.

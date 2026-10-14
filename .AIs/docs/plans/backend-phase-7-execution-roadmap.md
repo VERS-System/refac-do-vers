@@ -1,7 +1,7 @@
 <!-- Planeja a ingestão MQTT em etapas revisáveis antes da integração real. -->
 # F07 — Contrato e ingestão MQTT
 
-Estado: recortes locais 7.1/7.2 entregues para revisão em 14/10/2026.
+Estado: recortes locais 7.1–7.3 entregues para revisão em 14/10/2026.
 Sequência, políticas temporais e REST não bloqueado por MQTT aprovados;
 integração real não iniciada.
 F05 preservada; F06 permanece com as decisões registradas. F08 e F09 serão
@@ -135,12 +135,71 @@ silenciosa, com evidência de transações/concorrência em PostgreSQL isolado.
    número em arquivo local antes da saída. Firmware futuro deve manter a regra.
 4. Limites e atraso: definir com exemplos e cadência reais; não usar o limite
    REST de 100 registros como limite automático de lote MQTT.
-5. Retenção e rejeições: definir quanto guardar e como registrar envelopes
-   malformados sem payload irrestrito. Nenhuma limpeza automática sem decisão.
+5. Retenção e rejeições: em 14/10 aprovados logs seguros agregados sem payload
+   inválido e preservação de válidas sem nova limpeza automática no desenvolvimento.
+   Prazo de produção e retenção no destino dos logs continuam pendentes.
 6. Eventos: confirmar quem inicia/finaliza teste e como mensagens offline
    serão associadas; o backend não muda regras operacionais por suposição.
 
 ## Arquivos previstos e limites
+
+### Plano autorizado 7.3 — recepção e rastreabilidade
+
+Programador pediu próximo lote e respondeu decisões em 14/10/2026: mensagens
+malformadas/campos proibidos somente em logs seguros agregados, sem payload
+inválido; válidas preservadas sem limpeza automática no desenvolvimento.
+Prazo de retenção de produção será fechado antes de implantar, sem job de descarte.
+
+Escopo informado: novos mqtt-reception.service.ts/spec.ts, registro/exportação
+no MqttModule; contrato MQTT, plano/índice e contexto. Reutilizar parser 7.1,
+Prisma global e schema atual, sem migration, rota REST ou dependência nova.
+Serviço passivo receive(packet, receivedAt), não chama start/conecta broker.
+Envelope íntegro, QoS/retain e capturedAt/receivedAt ficam em MqttMessage
+RECEIVED. UUID interno persistido serve como correlação; não inventar IDs ou
+datas para rejeições. Amostras/resumos e associação de teste aguardam 7.4–7.6;
+testId relacional permanece null nesta etapa, preservado no payload original.
+
+Antes de persistir, exigir dispositivo conhecido e não revogado, verificando
+origem sob locks veículo → instalação → dispositivo. Isso protege contra
+exclusão/revogação e não substitui autenticação/ACL no broker. Estados de
+provisionamento/teste e política completa de autorização serão fechados na 7.4.
+Deduplicação mínima necessária ao QoS 1: mesmo messageId/dispositivo/sequência
+e conteúdo JSON equivalente retornam ID original sem alterar payload ou horário;
+conflito é rejeição segura, inclusive colisão com outro dispositivo. Retry único
+após P2002 reconsulta em transação nova, pois PostgreSQL aborta a anterior.
+
+Rejeições contam somente códigos fixos em memória e geram um log agregado por
+janela de um minuto, com horário e contagem; flush no shutdown. Sem tópico,
+payload, credencial, identificador enviado pelo cliente ou dados pessoais.
+Não armazenar conteúdo inválido nem escrever sua rejeição em MqttMessage.
+Falha de banco propaga ao transporte sem ACK positivo; não é rejeição definitiva.
+Sem idade máxima: atrasadas/futuras persistem como origem histórica para tratamento.
+
+TDD antes da implementação: metadados/imutabilidade, parse/limites/null/zero,
+segredo canário em logs, agregação/flush, identidade/locks, duplicatas/conflitos,
+P2002/retry e falhas de gravação sem confirmação positiva. Testes só com Prisma
+simulado e integração local do callback do transporte; não alegar concorrência
+ou rollback SQL real. Executar test:unit/lint/build, atualizar documentação.
+
+#### Entrega local 7.3
+
+Criados mqtt-reception.service.ts/spec.ts, registrados/exportados no MqttModule.
+Recepção passiva valida parser/metadados, exige origem conhecida não revogada
+sob locks e grava bruto RECEIVED em ReadCommitted, sem amostras ou resumo.
+testId relacional null até autorização; payload guarda ID declarado. Horários
+antigos/futuros preservados; sem TTL/job novo. Constraints existentes e leitura
+prévia tratam retransmissões/conflitos; P2002 reconsulta uma vez em transação nova.
+Logs por janela de minuto com apenas códigos/horário/contagens e flush no shutdown.
+Falha de persistência impede ACK positivo; rejeição permanente não vira retry infinito.
+Interface do transporte/receiver exercitada com commit simulado, sem start real.
+
+TDD RED por serviço ausente. GREEN: 36 suítes/719 testes (31 novos), lint/build.
+Refinado caso de -0 com bytes JSON literais e suíte isolada aprovada; sem mudança
+de produção depois da regressão completa. Sem schema/migration/dependência,
+REST/OpenAPI, configuração, Docker, banco ou broker reais neste lote.
+Próximo 7.4: autorização completa de dispositivo/teste, estados de provisionamento
+e associação segura; manter consumidor sem start automático até pipeline.
+SQL/trigger/concorrência/rollback reais ainda precisam de ensaio autorizado.
 
 ### Plano autorizado 7.2 — cliente MQTT com testes simulados
 

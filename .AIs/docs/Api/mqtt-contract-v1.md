@@ -9,6 +9,8 @@ ou banco é acionado; autenticação, deduplicação SQL e persistência são pr
 
 Lote local 7.2 também entregue: transporte TLS passivo e status no readiness.
 Sem ensaio em broker real; as evidências abaixo são testes com transporte simulado.
+Lote local 7.3 entregue: recepção transacional de envelopes e logs agregados de
+rejeições. Persistência testada com Prisma simulado, sem executar PostgreSQL real.
 
 ## Plano do lote 7.1
 
@@ -39,11 +41,13 @@ Sem conexão externa, novos serviços, dependências ou alteração de REST.
 | Ausência | Campo de medição ausente ou null é permitido; zero continua medição válida |
 | Teste | REST controla estados; leitura fora do intervalo fica sem testId e com sinalização; aprovado |
 | Status/events | Reservados; consumidor desta primeira versão aceita somente telemetry |
-| Rejeições | Registrar código/IDs seguros, sem guardar bytes arbitrários ou segredos |
+| Rejeições | Aprovado: logs agregados de códigos/horário/contagens, sem payload inválido ou IDs do remetente |
 
 Cadência e limites são valores de ensaio, ajustáveis após hardware. Não derivam
-do limite REST de paginação. Não há descarte ou limpeza automática nesta proposta;
-retenção em produção será decidida antes da implantação. Aprovação do simulador
+do limite REST de paginação. Aprovado em 14/10: sem novo descarte/limpeza automática
+de mensagens válidas no desenvolvimento; retenção em produção será decidida
+antes da implantação. Exclusão de veículo já contratada continua aplicável.
+Aprovação do simulador
 não autoriza acesso ao HiveMQ/Neon nem encerra as pendências SQL da F06.
 
 Quatro níveis significam: envelope (1), array samples (2), objeto amostra (3),
@@ -197,10 +201,11 @@ idade 24 ou 24,001 s nesses casos, sem confundir a janela normal com atraso.
 | Captura futura em relação ao recebimento | Envelope preservado, CLOCK_SKEW e lag negativo |
 | JSON truncado/bytes excessivos | Recusar antes da persistência do envelope |
 
-Envelope estruturalmente válido mas rejeitado por autorização/domínio poderá
-ser rastreado por IDs e motivo seguro. JSON malformado não cabe em MqttMessage:
-não fabricar messageId/capturedAt para persistir. Política de registro/retencão
-das rejeições será fechada na 7.3 antes de implementar persistência.
+JSON malformado não cabe em MqttMessage: não fabricar messageId/capturedAt para
+persistir. Na 7.3, entradas rejeitadas por parse, dispositivo indisponível ou
+conflito são rastreadas somente por contagem/código seguro em logs agregados,
+conforme escolha do programador; sem criar registro de envelope inválido.
+Decisões de domínio sobre envelopes já persistidos serão tratadas na 7.4.
 
 ## Sequência persistente aprovada
 
@@ -290,9 +295,62 @@ TDD local: 26 testes de cliente, 11 novos de configuração, três de health e
 um HTTP, total 41 novos. Regressão final 35 suítes/688 testes, lint/build aprovados.
 Nenhum broker, credencial real, ACL, revogação ou banco testado neste lote.
 
+### Recepção local 7.3
+
+MqttModule também exporta MqttReceptionService. `receive(packet, receivedAt)`
+reutiliza o parser e valida os metadados do pacote antes de consultar banco.
+Retorna outcome RECEIVED/DUPLICATE/REJECTED e ID interno persistido ou null.
+Esse ID é a correlação da mensagem válida; rejeições não inventam identidade.
+Não há start automático nem nova rota ou resposta REST.
+
+Envelope válido é gravado em MqttMessage com payload original, messageId,
+deviceId, schemaVersion, sequence BigInt, topic, qos, retained, capturedAt,
+receivedAt do backend e status RECEIVED. Payload JSON é imutável, não arquivo
+de bytes: JSONB/Prisma não conservam espaços ou ordem das chaves. Atrasadas e
+futuras são preservadas sem substituir seu horário. `testId` relacional fica
+null até autorização posterior; o valor enviado continua dentro do payload.
+Não gera TelemetrySample, potência, resumo ou classificação temporal pública.
+QoS/retained são armazenados como metadados; política de transporte/domínio
+de envelope já armazenado pertence às etapas posteriores.
+
+Dispositivo precisa existir e não estar revogado, com vínculos ainda presentes.
+Transação ReadCommitted bloqueia veículo → instalação → dispositivo antes de
+inserir. Esse protocolo deve ser mantido pela futura revogação/provisionamento;
+não é autenticação do remetente, que ainda depende da credencial/ACL do broker.
+Estados de provisionamento e autorização completa do teste aguardam 7.4.
+
+Mesmo messageId/dispositivo/sequência, tópico e conteúdo JSON equivalente
+retornam ID original sem UPDATE ou nova gravação. Ordem das chaves não altera
+igualdade; comparação considera normalização JSON de -0/0. Os identificadores
+textuais são comparados como enviados, sem inventar outra identidade.
+Colisão de messageId global, sequência reutilizada ou conteúdo divergente
+gera rejeição segura, sem expor ID de outra origem ou reescrever o existente.
+As duas constraints únicas continuam sendo a defesa de concorrência no banco;
+P2002 provoca uma reconsulta em transação nova, no máximo uma vez.
+
+Rejeições ficam somente em contador em memória, por sete códigos fixos:
+MQTT_INVALID_PACKET, MQTT_INVALID_TOPIC, MQTT_PAYLOAD_TOO_LARGE,
+MQTT_INVALID_JSON, MQTT_INVALID_ENVELOPE, MQTT_DEVICE_UNAVAILABLE e
+MQTT_MESSAGE_CONFLICT. Um log `mqtt_rejections` por janela de um minuto informa
+recordedAt e counts. Sem tópico, payload, IDs enviados, causa interna ou dados
+pessoais. Shutdown faz flush e cancela timer; queda abrupta pode perder as
+contagens da janela. Retenção dos logs no destino operacional continua pendente.
+
+Rejeição permanente resolve e pode ser confirmada pelo transporte, evitando
+reentrega eterna de JSON inválido. Falha de banco lança MQTT_PERSISTENCE_FAILED
+e não confirma positivamente. Em teste local, callback do transporte aguardou
+commit simulado e falha fechou conexão. Ativação real aguarda pipeline autorizado.
+
+TDD: RED por serviço ausente; 31 testes novos de metadados/horários/imutabilidade,
+locks, retransmissão/conflito/P2002, logs com canário e ACK após commit simulado.
+Regressão final 36 suítes/719 testes; lint/build aprovados. Mocks não comprovam
+SQL/locks/rollback/trigger/concorrência reais; ensaio PostgreSQL isolado pendente.
+
 Recorte local de telemetria 7.1 entregue para revisão, com validador/gerador.
 Transporte local 7.2 entregue para revisão, sem ativação automática.
-Persistência de mensagens e amostras, classificação temporal pública, vínculo
-real, deduplicação concorrente, recomputação e reenvio ainda não implementados.
+Recepção local 7.3 entregue para revisão, sem broker ou ensaio SQL real.
+Persistência de amostras, classificação temporal pública, vínculo de teste,
+validação completa de domínio, recomputação e reenvio ainda não implementados.
+Deduplicação básica foi implementada, mas concorrência real continua sem ensaio.
 Status/events permanecem reservados, sem tratamento. Não declarar F07 completa,
 F06 encerrada ou marco de integração cumprido sem broker e ensaios autorizados.

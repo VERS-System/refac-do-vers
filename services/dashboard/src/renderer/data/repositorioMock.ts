@@ -10,7 +10,7 @@
 import type { Periodo } from '@/stores/periodo';
 import {
   enriquecerCadeia,
-  horarioParaMinutos,
+  recortarUltimosMinutos,
   resumirCurva,
   resumirDia,
   resumirDias,
@@ -33,7 +33,7 @@ import {
   VEICULO_EXEMPLO,
   VIBRACAO_EXEMPLO,
 } from './fixtures/sistema';
-import type { RepositorioVers } from './repositorio';
+import type { PeriodoComDias, RepositorioVers } from './repositorio';
 import type { CurvaDoDia, DiaMedido, ResumoEnergia } from './tipos';
 
 export interface OpcoesRepositorioMock {
@@ -81,6 +81,9 @@ export function criarRepositorioMock(opcoes: OpcoesRepositorioMock = {}): Reposi
     pontos: gerarCurvaDoDia(CURVA_HOJE),
   };
   const hoje = montarHoje(curva);
+  const mesAtual = HOJE_EXEMPLO.slice(0, 7);
+  const diasDoMes = [...SEMANA_EXEMPLO.filter((dia) => dia.data.startsWith(mesAtual)), hoje];
+  const diasPorPeriodo: Record<PeriodoComDias, DiaMedido[]> = { semana: SEMANA_EXEMPLO, mes: diasDoMes };
   const mediaDiariaSemana = SEMANA_EXEMPLO.reduce((soma, dia) => soma + dia.energia.p1, 0) / SEMANA_EXEMPLO.length;
 
   /** Devolve uma cópia do valor depois da latência configurada. */
@@ -93,10 +96,8 @@ export function criarRepositorioMock(opcoes: OpcoesRepositorioMock = {}): Reposi
   /** Calcula o resumo de cada período a partir das medições. */
   function resumir(periodo: Periodo): ResumoEnergia {
     switch (periodo) {
-      case 'hora': {
-        const inicio = horarioParaMinutos(CURVA_HOJE.ate) - MINUTOS_HORA;
-        return resumirCurva('hora', curva.data, curva.pontos.slice(inicio), curva.intervaloMinutos);
-      }
+      case 'hora':
+        return resumirCurva('hora', curva.data, recortarUltimosMinutos(curva.pontos, MINUTOS_HORA), curva.intervaloMinutos);
       case 'dia': {
         const resumo = resumirDias('dia', [hoje]);
         const variacao = variacaoPercentual(hoje.energia.p1, mediaDiariaSemana);
@@ -107,18 +108,15 @@ export function criarRepositorioMock(opcoes: OpcoesRepositorioMock = {}): Reposi
         const variacao = variacaoPercentual(resumo.energiaRecuperadaMwh, ENERGIA_SEMANA_ANTERIOR_MWH);
         return variacao === null ? resumo : { ...resumo, comparacao: { referencia: 'semana-anterior', variacaoPercentual: variacao } };
       }
-      case 'mes': {
-        const mesAtual = HOJE_EXEMPLO.slice(0, 7);
-        const dias = [...SEMANA_EXEMPLO.filter((dia) => dia.data.startsWith(mesAtual)), hoje];
-        return resumirDias('mes', dias);
-      }
+      case 'mes':
+        return resumirDias('mes', diasDoMes);
     }
   }
 
   return {
     agora,
     obterResumoEnergia: (periodo) => responder(resumir(periodo)),
-    obterDiasDaSemana: () => responder(SEMANA_EXEMPLO.map(resumirDia)),
+    obterDias: (periodo) => responder(diasPorPeriodo[periodo].map(resumirDia)),
     obterCurvaDoDia: () => responder(curva),
     obterCadeiaAoVivo: () => responder(enriquecerCadeia(AGORA_EXEMPLO, CADEIA_AO_VIVO)),
     obterBateria: () => responder(BATERIA_EXEMPLO),

@@ -50,7 +50,7 @@ describe('repositório de exemplo: semana (28/09 a 04/10)', () => {
 
   /** Tabela "Resumo por dia": potência média e eficiência de cada dia. */
   it('lista os 7 dias com potência média e eficiência', async () => {
-    const dias = await repositorio.obterDiasDaSemana();
+    const dias = await repositorio.obterDias('semana');
 
     expect(dias.map((d) => d.data)).toEqual([
       '2026-09-28',
@@ -80,6 +80,15 @@ describe('repositório de exemplo: semana (28/09 a 04/10)', () => {
       '52,4',
     ]);
     expect(dias.find((d) => d.data === '2026-10-02')?.lacunasPercentual).toBe(4);
+  });
+
+  /** Gráfico do Mês: um dia por barra, de 01/10 até hoje (hoje vem da curva). */
+  it('lista os dias do mês até hoje', async () => {
+    const dias = await repositorio.obterDias('mes');
+
+    expect(dias.map((d) => d.data)).toEqual(['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04', '2026-10-05']);
+    expect(dias.map((d) => Math.round(d.energia.p1))).toEqual([390, 267, 353, 168, 292]);
+    expect(formatarPercentual(dias[4].eficienciaPercentual).valor).toBe('53,5');
   });
 });
 

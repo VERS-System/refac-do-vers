@@ -210,3 +210,16 @@ export function resumirDispositivo(dispositivo: Dispositivo, agora: Date): Dispo
 export function descreverVeiculo(veiculo: Veiculo): string {
   return `${veiculo.fabricante} ${veiculo.modelo} ${veiculo.ano} · ${veiculo.placa}`;
 }
+
+/**
+ * Recorta a janela final de uma curva: os pontos dos últimos `minutos`.
+ *
+ * Usado no período Hora (a última hora da curva de hoje). A janela termina no
+ * último ponto e inclui o ponto exatamente `minutos` antes dele, então uma
+ * curva por minuto rende `minutos + 1` pontos (17:05 a 18:05).
+ */
+export function recortarUltimosMinutos(pontos: readonly PontoCurva[], minutos: number): PontoCurva[] {
+  if (pontos.length === 0) return [];
+  const inicio = horarioParaMinutos(pontos[pontos.length - 1].horario) - minutos;
+  return pontos.filter((ponto) => horarioParaMinutos(ponto.horario) >= inicio);
+}

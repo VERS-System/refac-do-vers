@@ -14,6 +14,7 @@ import {
   integrarTrapezios,
   minutosParaHorario,
   perdaPercentual,
+  recortarUltimosMinutos,
   resumirCurva,
   resumirDia,
   resumirDias,
@@ -220,5 +221,31 @@ describe('resumirDispositivo e descreverVeiculo', () => {
     expect(descreverVeiculo({ id: 'v1', fabricante: 'Honda', modelo: 'Civic', ano: 2026, placa: 'ABC1D23' })).toBe(
       'Honda Civic 2026 · ABC1D23',
     );
+  });
+});
+
+describe('recortarUltimosMinutos', () => {
+  /** Curva de 00:00 a 00:10, um ponto por minuto. */
+  const pontos: PontoCurva[] = Array.from({ length: 11 }, (_, i) => ({
+    horario: minutosParaHorario(i),
+    recuperadaMw: i * 10,
+    consumoNoMw: 45,
+  }));
+
+  /** A janela termina no último ponto e inclui o ponto do início. */
+  it('mantém os pontos da janela final', () => {
+    const recorte = recortarUltimosMinutos(pontos, 5);
+
+    expect(recorte.map((p) => p.horario)).toEqual(['00:05', '00:06', '00:07', '00:08', '00:09', '00:10']);
+  });
+
+  /** Janela maior que a curva devolve a curva inteira. */
+  it('devolve tudo quando a janela é maior que a curva', () => {
+    expect(recortarUltimosMinutos(pontos, 60)).toHaveLength(11);
+  });
+
+  /** Curva vazia continua vazia. */
+  it('aceita curva vazia', () => {
+    expect(recortarUltimosMinutos([], 60)).toEqual([]);
   });
 });

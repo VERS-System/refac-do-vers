@@ -133,6 +133,19 @@ IA, Configurações, Login, Criar conta (stepper Conta / Veículo / Instalação
 **Critério de saída por tela**: testes de conteúdo e estados (carregando,
 vazio, erro); comparação visual com a referência do Stitch em 1280 e 1512 px.
 
+Andamento:
+
+- **Visão geral — concluída em 14/10/2026.** O seletor de período muda só a
+  energia (card e gráfico): Hora e Dia mostram a curva de potência (última
+  hora ou o dia de 00h a 24h), Semana e Mês mostram barras de energia por
+  dia. Potência instantânea, eficiência de hoje, bateria, vibração e cadeia
+  de conversão ficam sempre no estado atual. Peças reaproveitáveis criadas:
+  `components/ui/` (`Skeleton`, `EstadoConsulta`, `KpiConsulta`) e
+  `components/charts/` (`Sparkline`, `BarraSegmentos`, `MedidorAnel`,
+  `OndaVibracao`, `GraficoEnergia` com Recharts). O repositório passou a
+  expor `obterDias('semana' | 'mes')` no lugar de `obterDiasDaSemana()`.
+- Próxima: Energia.
+
 ### Fase 5 — Movimento e acabamento
 
 React Bits conforme o DESIGN.md (SpotlightCard, CountUp, Threads/Waves,

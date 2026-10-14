@@ -9,12 +9,12 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { descreverVeiculo, resumirDispositivo } from '@/data/calculos';
-import { useRepositorio } from '@/data/repositorio';
+import { useRepositorio, type PeriodoComDias } from '@/data/repositorio';
 import { usePeriodoStore, type Periodo } from '@/stores/periodo';
 
 export const chavesConsulta = {
   resumoEnergia: (periodo: Periodo) => ['energia', 'resumo', periodo] as const,
-  diasDaSemana: ['energia', 'dias-da-semana'] as const,
+  dias: (periodo: PeriodoComDias) => ['energia', 'dias', periodo] as const,
   curvaDoDia: ['energia', 'curva-do-dia'] as const,
   cadeiaAoVivo: ['ao-vivo', 'cadeia'] as const,
   bateria: ['sistema', 'bateria'] as const,
@@ -40,10 +40,20 @@ export function useResumoEnergia(periodoFixo?: Periodo) {
   });
 }
 
-/** Dias da última semana completa, com potência média e eficiência de cada um. */
-export function useDiasDaSemana() {
+/**
+ * Dias de um período (Semana ou Mês), para gráficos de barras e tabelas.
+ *
+ * Aceita `null` porque Hora e Dia não se dividem em dias: como hooks não
+ * podem ser chamados condicionalmente, a tela chama sempre e a consulta só
+ * roda (`enabled`) quando há um período com dias.
+ */
+export function useDiasDoPeriodo(periodo: PeriodoComDias | null) {
   const repositorio = useRepositorio();
-  return useQuery({ queryKey: chavesConsulta.diasDaSemana, queryFn: () => repositorio.obterDiasDaSemana() });
+  return useQuery({
+    queryKey: chavesConsulta.dias(periodo ?? 'semana'),
+    queryFn: () => repositorio.obterDias(periodo ?? 'semana'),
+    enabled: periodo !== null,
+  });
 }
 
 /** Curva de potência de hoje (gráfico "Energia recuperada x consumo"). */

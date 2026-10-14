@@ -12,7 +12,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RepositorioProvider, type RepositorioVers } from '@/data/repositorio';
 import { criarRepositorioMock } from '@/data/repositorioMock';
 import { PERIODO_PADRAO, usePeriodoStore } from '@/stores/periodo';
-import { useDispositivo, useResumoEnergia, useUsuarioAtual, useVeiculoAtivo } from './useDados';
+import { useDiasDoPeriodo, useDispositivo, useResumoEnergia, useUsuarioAtual, useVeiculoAtivo } from './useDados';
 
 /** Cria o wrapper com um QueryClient novo (sem cache entre testes) e o repositório. */
 function criarWrapper(repositorio: RepositorioVers) {
@@ -62,6 +62,27 @@ describe('hooks de dados', () => {
     const { result } = renderHook(() => useResumoEnergia('dia'), { wrapper: criarWrapper(repositorio) });
 
     await waitFor(() => expect(result.current.data?.periodo).toBe('dia'));
+  });
+
+  /** Semana e Mês têm dias para o gráfico de barras. */
+  it('busca os dias do período pedido', async () => {
+    const repositorio = criarRepositorioMock();
+    const espiao = vi.spyOn(repositorio, 'obterDias');
+    const { result } = renderHook(() => useDiasDoPeriodo('mes'), { wrapper: criarWrapper(repositorio) });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(espiao).toHaveBeenCalledWith('mes');
+    expect(result.current.data).toHaveLength(5);
+  });
+
+  /** Sem período (Hora ou Dia), o hook não consulta o repositório. */
+  it('não busca dias quando o período é nulo', () => {
+    const repositorio = criarRepositorioMock();
+    const espiao = vi.spyOn(repositorio, 'obterDias');
+    const { result } = renderHook(() => useDiasDoPeriodo(null), { wrapper: criarWrapper(repositorio) });
+
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(espiao).not.toHaveBeenCalled();
   });
 
   /** Falhas do repositório aparecem como erro do hook. */

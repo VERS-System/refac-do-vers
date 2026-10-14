@@ -135,3 +135,34 @@ export function formatarTempoDecorrido(segundos: number): string {
   const dias = Math.floor(segundos / 86400);
   return `há ${dias} ${dias === 1 ? 'dia' : 'dias'}`;
 }
+
+/** Data ISO `AAAA-MM-DD` (só a data, sem horário). */
+const DATA_ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** Dias da semana abreviados, de domingo (0) a sábado (6), como em `Date.getUTCDay`. */
+const DIAS_DA_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+/**
+ * Formata uma data ISO como "DD/MM" ("28/09 a 04/10" nos subtítulos e eixos).
+ *
+ * Lê o texto direto, sem criar `Date`, para não sofrer com o fuso local
+ * (`new Date('2026-09-28')` é meia-noite UTC, que no Brasil ainda é dia 27).
+ */
+export function formatarDataCurta(data: string): string {
+  const partes = DATA_ISO.exec(data);
+  return partes ? `${partes[3]}/${partes[2]}` : VALOR_AUSENTE;
+}
+
+/**
+ * Dá o dia da semana abreviado de uma data ISO ("Seg", "Qui", "Dom").
+ *
+ * Usado no eixo do gráfico da semana. Calcula em UTC a partir dos números da
+ * data, pelo mesmo motivo de {@link formatarDataCurta}: o resultado não pode
+ * depender do fuso da máquina.
+ */
+export function formatarDiaSemanaCurto(data: string): string {
+  const partes = DATA_ISO.exec(data);
+  if (!partes) return VALOR_AUSENTE;
+  const [, ano, mes, dia] = partes.map(Number);
+  return DIAS_DA_SEMANA[new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay()];
+}

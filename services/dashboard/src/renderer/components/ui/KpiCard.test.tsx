@@ -41,4 +41,17 @@ describe('KpiCard', () => {
 
     expect(screen.getByText('6 / 8')).toBeInTheDocument();
   });
+
+  /** Sem valor (carregando ou erro), o card mantém o rótulo e mostra só o conteúdo. */
+  it('funciona sem valor', () => {
+    render(
+      <KpiCard label="Potência instantânea" unit="mW">
+        <span>carregando</span>
+      </KpiCard>,
+    );
+
+    const regiao = screen.getByRole('region', { name: 'Potência instantânea' });
+    expect(within(regiao).getByText('carregando')).toBeInTheDocument();
+    expect(within(regiao).queryByText('mW')).not.toBeInTheDocument();
+  });
 });

@@ -20,6 +20,9 @@ import type {
   Vibracao,
 } from './tipos';
 
+/** Períodos que se dividem em dias (Hora e Dia são uma curva só). */
+export type PeriodoComDias = Extract<Periodo, 'semana' | 'mes'>;
+
 export interface RepositorioVers {
   /** Relógio do repositório (fixo no exemplo, real na API). */
   agora(): Date;
@@ -28,8 +31,11 @@ export interface RepositorioVers {
    * Semana (última semana completa) ou Mês (do dia 1 até hoje).
    */
   obterResumoEnergia(periodo: Periodo): Promise<ResumoEnergia>;
-  /** Dias da última semana completa, para a tabela "Resumo por dia". */
-  obterDiasDaSemana(): Promise<ResumoDia[]>;
+  /**
+   * Dias do período, um por barra nos gráficos e por linha no "Resumo por
+   * dia": Semana (última semana completa) ou Mês (do dia 1 até hoje).
+   */
+  obterDias(periodo: PeriodoComDias): Promise<ResumoDia[]>;
   /** Curva de potência de hoje até agora. */
   obterCurvaDoDia(): Promise<CurvaDoDia>;
   obterCadeiaAoVivo(): Promise<CadeiaConversao>;

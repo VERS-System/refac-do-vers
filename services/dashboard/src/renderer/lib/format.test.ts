@@ -8,6 +8,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  formatarDataCurta,
+  formatarDiaSemanaCurto,
   formatarEnergia,
   formatarMedida,
   formatarNumero,
@@ -150,5 +152,32 @@ describe('formatarMedida', () => {
   /** Valor ausente não leva unidade. */
   it('omite a unidade quando o valor é traço', () => {
     expect(formatarMedida(formatarPotencia(null))).toBe('–');
+  });
+});
+
+describe('formatarDataCurta', () => {
+  /** Datas ISO viram "DD/MM", como nos subtítulos e eixos ("28/09 a 04/10"). */
+  it('formata a data como dia/mês', () => {
+    expect(formatarDataCurta('2026-09-28')).toBe('28/09');
+    expect(formatarDataCurta('2026-10-05')).toBe('05/10');
+  });
+
+  /** Texto que não é data ISO vira o valor ausente. */
+  it('trata data inválida', () => {
+    expect(formatarDataCurta('ontem')).toBe('–');
+  });
+});
+
+describe('formatarDiaSemanaCurto', () => {
+  /** Rótulos do eixo da semana ("Seg" a "Dom"), sem depender do fuso local. */
+  it('dá o dia da semana abreviado', () => {
+    expect(formatarDiaSemanaCurto('2026-09-28')).toBe('Seg');
+    expect(formatarDiaSemanaCurto('2026-10-01')).toBe('Qui');
+    expect(formatarDiaSemanaCurto('2026-10-04')).toBe('Dom');
+  });
+
+  /** Texto que não é data ISO vira o valor ausente. */
+  it('trata data inválida', () => {
+    expect(formatarDiaSemanaCurto('')).toBe('–');
   });
 });

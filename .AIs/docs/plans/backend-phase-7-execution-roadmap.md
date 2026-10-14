@@ -1,7 +1,9 @@
 <!-- Planeja a ingestão MQTT em etapas revisáveis antes da integração real. -->
 # F07 — Contrato e ingestão MQTT
 
-Estado: proposta para validação, sem autorização de implementação.
+Estado: recortes locais 7.1/7.2 entregues para revisão em 14/10/2026.
+Sequência, políticas temporais e REST não bloqueado por MQTT aprovados;
+integração real não iniciada.
 F05 preservada; F06 permanece com as decisões registradas. F08 e F09 serão
 planejadas separadamente após validação do programador.
 
@@ -125,11 +127,12 @@ silenciosa, com evidência de transações/concorrência em PostgreSQL isolado.
 
 ## Decisões para validação
 
-1. Origem do primeiro ensaio: ESP32 disponível ou simulador MQTT aprovado?
+1. Origem do primeiro ensaio: simulador MQTT autorizado em 14/10/2026;
+   ESP32 ainda sem firmware. Isso não autoriza conexão externa ou carga de banco.
 2. Proposta de transporte: QoS 1 para telemetria e eventos; retained desativado
    nesses dois tópicos. Status/Last Will dependem do contrato de conectividade.
-3. Reinício: sequência persiste no dispositivo ou haverá identificador de
-   inicialização no envelope? Segunda opção exige ajuste do schema/contrato.
+3. Reinício: sequência persistente escolhida em 14/10/2026; simulador reserva
+   número em arquivo local antes da saída. Firmware futuro deve manter a regra.
 4. Limites e atraso: definir com exemplos e cadência reais; não usar o limite
    REST de 100 registros como limite automático de lote MQTT.
 5. Retenção e rejeições: definir quanto guardar e como registrar envelopes
@@ -139,10 +142,110 @@ silenciosa, com evidência de transações/concorrência em PostgreSQL isolado.
 
 ## Arquivos previstos e limites
 
+### Plano autorizado 7.2 — cliente MQTT com testes simulados
+
+Programador autorizou continuar por lotes e aprovou em 14/10/2026 manter REST
+disponível quando MQTT cair, sinalizando MQTT separadamente. readiness mantém
+PostgreSQL/Redis obrigatórios e passa a informar mqtt disabled/unavailable/ok.
+TLS obrigatório e credencial consumidora separada; exemplo sem segredos reais.
+
+Escopo: implementar mqtt.service.ts e mqtt.module.ts antes vazios, novo
+mqtt.service.spec.ts; modificar config/env.config.ts/spec.ts e .env.example
+do backend; health.service.ts/spec.ts, health.module.ts e teste HTTP foundation;
+contratos endpoints/OpenAPI, documento MQTT, roadmap e contexto.
+Sem configuração nova na raiz, Docker, schema, migrations ou dependências.
+
+Usar mqtt 5.15.2 já instalado. Cliente desativado por padrão; módulo não conecta
+automaticamente: start exige processador explícito, recebido pelo lote posterior
+de ingestão. Conectar TLS com verificação de certificado, credenciais fora da
+URL, clientId estável configurado e sessão MQTT 3.1.1 não limpa. Assinar somente
+telemetry QoS 1, confirmar concessão antes de sinalizar ok. Reconexão exponencial
+1–30 s e shutdown limitado; logs de códigos fixos, sem payload/causa/credenciais.
+Processador recebe pacote e instante do backend; confirmação QoS 1 somente
+depois de sucesso; erro fecha transporte sem confirmação positiva.
+Tamanho de payload permanece validado no processador 7.1; limite de pacote e
+ACL no broker dependem do ensaio real, sem alegar proteção pré-alocação local.
+
+TDD: configuração TLS/credenciais/clientId e default; lifecycle com mock de
+MQTT, assinatura aceita/recusada, erro TLS, reconexão/backoff, callback antigo,
+shutdown/timeout e ordem de confirmação do processador. Health HTTP/JWT do
+harness existente continua sem serviços externos. Executar test:unit/lint/build
+e validar contratos. Nenhuma ativação MQTT/credencial/broker real nesta entrega.
+Permanecem abertas broker/ACL/revogação, status/events e persistência/retenção.
+
+#### Entrega local 7.2
+
+Cliente passivo TLS usando mqtt instalado, configuração opcional por padrão
+e obrigatória quando habilitado; processador explícito antes de start.
+QoS 1 concedido antes de ok, timeout de conexão/assinatura dez segundos,
+backoff 1–30 s, callbacks antigos ignorados e shutdown limitado cinco segundos.
+Confirmação pelo handleMessage ocorre após conclusão do processador;
+falha fecha stream sem confirmação positiva. Logs só de códigos fixos.
+MqttModule importado pelo HealthModule, singleton passivo exportado para ingestão.
+Health informa disabled/unavailable/ok sem bloquear REST; contrato OpenAPI e
+teste HTTP atualizados. Live preservado sem probe MQTT.
+
+RED inicial: serviço vazio, constructor de health e configuração ausente.
+Novos casos demonstraram RED para callback antigo/timer/recepção no shutdown
+e assinatura sem resposta, corrigidos no código compartilhado antes do GREEN.
+Final: 35 suítes/688 testes (41 novos), lint/build aprovados.
+Sem conectar broker, ler .env, acessar banco, Docker, dependências ou migrations.
+Próximo 7.3: persistência/rastreabilidade; decisões de registro de rejeições e
+retenção precisam ser fechadas antes do código correspondente. Broker/ACL e
+sessão persistente real continuam pendentes; manter consumer inativo até pipeline.
+
+### Preparação 7.1 — 14/10/2026
+
+Proposta concreta e exemplos em [MQTT v1](../Api/mqtt-contract-v1.md).
+Lotes com timestamps individuais, limites sintéticos, sequência persistente,
+ausência/null/zero, deduplicação, atraso e expectativas de rejeição documentados.
+Sequência após reinício e regras de atraso/intervalo decididas na continuação
+abaixo. Código implementado somente depois das respostas; F06 mantém pendências.
+
+#### Decisões e escopo autorizado — continuação de 14/10
+
+Programador aprovou sequência salva e pediu preservação dos dados fora do tempo.
+Confirmou atraso quando receivedAt excede em mais de 15 segundos a última
+captura; envio em lote de dez segundos permanece o perfil do simulador.
+Confirmou preservar leitura fora do intervalo no histórico da instalação,
+sinalizar vínculo inválido e não somar naquele teste. Dados futuros não serão
+apagados apenas pelo horário: sinalizar relógio divergente, sem afirmar presente.
+Todos esses tratamentos exigem identidade/recurso autorizados; preservação não
+libera dados de dispositivo revogado nem vínculo de outro usuário.
+
+Implementar somente contrato local e simulador sem broker: novos
+src/modules/mqtt/mqtt-contract.ts/spec.ts e mqtt-simulator.ts/spec.ts.
+Parser limitado em bytes e com allowlist, reutilizando validador UTC existente;
+metadados temporais derivados, resolução pura do intervalo de teste autorizado;
+gerador de dez leituras e sequência em arquivo local com exclusão concorrente.
+CLI de geração imprime envelope JSON, sem publicar/armazenar telemetria no banco.
+Nenhum registro em AppModule, rota/DTO REST, schema/migration ou dependência nova.
+Testes antes da implementação: formatos/limites, ausência/null/zero, horários,
+intervalo de teste, contador sintético, reinício/corrupção/concorrência do estado.
+Executar test:unit, lint e build. Atualizar contrato/roadmap/contexto ao concluir.
+Persistência SQL, associação real e deduplicação concorrente pertencem aos
+próximos lotes; helpers locais não declaram pipeline de ingestão entregue.
+
+#### Entrega local 7.1
+
+Criados mqtt-contract.ts/spec.ts e mqtt-simulator.ts/spec.ts. Validação em
+bytes/UTF-8/allowlist/data/medições; idade por amostra, CURRENT/DELAYED/CLOCK_SKEW;
+resolução de teste autorizado por intervalo sem descartar leitura externa.
+CLI dev/test gera dez leituras sintéticas de 2 W e reserva sequência via
+lock/arquivo temporário sincronizado/rename. Sem registro em AppModule.
+TDD RED por módulos ausentes, GREEN 34 suítes/647 testes (68 novos), lint/build.
+CLI em dois processos conferida com sequências 1/2, sem broker ou banco.
+Limites: lock residual após queda exige revisão manual; estado não deve ser
+apagado; contador é sintético e não simula medição durante pausa. Perfil físico,
+status/events, rejeições/retencão e broker ainda precisam dos respectivos lotes.
+Próximo lote: 7.2 cliente MQTT com testes simulados; conexão externa dependerá
+de ambiente explicitamente autorizado. Não encerrar F06 nem declarar F07 completa.
+
 Futura implementação em `services/backend/src/modules/mqtt`, testes e exemplos
 de contrato; reutilização de Prisma, domínio e cálculo da F06. Schema e
 constraints só mudam por necessidade demonstrada de integridade. Configuração
 documentada apenas em exemplos, sem segredos. Sem WebSocket nesta fase.
 
-Nesta entrega: somente plano, índice e contexto. Sem alterações na F05,
-código, serviços externos, migrations aplicadas, commits ou pushes.
+Registro original do planejamento: somente plano, índice e contexto. As
+entregas locais posteriores estão descritas acima; F05 preservada, sem serviços
+externos, migrations aplicadas, commits ou pushes.

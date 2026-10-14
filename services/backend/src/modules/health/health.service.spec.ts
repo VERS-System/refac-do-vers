@@ -19,9 +19,14 @@ afterEach(() => {
 });
 
 describe('HealthService', () => {
+  it.each(['disabled', 'unavailable', 'ok'] as const)('MQTT %s não bloqueia consultas REST', async (status) => {
+    const prisma = { $queryRawUnsafe: jest.fn().mockResolvedValue([{ ok: 1 }]) };
+    const service = new HealthService(prisma as never, configService as never, { status } as never);
+    await expect(service.ready()).resolves.toMatchObject({ dependencies: { database: 'ok', redis: 'ok', mqtt: status } });
+  });
   it('retorna live sem consultar dependencias externas', async () => {
     const prisma = { $queryRawUnsafe: jest.fn() };
-    const service = new HealthService(prisma as never, configService as never);
+    const service = new HealthService(prisma as never, configService as never, { status: 'disabled' } as never);
 
     await expect(service.live()).resolves.toMatchObject({
       status: 'ok',
@@ -32,7 +37,7 @@ describe('HealthService', () => {
 
   it('retorna ready quando o banco responde ao probe', async () => {
     const prisma = { $queryRawUnsafe: jest.fn().mockResolvedValue([{ ok: 1 }]) };
-    const service = new HealthService(prisma as never, configService as never);
+    const service = new HealthService(prisma as never, configService as never, { status: 'disabled' } as never);
 
     await expect(service.ready()).resolves.toMatchObject({
       status: 'ok',
@@ -44,7 +49,7 @@ describe('HealthService', () => {
     const prisma = {
       $queryRawUnsafe: jest.fn().mockRejectedValue(new Error('postgres://secret')),
     };
-    const service = new HealthService(prisma as never, configService as never);
+    const service = new HealthService(prisma as never, configService as never, { status: 'disabled' } as never);
 
     await expect(service.ready()).rejects.toBeInstanceOf(
       ServiceUnavailableException,
@@ -56,7 +61,7 @@ describe('HealthService', () => {
     const ping = jest.spyOn(Redis.prototype, 'ping')
       .mockRejectedValueOnce(new Error('redis://secret'))
       .mockResolvedValueOnce('PONG');
-    const service = new HealthService(prisma as never, configService as never);
+    const service = new HealthService(prisma as never, configService as never, { status: 'disabled' } as never);
 
     await expect(service.ready()).rejects.toBeInstanceOf(ServiceUnavailableException);
     await expect(service.ready()).resolves.toMatchObject({
@@ -71,7 +76,7 @@ describe('HealthService', () => {
       () => new Promise<string>(() => {}),
     );
     const prisma = { $queryRawUnsafe: jest.fn().mockResolvedValue([{ ok: 1 }]) };
-    const service = new HealthService(prisma as never, configService as never);
+    const service = new HealthService(prisma as never, configService as never, { status: 'disabled' } as never);
     const ready = service.ready();
     const assertion = expect(ready).rejects.toBeInstanceOf(ServiceUnavailableException);
 
@@ -85,7 +90,7 @@ describe('HealthService', () => {
     const prisma = {
       $queryRawUnsafe: jest.fn().mockImplementation(() => new Promise(() => {})),
     };
-    const service = new HealthService(prisma as never, configService as never);
+    const service = new HealthService(prisma as never, configService as never, { status: 'disabled' } as never);
     const assertion = expect(service.ready()).rejects.toBeInstanceOf(
       ServiceUnavailableException,
     );

@@ -25,6 +25,7 @@ describe('envValidationSchema', () => {
         'http://localhost:3001,http://localhost:3050,http://localhost:5173,http://localhost:5174,http://localhost:8081,http://localhost:8080',
       RATE_LIMIT_TTL_SECONDS: 60,
       RATE_LIMIT_MAX_REQUESTS: 100,
+      MQTT_ENABLED: false,
     });
   });
 
@@ -107,5 +108,24 @@ describe('envValidationSchema', () => {
       JWT_REFRESH_SECRET: requiredEnvironment.JWT_ACCESS_SECRET,
     });
     expect(error).toBeDefined();
+  });
+  it('exige configuração MQTT completa apenas quando habilitada', () => {
+    expect(envValidationSchema.validate(requiredEnvironment).error).toBeUndefined();
+    expect(envValidationSchema.validate({ ...requiredEnvironment, MQTT_ENABLED: true }).error).toBeDefined();
+    expect(envValidationSchema.validate({ ...requiredEnvironment, MQTT_ENABLED: true,
+      MQTT_URL: 'mqtts://broker.example.test:8883', MQTT_USERNAME: 'reader',
+      MQTT_PASSWORD: 'synthetic-secret', MQTT_CLIENT_ID: 'vers-test-reader' }).error).toBeUndefined();
+  });
+  it.each(['mqtt://broker.example.test', 'mqtts://reader:secret@broker.example.test',
+    'mqtts://broker.example.test/path', 'mqtts://broker.example.test?password=secret',
+    'mqtts://broker.example.test#secret', 'mqtts://', 'mqtts://broker.example.test:99999'])(
+    'recusa endpoint MQTT inseguro %s', (url) => {
+      expect(envValidationSchema.validate({ ...requiredEnvironment, MQTT_ENABLED: true, MQTT_URL: url,
+        MQTT_USERNAME: 'reader', MQTT_PASSWORD: 'synthetic-secret', MQTT_CLIENT_ID: 'vers-test-reader' }).error).toBeDefined();
+    });
+  it.each(['', 'invalid/id', 'x'.repeat(65)])('recusa clientId MQTT inválido %s', (clientId) => {
+    expect(envValidationSchema.validate({ ...requiredEnvironment, MQTT_ENABLED: true,
+      MQTT_URL: 'mqtts://broker.example.test', MQTT_USERNAME: 'reader', MQTT_PASSWORD: 'synthetic-secret',
+      MQTT_CLIENT_ID: clientId }).error).toBeDefined();
   });
 });

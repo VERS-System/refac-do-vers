@@ -9,6 +9,7 @@
 - [Infraestrutura (Docker, envs, backend)](docs/04-infraestrutura.md)
 - [Schema do banco (plano)](docs/plans/schema-core.md)
 - [Roadmap de implementação do core](docs/plans/core-roadmap.md)
+- [Roadmap do frontend desktop](docs/plans/desktop-frontend-roadmap.md)
 - [Contextos de trabalho](docs/contexts/)
 - [Planos](docs/plans/)
 - [Problemas](docs/problems/)

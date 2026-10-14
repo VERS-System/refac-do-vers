@@ -1,0 +1,108 @@
+/*
+ * Estilos globais e tokens visuais do app desktop do VERS.
+ *
+ * Os tokens abaixo vêm do DESIGN.md do projeto "VERS Desktop" no Stitch e são
+ * a fonte de verdade das cores, fontes, raios e sombras da interface. Com o
+ * Tailwind v4, cada variável do bloco @theme vira uma classe utilitária
+ * (por exemplo --color-surface gera bg-surface, text-surface, border-surface).
+ */
+
+@import 'tailwindcss';
+
+/* Fontes empacotadas localmente: o app precisa funcionar sem internet. */
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+@import '@fontsource/zen-dots';
+@import '@fontsource-variable/public-sans';
+
+@theme {
+  /* Superfícies (tema escuro apenas). */
+  --color-canvas: #242423;
+  --color-sidebar: #1b1b1a;
+  --color-surface: #2a2a29;
+  --color-surface-raised: #323231;
+  --color-inset: #1f1f1e;
+  --color-hover: #3d3d3b;
+
+  /* Bordas. */
+  --color-line-subtle: #323231;
+  --color-line: #3d3d3b;
+  --color-line-strong: #4a4a47;
+
+  /* Texto. */
+  --color-fg: #f2f1ea;
+  --color-fg-secondary: #b9b8b1;
+  --color-fg-muted: #8f8e88;
+  --color-fg-on-accent: #151514;
+
+  /* Dourado da marca: ação principal, item ativo, série principal e sinais ao vivo. */
+  --color-accent: #d5c462;
+  --color-accent-hover: #e2d277;
+  --color-accent-pressed: #bfae4c;
+  --color-accent-subtle: #2e2a16;
+  --color-accent-border: #75692c;
+
+  /* Estados. */
+  --color-success: #7bc47f;
+  --color-success-subtle: #1c2b1c;
+  --color-warning: #e8a33d;
+  --color-warning-subtle: #2e2414;
+  --color-danger: #e5645a;
+  --color-danger-subtle: #2e1a18;
+  --color-info: #8fb3c9;
+  --color-info-subtle: #1a2329;
+
+  /* Séries de gráfico. */
+  --color-chart-1: #d5c462;
+  --color-chart-2: #8fb3c9;
+  --color-chart-3: #8f8e88;
+  --color-chart-grid: #323231;
+
+  /* Cinza claro das faixas e do nome "VERS" no logo oficial. */
+  --color-logo: #d9d9d9;
+
+  /*
+   * Tipografia: Geist na interface, Geist Mono nos números, Public Sans em
+   * rótulos, legendas e badges, Zen Dots só na marca.
+   */
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+  --font-label: 'Public Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Zen Dots', ui-sans-serif, sans-serif;
+
+  /* Raios: cards 20 px, controles 12 px; botões e inputs usam rounded-full. */
+  --radius-card: 20px;
+  --radius-control: 12px;
+
+  /* Elevação e brilho dourado. */
+  --shadow-elevation-1: 0 1px 2px rgb(0 0 0 / 0.28), 0 4px 12px rgb(0 0 0 / 0.18);
+  --shadow-glow: 0 0 24px rgb(213 196 98 / 0.35);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Anel de foco dourado (3 px, 45%) definido no DESIGN.md. */
+  :focus-visible {
+    outline: 3px solid rgb(213 196 98 / 0.45);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* Algarismos de largura fixa para valores numéricos alinhados. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

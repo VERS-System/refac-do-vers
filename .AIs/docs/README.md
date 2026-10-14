@@ -13,6 +13,7 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [03 — Dados e indicadores](03_dados-e-indicadores.md)             | Informações de testes, métricas e modelo conceitual de armazenamento.    |
 | [04 — Infraestrutura](04-infraestrutura.md)                       | Docker, variáveis de ambiente, core backend e fluxo de dados.           |
 | [Roadmap do core](plans/core-roadmap.md)                          | Fases, dependências, critérios de aceite e ordem de implementação.      |
+| [Roadmap do frontend desktop](plans/desktop-frontend-roadmap.md)  | Fases para implementar em React as telas desktop desenhadas no Stitch.  |
 
 ## Organização
 

@@ -11,9 +11,9 @@ directories:
   output: release
   buildResources: build
 
+# O electron-vite gera main, preload e renderer em out/.
 files:
-  - dist/**/*
-  - electron/**/*
+  - out/**/*
   - package.json
 
 win:

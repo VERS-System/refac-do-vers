@@ -1,0 +1,267 @@
+<!DOCTYPE html><html class="dark" lang="pt-BR" style=""><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>VERS · Criar Conta</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Fonts: Zen Dots & Geist / Public Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Zen+Dots&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Zen+Dots&amp;display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/font/geist.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/font/geist-mono.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "outline-variant": "#4a4738",
+            "primary-fixed": "#f6e47e",
+            "surface-container-high": "#2a2a29",
+            "secondary-fixed": "#c3e8ff",
+            "secondary": "#a7cce2",
+            "inverse-surface": "#e5e2e0",
+            "tertiary": "#a5f1a7",
+            "primary-fixed-dim": "#d9c765",
+            "on-primary-fixed-variant": "#514700",
+            "secondary-fixed-dim": "#a7cce2",
+            "tertiary-fixed": "#a9f4ab",
+            "on-secondary-fixed-variant": "#264b5e",
+            "on-primary-container": "#5b5000",
+            "on-error-container": "#ffdad6",
+            "on-tertiary-container": "#115d24",
+            "tertiary-container": "#8ad48d",
+            "surface-container": "#20201f",
+            "on-tertiary-fixed-variant": "#00531c",
+            "on-tertiary": "#003911",
+            "on-secondary-fixed": "#001e2c",
+            "surface-dim": "#131313",
+            "on-surface-variant": "#cdc6b2",
+            "background": "#131313",
+            "surface-tint": "#d9c765",
+            "surface-container-low": "#1b1c1b",
+            "on-primary-fixed": "#201c00",
+            "on-primary": "#383100",
+            "on-surface": "#e5e2e0",
+            "primary": "#f2e07b",
+            "surface-bright": "#393938",
+            "inverse-on-surface": "#30302f",
+            "on-secondary-container": "#96bad0",
+            "primary-container": "#d5c462",
+            "on-error": "#690005",
+            "surface-container-highest": "#353534",
+            "on-background": "#e5e2e0",
+            "surface-variant": "#353534",
+            "tertiary-fixed-dim": "#8ed891",
+            "error": "#ffb4ab",
+            "on-secondary": "#0b3446",
+            "inverse-primary": "#6b5f00",
+            "secondary-container": "#264b5e",
+            "surface-container-lowest": "#0e0e0d",
+            "outline": "#96917e",
+            "on-tertiary-fixed": "#002107",
+            "error-container": "#93000a",
+            "surface": "#131313"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Geist", "sans-serif"],
+            display: ["Zen Dots", "cursive"],
+            body: ["Geist", "sans-serif"],
+            mono: ["Geist Mono", "monospace"],
+            label: ["Public Sans", "sans-serif"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      margin: 0;
+      padding: 0;
+      width: 1512px;
+      height: 982px;
+      overflow: hidden;
+      user-select: none;
+      background-color: #131313;
+      font-family: 'Geist', sans-serif;
+    }
+
+    .brand-glow {
+      background: radial-gradient(circle at 50% 50%, #282828 0%, rgba(213, 196, 98, 0.08) 60%, rgba(20, 20, 19, 0.95) 100%);
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 19px;
+      line-height: 1;
+    }
+
+    .sine-thread {
+      animation: waveDrift 16s ease-in-out infinite alternate;
+    }
+
+    @keyframes waveDrift {
+      0% { transform: translateY(0px) scaleY(1); opacity: 0.35; }
+      50% { transform: translateY(-8px) scaleY(1.08); opacity: 0.65; }
+      100% { transform: translateY(6px) scaleY(0.94); opacity: 0.4; }
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased flex w-[1512px] h-[982px] overflow-hidden select-none">
+<!-- LEFT 40% FORM CONTAINER -->
+<section class="w-[604px] h-[982px] bg-surface-container-lowest border-r border-outline-variant/30 flex flex-col justify-between px-16 py-10 relative z-20">
+<!-- Top Mini Brand Mark -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div style="display: flex; align-items: center; gap: 10px;"><svg width="42" height="28" viewBox="0 0 140 93" style="flex-shrink:0"><polygon fill="#D9D9D9" points="41.9,0.1 65.6,0.6 43.6,47.9 12.1,92.9 0.1,92.9"></polygon><polygon fill="#D5C462" points="79.9,0.1 103.6,0.6 81.6,47.9 50.1,92.9 38.1,92.9"></polygon><polygon fill="#D9D9D9" points="115.9,0.1 139.9,0.6 117.6,47.9 86.1,92.9 74.1,92.9"></polygon></svg><span style="font-family:'Zen Dots',sans-serif;font-size:22px;color:#D9D9D9;letter-spacing:1px;line-height:1" class="">VERS</span></div>
+<span class="text-[10px] text-outline font-label tracking-widest uppercase border border-outline-variant/50 px-2 py-0.5 rounded-full ml-2">v0.4</span>
+</div>
+</div>
+<!-- Center Glass Registration Card -->
+<div class="w-[476px] bg-surface-container-low/90 backdrop-blur-xl border border-outline-variant/40 rounded-[24px] p-7 shadow-2xl mx-auto my-auto">
+<!-- 3-Step Stepper -->
+<div class="flex items-center justify-between w-full mb-6 px-1">
+<!-- Step 1 (Active) -->
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-full bg-primary-container text-on-primary-fixed flex items-center justify-center font-bold text-xs shadow-md shadow-primary-container/20">
+            1
+          </div>
+<span class="text-xs font-semibold text-primary font-headline tracking-wide">Conta</span>
+</div>
+<div class="flex-1 h-[1.5px] bg-primary-container/40 mx-3"></div>
+<!-- Step 2 (Inactive) -->
+<div class="flex items-center gap-2.5 opacity-55">
+<div class="w-7 h-7 rounded-full border border-outline text-outline flex items-center justify-center font-medium text-xs">
+            2
+          </div>
+<span class="text-xs font-medium text-on-surface-variant font-headline">Veículo</span>
+</div>
+<div class="flex-1 h-[1.5px] bg-outline-variant/40 mx-3"></div>
+<!-- Step 3 (Inactive) -->
+<div class="flex items-center gap-2.5 opacity-40">
+<div class="w-7 h-7 rounded-full border border-outline text-outline flex items-center justify-center font-medium text-xs">
+            3
+          </div>
+<span class="text-xs font-medium text-on-surface-variant font-headline">Instalação</span>
+</div>
+</div>
+<!-- Header Titles -->
+<div class="mb-5">
+<h2 class="text-2xl font-bold text-on-surface font-headline tracking-tight">Sua conta</h2>
+<p class="text-xs text-outline font-body mt-1">Preencha seus dados de acesso ao ecossistema VERS.</p>
+</div>
+<!-- Form Inputs -->
+<form class="space-y-3.5" onsubmit="event.preventDefault();">
+<!-- Input 1: Nome Completo -->
+<div>
+<label class="block text-xs font-medium text-on-surface-variant mb-1.5 font-label">Nome completo</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-outline pointer-events-none">person</span>
+<input class="w-full bg-surface-container border border-outline-variant text-on-surface text-xs rounded-full pl-10 pr-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 font-body transition-all placeholder:text-outline" placeholder="Digite seu nome" type="text" value="Ana Silva">
+</div>
+</div>
+<!-- Input 2: E-mail (Focus State) -->
+<div>
+<label class="block text-xs font-medium text-primary mb-1.5 font-label flex items-center justify-between">E-mail</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-primary pointer-events-none">mail</span>
+<input class="w-full bg-surface-container border border-primary-container text-on-surface text-xs rounded-full pl-10 pr-4 py-2.5 focus:outline-none ring-2 ring-primary-container/20 font-body transition-all" placeholder="seu.email@vers.com" type="email" value="ana.silva@vers.com">
+</div>
+</div>
+<!-- Inputs Row: Senha & Confirmar Senha -->
+<div class="grid grid-cols-2 gap-3">
+<!-- Senha -->
+<div>
+<label class="block text-xs font-medium text-on-surface-variant mb-1.5 font-label">Senha</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-outline pointer-events-none">lock</span>
+<input class="w-full bg-surface-container border border-outline-variant text-on-surface text-xs rounded-full pl-9 pr-8 py-2.5 focus:outline-none focus:border-primary font-mono text-[11px] tracking-widest" type="password" value="Laboratorio#2025">
+<button class="material-symbols-outlined absolute right-3 text-outline hover:text-on-surface transition-colors cursor-pointer text-[17px]" type="button">
+                visibility_off
+              </button>
+</div>
+</div>
+<!-- Confirmar Senha -->
+<div>
+<label class="block text-xs font-medium text-on-surface-variant mb-1.5 font-label">Confirmar senha</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-outline pointer-events-none">lock_reset</span>
+<input class="w-full bg-surface-container border border-outline-variant text-on-surface text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:border-primary font-mono text-[11px] tracking-widest" type="password" value="Laboratorio#2025">
+</div>
+</div>
+</div>
+<!-- Password Requirements Grid -->
+<div class="bg-surface-container-lowest/80 border border-outline-variant/30 rounded-xl p-2.5 grid grid-cols-2 gap-x-2 gap-y-1.5 text-[11px] font-label">
+<div class="flex items-center gap-1.5 text-tertiary">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="">8 caracteres</span>
+</div>
+<div class="flex items-center gap-1.5 text-tertiary">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="">1 letra maiúscula</span>
+</div>
+<div class="flex items-center gap-1.5 text-outline">
+<span class="material-symbols-outlined text-[14px]">radio_button_unchecked</span>
+<span class="">1 caractere especial</span>
+</div>
+<div class="flex items-center gap-1.5 text-tertiary">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="">Sem espaços</span>
+</div>
+</div>
+<!-- CTA Action Button -->
+<button class="w-full bg-primary-container hover:bg-primary-fixed-dim text-on-primary-fixed font-headline font-semibold py-3 px-6 rounded-full flex items-center justify-center gap-2 mt-4 shadow-lg shadow-primary-container/20 active:scale-[0.98] transition-all cursor-pointer text-sm" type="submit">
+<span class="">Continuar</span>
+<span class="material-symbols-outlined text-base">arrow_forward</span>
+</button>
+<!-- Footer Link -->
+<div class="text-center pt-2">
+<span class="text-xs text-outline font-body">Já tem conta? </span>
+<a class="text-xs font-semibold text-primary hover:underline hover:text-primary-fixed transition-colors" href="#">Entrar</a>
+</div>
+</form>
+</div>
+<!-- Bottom Metadata Footnote -->
+<div class="flex items-center justify-between border-t border-outline-variant/30 pt-4 text-[11px] text-outline font-label"><span class="">Projeto de TCC · Vibration Energy Recovery System</span></div>
+</section>
+<!-- RIGHT 60% BRAND & VIBRATION CANVAS -->
+<section class="w-[908px] h-[982px] brand-glow relative flex flex-col justify-between p-14 overflow-hidden">
+<!-- Abstract Piezoelectric Sine Threads SVG Background -->
+<div class="absolute inset-0 pointer-events-none opacity-40">
+<svg class="w-full h-full" fill="none" viewBox="0 0 908 982" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="goldSineGrad" x1="0%" x2="100%" y1="0%" y2="100%"><stop offset="0%" stop-color="#75692c" stop-opacity="0.15"></stop><stop offset="50%" stop-color="#D5C462" stop-opacity="0.75"></stop><stop offset="100%" stop-color="#323231" stop-opacity="0.2"></stop></linearGradient><linearGradient id="softWaveGrad" x1="100%" x2="0%" y1="0%" y2="100%"><stop offset="0%" stop-color="#D5C462" stop-opacity="0.05"></stop><stop offset="60%" stop-color="#8FB3C9" stop-opacity="0.25"></stop><stop offset="100%" stop-color="#1B1B1A" stop-opacity="0"></stop></linearGradient></defs><path class="sine-thread" d="M-40 491 C 120 410, 240 570, 420 491 C 600 412, 740 560, 960 491" fill="none" stroke="url(#goldSineGrad)" stroke-linecap="round" stroke-width="1.8"></path><path class="sine-thread" d="M-60 470 C 140 560, 300 390, 480 470 C 660 550, 780 420, 960 480" fill="none" stroke="#D5C462" stroke-dasharray="6 4" stroke-opacity="0.28" stroke-width="1.2" style="animation-duration: 22s; animation-delay: -3s;"></path><path class="sine-thread" d="M-20 520 C 160 380, 290 610, 460 515 C 640 430, 800 590, 960 510" fill="none" stroke="url(#softWaveGrad)" stroke-width="1.4" style="animation-duration: 18s; animation-delay: -6s;"></path><path d="M0 500 Q 227 460 454 500 T 908 500" fill="none" stroke="#75692c" stroke-opacity="0.3" stroke-width="0.8"></path><path d="M0 485 Q 227 525 454 485 T 908 485" fill="none" stroke="#D5C462" stroke-dasharray="3 3" stroke-opacity="0.18" stroke-width="0.75"></path></svg>
+</div>
+<!-- Top Security & Status Row -->
+<!-- Center Hero Lockup -->
+<div class="my-auto relative z-10 max-w-xl pl-4">
+<!-- Brand Wordmark -->
+<div class="mb-2"><div style="display:flex;align-items:center;gap:16px"><svg width="72" height="48" viewBox="0 0 140 93" style="flex-shrink:0"><polygon fill="#D9D9D9" points="41.9,0.1 65.6,0.6 43.6,47.9 12.1,92.9 0.1,92.9"></polygon><polygon fill="#D5C462" points="79.9,0.1 103.6,0.6 81.6,47.9 50.1,92.9 38.1,92.9"></polygon><polygon fill="#D9D9D9" points="115.9,0.1 139.9,0.6 117.6,47.9 86.1,92.9 74.1,92.9"></polygon></svg><span style="font-family:'Zen Dots',sans-serif;font-size:44px;color:#D9D9D9;letter-spacing:2px;line-height:1" class="">VERS</span></div></div>
+<!-- Tagline -->
+<div class="text-sm tracking-wide font-headline text-on-surface-variant mb-10 flex items-center gap-1.5">
+<span class="">every</span>
+<span class="text-primary font-semibold">vibration</span>
+<span class="">can be</span>
+<span class="text-primary font-semibold">VERS</span>
+</div>
+<!-- Hero Headline in Zen Dots -->
+<h1 class="font-display text-[42px] leading-[1.18] text-primary tracking-tight mb-4 drop-shadow-md">
+        Que bom ter você aqui
+      </h1>
+<!-- Subtitle in Geist -->
+<p class="text-on-surface-variant font-body text-base max-w-lg leading-relaxed">
+        Cadastre seu veículo e comece a medir a energia que a vibração gera em tempo real, ponto a ponto da suspensão ao acumulador.
+      </p>
+<!-- Live Harvester Architecture Micro Card -->
+</div>
+<!-- Bottom Telemetry Badges Strip -->
+</section>
+</body></html>

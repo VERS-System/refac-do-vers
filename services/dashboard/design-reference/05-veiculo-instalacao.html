@@ -1,0 +1,614 @@
+<!DOCTYPE html><html class="dark" lang="pt-BR" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>VERS Desktop · Veículo e Instalação</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Fonts: Zen Dots & Geist & Public Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Geist:wght@300;400;500;600;700&amp;family=Public+Sans:wght@400;500;600&amp;family=Zen+Dots&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container-lowest": "#0e0e0d",
+            "on-surface-variant": "#cdc6b2",
+            "inverse-on-surface": "#30302f",
+            "outline-variant": "#4a4738",
+            "on-surface": "#e5e2e0",
+            "on-secondary-fixed": "#001e2c",
+            "on-secondary-fixed-variant": "#264b5e",
+            "surface-container-highest": "#353534",
+            "secondary": "#a7cce2",
+            "tertiary": "#a5f1a7",
+            "primary-container": "#d5c462",
+            "primary-fixed-dim": "#d9c765",
+            "on-tertiary-fixed-variant": "#00531c",
+            "surface-bright": "#393938",
+            "surface-tint": "#d9c765",
+            "on-tertiary-fixed": "#002107",
+            "inverse-surface": "#e5e2e0",
+            "error-container": "#93000a",
+            "surface-dim": "#131313",
+            "on-error": "#690005",
+            "inverse-primary": "#6b5f00",
+            "on-secondary": "#0b3446",
+            "on-primary-fixed-variant": "#514700",
+            "error": "#ffb4ab",
+            "on-tertiary": "#003911",
+            "tertiary-container": "#8ad48d",
+            "outline": "#96917e",
+            "primary": "#f2e07b",
+            "primary-gold": "#D5C462",
+            "on-error-container": "#ffdad6",
+            "secondary-fixed": "#c3e8ff",
+            "primary-fixed": "#f6e47e",
+            "background": "#131313",
+            "surface-container-low": "#1b1c1b",
+            "surface-variant": "#353534",
+            "on-tertiary-container": "#115d24",
+            "surface-container-high": "#2a2a29",
+            "on-secondary-container": "#96bad0",
+            "tertiary-fixed-dim": "#8ed891",
+            "surface": "#131313",
+            "on-primary-container": "#5b5000",
+            "secondary-container": "#264b5e",
+            "tertiary-fixed": "#a9f4ab",
+            "on-primary-fixed": "#201c00",
+            "secondary-fixed-dim": "#a7cce2",
+            "on-background": "#e5e2e0",
+            "surface-container": "#20201f",
+            "on-primary": "#383100"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Geist", "sans-serif"],
+            display: ["Zen Dots", "sans-serif"],
+            body: ["Geist", "sans-serif"],
+            mono: ["Geist Mono", "monospace"],
+            label: ["Public Sans", "sans-serif"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Geist', sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+      background-color: #131313;
+      color: #e5e2e0;
+    }
+
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .blueprint-grid {
+      background-image: linear-gradient(to right, rgba(74, 71, 56, 0.12) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(74, 71, 56, 0.12) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* Glow pulse for active piezoelectric sensors */
+    @keyframes piezoPulse {
+      0% { box-shadow: 0 0 0 0 rgba(213, 196, 98, 0.55); }
+      70% { box-shadow: 0 0 0 8px rgba(213, 196, 98, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(213, 196, 98, 0); }
+    }
+    .piezo-active {
+      animation: piezoPulse 2.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
+    }
+  </style>
+</head>
+<body class="w-full min-h-screen bg-background text-on-surface overflow-x-hidden flex flex-row">
+<!-- ==================== SIDEBAR COMPONENT (248px) ==================== -->
+<aside class="fixed top-0 left-0 h-screen w-[248px] border-r border-outline-variant bg-surface-container-low flex flex-col justify-between p-4 z-40">
+<div class="flex flex-col gap-6">
+<!-- Brand & Header -->
+<div class="px-2 pt-1 pb-1">
+<div class="flex items-center justify-between">
+<div style="display: flex; align-items: center; gap: 10px; padding: 4px 8px 0px;"><svg width="42" height="28" viewBox="0 0 140 93" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><polygon fill="#D9D9D9" points="41.9,0.1 65.6,0.6 43.6,47.9 12.1,92.9 0.1,92.9"></polygon><polygon fill="#D5C462" points="79.9,0.1 103.6,0.6 81.6,47.9 50.1,92.9 38.1,92.9"></polygon><polygon fill="#D9D9D9" points="115.9,0.1 139.9,0.6 117.6,47.9 86.1,92.9 74.1,92.9"></polygon></svg><span style="font-family:'Zen Dots',sans-serif;font-size:22px;color:#D9D9D9;letter-spacing:1px;line-height:1" class="">VERS</span><span style="font-size:11px;color:#737373;margin-left:2px" class="">v0.4</span></div>
+</div>
+<p class="text-[11px] font-mono text-outline mt-1 tracking-tight">Vibration Energy Recovery System</p>
+</div>
+<!-- Navigation Tabs -->
+<nav class="flex flex-col gap-1 font-body text-sm font-medium tracking-normal">
+<!-- Tab 1: Visão geral -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg px-3 py-2 flex items-center gap-3 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="">Visão geral</span>
+</a>
+<!-- Tab 2: Telemetria -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg px-3 py-2 flex items-center gap-3 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">monitoring</span>
+<span class="">Telemetria</span>
+</a>
+<!-- Tab 3: Energia -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg px-3 py-2 flex items-center gap-3 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+<span class="">Energia</span>
+</a>
+<!-- Tab 4: Testes -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg px-3 py-2 flex items-center gap-3 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">science</span>
+<span class="">Testes</span>
+</a>
+<!-- Tab 5: Veículo e instalação (ACTIVE) -->
+<a class="bg-surface-container-high text-primary font-semibold rounded-lg px-3 py-2 flex items-center justify-between border-l-2 border-primary transition-all duration-150 ease-in-out" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px] text-primary" style="font-variation-settings: 'FILL' 1;">directions_car</span>
+<span class="">Veículo e instalação</span>
+</div>
+<span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_#d5c462]"></span>
+</a>
+<!-- Tab 6: Viber IA -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg px-3 py-2 flex items-center justify-between transition-colors duration-150" href="#">
+<div class="flex items-center gap-3">
+<svg width="26" height="20" viewBox="0 0 108 84" style="flex-shrink: 0;"><polygon fill="#D5C462" points="0.1,0.1 15.9,0.1 39.1,67.4 33.4,82.9 29.1,82.9 28.4,82.1"></polygon><polygon fill="#D5C462" points="64.4,1.4 80.1,1.4 79.9,3.6 63.9,46.6 44.6,81.9 42.9,83.9 36.4,83.9 36.1,81.6"></polygon><polygon fill="#D5C462" points="92.4,1.4 107.9,1.6 101.6,19.1 86.1,18.9 91.1,2.4"></polygon><polygon fill="#D5C462" points="83.6,25.4 99.1,25.9 93.9,42.1 71.1,83.9 63.1,83.9"></polygon></svg>
+<span class="">Viber IA</span>
+</div>
+
+</a>
+<!-- Tab 7: Configurações -->
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg px-3 py-2 flex items-center gap-3 transition-colors duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="">Configurações</span>
+</a>
+</nav>
+</div>
+<!-- Sidebar Bottom: Status Card & User Info -->
+<div class="flex flex-col gap-3">
+<!-- ESP32 Hardware Status Card -->
+<div class="bg-surface-container rounded-xl p-3 border border-outline-variant/60 flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+</span>
+<span class="text-xs font-semibold text-on-surface tracking-wide uppercase font-label">ESP32 CONECTADO</span>
+</div>
+<span class="text-[10px] font-mono text-tertiary bg-tertiary-container/30 px-1.5 py-0.5 rounded border border-tertiary/20">ONLINE</span>
+</div>
+<div class="flex items-center justify-between text-[11px] font-mono text-on-surface-variant mt-0.5">
+<span class="">VERS-01 · FW 0.4.2</span>
+<span class="text-outline">Há 3s</span>
+</div>
+</div>
+<!-- Researcher / User Footer -->
+<div class="pt-2 border-t border-outline-variant/50 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center text-primary font-bold text-xs">
+            AS
+          </div>
+<div class="flex flex-col">
+<span class="text-xs font-medium text-on-surface leading-tight">Ana Silva</span>
+<span class="text-[10px] text-outline font-label">Administradora</span>
+</div>
+</div>
+<button class="p-1.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors" title="Encerrar sessão">
+<span class="material-symbols-outlined text-[18px]">logout</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- ==================== MAIN APPLICATION CANVAS ==================== -->
+<main class="ml-[248px] w-[calc(100%-248px)] flex-1 min-w-0 min-h-screen flex flex-col bg-background">
+<!-- Top Bar Component (64px) -->
+<header class="h-16 w-full px-6 border-b border-outline-variant/60 flex items-center justify-between bg-surface shrink-0">
+<div class="flex items-baseline gap-3">
+<h1 class="text-lg font-headline font-semibold text-on-surface">Veículo e instalação</h1>
+<span class="text-xs text-outline font-body">Cadastro, configuração dos piezos e dispositivo</span>
+</div>
+<div class="flex items-center gap-3">
+<!-- Mock Data Honest Badge -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/70 text-[11px] font-mono text-on-surface-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span class="">Dados de exemplo</span>
+</div>
+<!-- Secondary Action Button -->
+<button class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-outline text-xs font-medium text-on-surface hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[16px]">build</span>
+<span class="">Solicitar revisão</span>
+</button>
+<!-- Primary Action Button (Gold Pill) -->
+<button class="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container font-semibold text-xs hover:bg-primary-fixed-dim transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[16px] font-bold">add</span>
+<span class="">Adicionar veículo</span>
+</button>
+</div>
+</header>
+<!-- Main Content 3-Column Bento Grid (Height: 918px) -->
+<div class="p-5 grid grid-cols-[1fr_1.25fr_290px] gap-4 box-border overflow-hidden">
+<!-- ==================== LEFT COLUMN: VEÍCULO PRINCIPAL ==================== -->
+<section class="h-full flex flex-col gap-4">
+<!-- Primary Vehicle Card -->
+<div class="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col justify-between shadow-sm">
+<div>
+<!-- Header -->
+<div class="flex items-start justify-between mb-4">
+<div>
+<span class="text-[11px] uppercase tracking-wider text-outline font-label">Veículo em teste</span>
+<h2 class="text-lg font-semibold text-on-surface mt-0.5">Honda Civic 2026</h2>
+</div>
+<span class="border border-primary-container/40 text-primary bg-primary-container/10 text-[11px] font-mono px-2.5 py-0.5 rounded-full font-medium">
+                Principal
+              </span>
+</div>
+<!-- Technical Definition List -->
+<div class="space-y-3 font-body text-xs">
+<div class="flex items-center justify-between py-1.5 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Placa de identificação</span>
+<span class="font-mono bg-surface-container-highest px-2 py-0.5 rounded text-on-surface font-medium border border-outline-variant/60">ABC1D23</span>
+</div>
+<div class="flex items-center justify-between py-1.5 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Fabricante / Marca</span>
+<span class="text-on-surface font-medium">Honda Automóveis</span>
+</div>
+<div class="flex items-center justify-between py-1.5 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Modelo e Versão</span>
+<span class="text-on-surface font-medium">Civic e:HEV Touring</span>
+</div>
+<div class="flex items-center justify-between py-1.5 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Ano de Fabricação</span>
+<span class="font-mono text-on-surface">2026</span>
+</div>
+<div class="flex items-center justify-between py-1.5 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Relação de Posse</span>
+<span class="text-on-surface font-medium">Proprietária</span>
+</div>
+<div class="flex items-center justify-between py-1.5 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Quilometragem Total</span>
+<span class="font-mono text-on-surface">18.420 km</span>
+</div>
+<div class="flex items-center justify-between py-1.5">
+<span class="text-on-surface-variant">Peso Bruto Estimado</span>
+<span class="font-mono text-on-surface">1.449 kg</span>
+</div>
+</div>
+</div>
+<div class="pt-3 border-t border-outline-variant/40 flex items-center justify-between text-xs text-outline">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">verified</span> Telemetria vinculada</span>
+<button class="text-primary hover:underline font-medium">Editar dados</button>
+</div>
+</div>
+<!-- Other Vehicles Card -->
+<div class="bg-surface-container-low border border-outline-variant rounded-2xl p-4 flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="text-xs uppercase tracking-wider text-outline font-label font-medium">Outros veículos cadastrados</span>
+<span class="text-[11px] font-mono text-outline">1 reserva</span>
+</div>
+<!-- Vehicle Row Item -->
+<div class="group bg-surface-container hover:bg-surface-container-high border border-outline-variant/60 rounded-xl p-3 flex items-center justify-between cursor-pointer transition-colors duration-150">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">directions_car</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors">Fiat Strada 2024</span>
+<span class="text-[11px] font-mono text-outline">Placa DEF4G56 · Utilitário</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="text-[10px] font-mono text-outline px-1.5 py-0.5 rounded bg-surface-container-highest">Inativo</span>
+<span class="material-symbols-outlined text-[18px] text-outline group-hover:text-on-surface transition-colors">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- Bottom Notice -->
+<div class="bg-surface-container/40 rounded-xl p-3 border border-outline-variant/40 text-[11px] text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-[16px]">info</span>
+<span class="">Para alternar o veículo ativo no ESP32, selecione e confirme a sincronização de parâmetros.</span>
+</div>
+</div>
+</section>
+<!-- ==================== CENTER COLUMN: INSTALAÇÃO VERS ==================== -->
+<section class="h-full flex flex-col">
+<div class="bg-surface-container-low border border-outline-variant rounded-2xl p-5 h-full flex flex-col justify-between shadow-sm">
+<!-- Top Info Bar -->
+<div>
+<div class="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+<div class="flex items-center gap-2.5">
+<div class="flex items-center gap-1.5 bg-tertiary-container/20 border border-tertiary/30 px-2.5 py-0.5 rounded-full">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="text-xs font-medium text-tertiary font-label">Instalação Ativa</span>
+</div>
+<span class="text-xs font-mono text-outline">VERS-PZ01</span>
+</div>
+<div class="text-[11px] font-mono text-outline">
+                Instalada em <span class="text-on-surface">12/09/2026</span>
+</div>
+</div>
+<!-- Title & Status Subtitle -->
+<div class="flex items-center justify-between mt-3 mb-2">
+<h3 class="text-sm font-semibold text-on-surface">Topologia Piezoelétrica do Chassi</h3>
+<span class="text-xs font-mono text-primary font-medium">6 de 8 Piezos Captando</span>
+</div>
+</div>
+<!-- Vehicle Chassis Schematic Blueprint -->
+<div class="relative w-full h-[370px] bg-surface-container-lowest/80 rounded-xl border border-outline-variant/60 blueprint-grid flex items-center justify-center overflow-hidden my-1">
+<!-- Technical Dimension Ticks and Crosshairs -->
+<div class="absolute inset-0 pointer-events-none opacity-40">
+<div class="absolute left-4 top-4 text-[9px] font-mono text-outline">DIM: 4675mm x 1802mm</div>
+<div class="absolute right-4 top-4 text-[9px] font-mono text-outline">EIXO DIANT: +1.28m</div>
+<div class="absolute left-4 bottom-4 text-[9px] font-mono text-outline">SENSOR: PZT-5H MULTILAYER</div>
+<div class="absolute right-4 bottom-4 text-[9px] font-mono text-outline">TAXA: 200 Hz REALTIME</div>
+<!-- Centerlines -->
+<div class="absolute left-1/2 top-0 bottom-0 w-[1px] border-l border-dashed border-outline-variant/60"></div>
+<div class="absolute top-1/2 left-0 right-0 h-[1px] border-t border-dashed border-outline-variant/60"></div>
+</div>
+<!-- Vector Line-Art Top-Down Vehicle Wireframe Silhouette -->
+<svg class="w-[280px] h-[340px] text-outline stroke-current" fill="none" viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg">
+<!-- Outer Car Silhouette -->
+<path class="opacity-50" d="M 45 45 C 50 20, 150 20, 155 45 L 165 95 C 172 120, 172 210, 165 255 L 155 295 C 150 305, 50 305, 45 295 L 35 255 C 28 210, 28 120, 35 95 Z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"></path>
+<!-- Windshield and Roof Lines -->
+<path class="opacity-40" d="M 46 95 C 65 88, 135 88, 154 95 L 148 150 C 120 152, 80 152, 52 150 Z" stroke-width="1"></path>
+<path class="opacity-40" d="M 52 165 C 80 163, 120 163, 148 165 L 152 235 C 135 240, 65 240, 48 235 Z" stroke-width="1"></path>
+<path class="opacity-30" d="M 54 150 L 52 165 M 146 150 L 148 165" stroke-width="1"></path>
+<!-- Wheel Axles and Assemblies -->
+<!-- Front Wheels -->
+<rect class="opacity-70 fill-surface-container" height="34" rx="3" stroke-width="1.2" width="14" x="18" y="65"></rect>
+<rect class="opacity-70 fill-surface-container" height="34" rx="3" stroke-width="1.2" width="14" x="168" y="65"></rect>
+<line class="opacity-50" stroke-dasharray="2 2" stroke-width="1" x1="32" x2="168" y1="82" y2="82"></line>
+<!-- Rear Wheels -->
+<rect class="opacity-70 fill-surface-container" height="34" rx="3" stroke-width="1.2" width="14" x="18" y="225"></rect>
+<rect class="opacity-70 fill-surface-container" height="34" rx="3" stroke-width="1.2" width="14" x="168" y="225"></rect>
+<line class="opacity-50" stroke-dasharray="2 2" stroke-width="1" x1="32" x2="168" y1="242" y2="242"></line>
+<!-- Suspension Dampers schematic link -->
+<circle class="opacity-30" cx="48" cy="82" r="10" stroke-width="0.8"></circle>
+<circle class="opacity-30" cx="152" cy="82" r="10" stroke-width="0.8"></circle>
+<circle class="opacity-30" cx="48" cy="242" r="10" stroke-width="0.8"></circle>
+<circle class="opacity-30" cx="152" cy="242" r="10" stroke-width="0.8"></circle>
+</svg>
+<!-- ==================== PIEZO POSITION MARKERS ==================== -->
+<!-- Front-Left Node (2 Active Piezos) -->
+<div class="absolute top-[82px] left-[78px] flex items-center gap-1.5 bg-surface-container-lowest/80 p-1 rounded-md border border-outline-variant/40">
+<div class="w-3.5 h-3.5 rounded-full bg-primary-gold piezo-active flex items-center justify-center text-[8px] font-mono font-bold text-surface-dim" title="PZ-01: Ativo (44 mW)">1</div>
+<div class="w-3.5 h-3.5 rounded-full bg-primary-gold piezo-active flex items-center justify-center text-[8px] font-mono font-bold text-surface-dim" title="PZ-02: Ativo (38 mW)">2</div>
+</div>
+<!-- Front-Right Node (2 Active Piezos) -->
+<div class="absolute top-[82px] right-[78px] flex items-center gap-1.5 bg-surface-container-lowest/80 p-1 rounded-md border border-outline-variant/40">
+<div class="w-3.5 h-3.5 rounded-full bg-primary-gold piezo-active flex items-center justify-center text-[8px] font-mono font-bold text-surface-dim" title="PZ-03: Ativo (41 mW)">3</div>
+<div class="w-3.5 h-3.5 rounded-full bg-primary-gold piezo-active flex items-center justify-center text-[8px] font-mono font-bold text-surface-dim" title="PZ-04: Ativo (49 mW)">4</div>
+</div>
+<!-- Rear-Left Node (1 Active, 1 Inactive) -->
+<div class="absolute bottom-[80px] left-[78px] flex items-center gap-1.5 bg-surface-container-lowest/80 p-1 rounded-md border border-outline-variant/40">
+<div class="w-3.5 h-3.5 rounded-full bg-primary-gold piezo-active flex items-center justify-center text-[8px] font-mono font-bold text-surface-dim" title="PZ-05: Ativo (27 mW)">5</div>
+<div class="w-3.5 h-3.5 rounded-full border border-dashed border-outline-variant bg-surface-container flex items-center justify-center text-[8px] font-mono text-outline" title="PZ-06: Inativo">6</div>
+</div>
+<!-- Rear-Right Node (1 Active, 1 Inactive) -->
+<div class="absolute bottom-[80px] right-[78px] flex items-center gap-1.5 bg-surface-container-lowest/80 p-1 rounded-md border border-outline-variant/40">
+<div class="w-3.5 h-3.5 rounded-full bg-primary-gold piezo-active flex items-center justify-center text-[8px] font-mono font-bold text-surface-dim" title="PZ-07: Ativo (32 mW)">7</div>
+<div class="w-3.5 h-3.5 rounded-full border border-dashed border-outline-variant bg-surface-container flex items-center justify-center text-[8px] font-mono text-outline" title="PZ-08: Inativo / Reserva">8</div>
+</div>
+<!-- Dynamic Node Callouts Overlay -->
+<div class="absolute top-3 left-1/2 -translate-x-1/2 bg-surface-container/90 px-3 py-1 rounded-full border border-outline-variant text-[10px] font-mono text-on-surface-variant flex items-center gap-2">
+<span class="">SUSPENSÃO DIANTEIRA: 172 mW</span>
+<span class="text-outline">|</span>
+<span class="">TRASEIRA: 59 mW</span>
+</div>
+</div>
+<!-- Schematic Legend -->
+<div class="flex items-center justify-center gap-6 py-2 border-b border-outline-variant/40 text-xs">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-gold shadow-[0_0_6px_#D5C462]"></span>
+<span class="text-on-surface font-medium">6 Piezos ativos</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full border border-dashed border-outline text-outline"></span>
+<span class="text-on-surface-variant">2 Inativos / Reserva</span>
+</div>
+</div>
+<!-- Configuration Block -->
+<div class="pt-3 space-y-2.5">
+<div class="flex items-center justify-between">
+<span class="text-xs font-semibold text-on-surface">Configuração de Circuito · Config v3</span>
+<span class="text-[11px] font-mono text-outline">Harvester LTC3588</span>
+</div>
+<!-- Progress line -->
+<div class="space-y-1">
+<div class="flex items-center justify-between text-[11px] font-mono text-on-surface-variant">
+<span class="">Capacidade instalada</span>
+<span class="text-primary font-medium">75% em operação</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary-gold rounded-full w-3/4"></div>
+</div>
+</div>
+<!-- Circuit Details Grid -->
+<div class="grid grid-cols-2 gap-2 pt-1 font-body text-xs">
+<!-- Association Segmented Control -->
+<div class="bg-surface-container p-2.5 rounded-xl border border-outline-variant/50 flex flex-col gap-1.5">
+<span class="text-[10px] text-outline uppercase font-label">Associação dos nós</span>
+<div class="inline-flex rounded-lg bg-surface-container-highest p-0.5 text-[11px] font-medium">
+<button class="flex-1 py-1 text-center rounded text-outline hover:text-on-surface transition-colors">Série</button>
+<button class="flex-1 py-1 text-center rounded bg-primary-container text-on-primary-container font-semibold shadow-xs">Paralelo</button>
+<button class="flex-1 py-1 text-center rounded text-outline hover:text-on-surface transition-colors">Misto</button>
+</div>
+</div>
+<!-- Storage & Buffer -->
+<div class="bg-surface-container p-2.5 rounded-xl border border-outline-variant/50 flex flex-col justify-center">
+<span class="text-[10px] text-outline uppercase font-label">Armazenamento</span>
+<span class="text-xs font-semibold text-on-surface mt-0.5">Bateria Li-Po Buffer</span>
+<span class="text-[10px] font-mono text-outline">TP4056 · 3.7V 1200mAh</span>
+</div>
+</div>
+<!-- Installation Point Info -->
+<div class="bg-surface-container/60 p-2.5 rounded-xl border border-outline-variant/40 flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">pin_drop</span>
+<div class="flex flex-col text-xs">
+<span class="font-medium text-on-surface">Ponto de instalação</span>
+<span class="text-[11px] text-on-surface-variant">Suspensão dianteira e traseira (acoplamento em amortecedores helicoidais MacPherson e Multi-link).</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ==================== RIGHT COLUMN: DISPOSITIVO & REVISÕES ==================== -->
+<section class="h-full w-[290px] shrink-0 flex flex-col gap-4">
+<!-- Hardware Device Card (ESP32) -->
+<div class="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col justify-between shadow-sm">
+<div>
+<!-- Header -->
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary border border-outline-variant">
+<span class="material-symbols-outlined text-[22px]">memory</span>
+</div>
+<div>
+<h3 class="text-sm font-semibold text-on-surface">ESP32 · VERS-01</h3>
+<span class="text-[11px] font-mono text-outline">MAC: A4:CF:12:8B:4E:02</span>
+</div>
+</div>
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-tertiary-container/30 text-tertiary border border-tertiary/20">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                Online
+              </span>
+</div>
+<!-- Device Specs List -->
+<div class="space-y-2.5 font-body text-xs">
+<!-- Firmware -->
+<div class="flex items-center justify-between py-1 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Firmware</span>
+<div class="flex items-center gap-2">
+<span class="font-mono text-on-surface font-medium">0.4.2</span>
+<span class="text-[10px] px-1.5 py-0.2 bg-surface-container-highest text-outline rounded">Atualizado</span>
+</div>
+</div>
+<!-- Last Contact -->
+<div class="flex items-center justify-between py-1 border-b border-outline-variant/40">
+<span class="text-on-surface-variant">Último contato</span>
+<div class="flex items-center gap-1.5 font-mono text-on-surface">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping"></span>
+<span class="">há 3 s</span>
+</div>
+</div>
+<!-- MQTT Signal Meter -->
+<div class="flex items-center justify-between py-1">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">signal_cellular_alt</span>
+<span class="">Sinal MQTT</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-mono text-on-surface text-[11px]">-58 dBm</span>
+<!-- 5 Segment technical signal bar -->
+<div class="flex items-end gap-0.5 h-3">
+<span class="w-1 h-1.5 rounded-xs bg-primary"></span>
+<span class="w-1 h-2 rounded-xs bg-primary"></span>
+<span class="w-1 h-2.5 rounded-xs bg-primary"></span>
+<span class="w-1 h-3 rounded-xs bg-primary"></span>
+<span class="w-1 h-3 rounded-xs bg-outline-variant"></span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Hardware Action Buttons -->
+<div class="pt-3 border-t border-outline-variant/40 grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-full border border-outline-variant text-xs font-medium text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[15px]">restart_alt</span>
+<span class="">Reiniciar</span>
+</button>
+<button class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-full bg-surface-container-highest border border-outline text-xs font-medium text-on-surface hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-[15px]">terminal</span>
+<span class="">Ver logs</span>
+</button>
+</div>
+</div>
+<!-- Maintenance / Revisions History Card -->
+<div class="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex-1 flex flex-col justify-between shadow-sm">
+<div>
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-semibold text-on-surface">Histórico de revisões</h3>
+<span class="text-[11px] font-mono text-outline">2 registros</span>
+</div>
+<!-- List of Support Requests -->
+<div class="space-y-2.5">
+<!-- Item 1: Agendada -->
+<div class="p-3 bg-surface-container rounded-xl border border-secondary-container/40 flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-secondary-container/30 text-secondary border border-secondary/20">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                    Agendada
+                  </span>
+<span class="text-[11px] font-mono text-outline">24/10/2026</span>
+</div>
+<div class="text-xs font-medium text-on-surface leading-snug">
+                  Ruído no piezo traseiro esquerdo (PZ-06)
+                </div>
+<div class="flex items-center justify-between text-[11px] text-outline pt-0.5">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">person</span>
+                    Técnico: Laboratório VERS
+                  </span>
+<span class="text-secondary hover:underline cursor-pointer">Detalhes</span>
+</div>
+</div>
+<!-- Item 2: Resolvida -->
+<div class="p-3 bg-surface-container rounded-xl border border-outline-variant/40 flex flex-col gap-1.5 opacity-90">
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-tertiary-container/20 text-tertiary border border-tertiary/20">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                    Resolvida
+                  </span>
+<span class="text-[11px] font-mono text-outline">15/08/2026</span>
+</div>
+<div class="text-xs font-medium text-on-surface leading-snug">
+                  Recalibração do conversor buck LTC3588
+                </div>
+<div class="flex items-center justify-between text-[11px] text-outline pt-0.5">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">engineering</span>
+                    Técnico: Equipe Engenharia
+                  </span>
+<span class="text-outline font-mono">OS #0182</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card Footer Action -->
+<div class="pt-2 border-t border-outline-variant/40 flex items-center justify-between">
+<span class="text-[11px] text-outline">Próxima inspeção preventiva: 30 dias</span>
+<button class="text-xs font-medium text-primary hover:underline flex items-center gap-1">
+<span class="">Nova solicitação</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</main>
+
+
+
+
+</body></html>

@@ -1084,7 +1084,7 @@ components:
         dependencies:
           type: object
           additionalProperties: false
-          required: [database, redis]
+          required: [database, redis, mqtt]
           properties:
             database:
               type: string
@@ -1092,6 +1092,10 @@ components:
             redis:
               type: string
               enum: [ok]
+            mqtt:
+              type: string
+              enum: [disabled, unavailable, ok]
+              description: Estado MQTT separado; indisponibilidade não bloqueia prontidão REST.
     HealthResponse:
       type: object
       required: [data, requestId]

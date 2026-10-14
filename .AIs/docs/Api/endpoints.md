@@ -49,11 +49,19 @@ finalizam a resposta 202/204 diretamente, a gravação pode terminar após o env
 | Método | Rota | Acesso | Resultado |
 | --- | --- | --- | --- |
 | `GET` | `/health/live` | Público | Confirma que o processo HTTP está vivo, sem consultar banco, Redis ou serviços externos. |
-| `GET` | `/health/ready` | Público | Confirma que PostgreSQL e Redis estão disponíveis. |
+| `GET` | `/health/ready` | Público | Confirma PostgreSQL/Redis e informa estado MQTT separadamente. |
 
 `ready` exige PostgreSQL e Redis por decisão do programador em 26/09/2026. Falhas de dependência
 retornam `SERVICE_UNAVAILABLE` sem expor URL, host, credenciais ou detalhes
 internos.
+
+F07 lote 7.2, decisão do programador em 14/10/2026: MQTT indisponível não
+bloqueia consultas REST. `dependencies.mqtt` informa `disabled` (configuração
+desativada), `unavailable` (sem assinatura ativa) ou `ok` (assinatura concedida).
+Com banco/Redis disponíveis, mesmo MQTT unavailable retorna HTTP 200/status ok.
+Nenhum host, URL, payload, credencial ou causa interna é exposto. Live continua
+sem dependências. O módulo está passivo: habilitar configuração não conecta
+até o futuro processador de ingestão chamar start explicitamente.
 
 ### Autenticação por cookies
 

@@ -5,6 +5,16 @@
 
 import * as Joi from 'joi';
 
+/** Aceita apenas endpoint TLS sem credenciais, caminho ou parâmetros que possam alterar o cliente. */
+export function parseMqttUrl(value: string): URL {
+  let url: URL;
+  try { url = new URL(value); } catch { throw new Error('MQTT_INVALID_CONFIGURATION'); }
+  if (url.protocol !== 'mqtts:' || !url.hostname || url.username || url.password ||
+    (url.pathname !== '' && url.pathname !== '/') || url.search || url.hash ||
+    (url.port && Number(url.port) < 1)) throw new Error('MQTT_INVALID_CONFIGURATION');
+  return url;
+}
+
 const defaultCorsOrigins = [
   'http://localhost:3001',
   'http://localhost:3050',
@@ -27,6 +37,17 @@ export const envValidationSchema = Joi.object({
   // Redis
   REDIS_HOST: Joi.string().default('localhost'),
   REDIS_PORT: Joi.number().integer().min(1).max(65535).default(6379),
+
+  // Consumidor MQTT desativado até existir processador de ingestão e ambiente autorizado.
+  MQTT_ENABLED: Joi.boolean().default(false),
+  MQTT_URL: Joi.string().custom((value: string, helpers) => {
+    try { parseMqttUrl(value); } catch { return helpers.error('any.invalid'); }
+    return value;
+  }).when('MQTT_ENABLED', { is: true, then: Joi.required() }),
+  MQTT_USERNAME: Joi.string().min(1).when('MQTT_ENABLED', { is: true, then: Joi.required() }),
+  MQTT_PASSWORD: Joi.string().min(1).when('MQTT_ENABLED', { is: true, then: Joi.required() }),
+  MQTT_CLIENT_ID: Joi.string().pattern(/^[A-Za-z0-9_-]{1,64}$/)
+    .when('MQTT_ENABLED', { is: true, then: Joi.required() }),
 
   // Aplicação
   NODE_ENV: Joi.string()

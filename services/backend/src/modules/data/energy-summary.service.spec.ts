@@ -39,12 +39,13 @@ function transactionDouble(): {
   $queryRaw: jest.Mock;
   test: { findUnique: jest.Mock };
   versInstallation: { findUnique: jest.Mock };
-  telemetrySample: { groupBy: jest.Mock; findMany: jest.Mock };
+  telemetrySample: { groupBy: jest.Mock; findMany: jest.Mock; aggregate: jest.Mock };
   energySummary: { findFirst: jest.Mock; create: jest.Mock; update: jest.Mock; deleteMany: jest.Mock };
 } {
   return { $queryRaw: jest.fn().mockResolvedValue([{ id: 'locked' }]),
     test: { findUnique: jest.fn() }, versInstallation: { findUnique: jest.fn() },
-    telemetrySample: { groupBy: jest.fn().mockResolvedValue([]), findMany: jest.fn() },
+    telemetrySample: { groupBy: jest.fn().mockResolvedValue([]), findMany: jest.fn(),
+      aggregate: jest.fn().mockResolvedValue({ _min: { capturedAt: null }, _max: { capturedAt: null } }) },
     energySummary: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn(),
       update: jest.fn(), deleteMany: jest.fn().mockResolvedValue({ count: 1 }) } };
 }
@@ -187,5 +188,75 @@ describe('recomputação de resumos', () => {
     tx.energySummary.create.mockRejectedValue(new Error('write failed'));
     await expect(service.recomputeTest(parent.id)).rejects.toThrow('write failed');
     expect(tx.energySummary.update).not.toHaveBeenCalled();
+  });
+
+  it('recompõe mensagem e TEST/HOUR/DAY/MONTH dentro da transação da ingestão', async () => {
+    const { service, tx, transaction, parent } = setup();
+    await service.recomputeMessage('message', tx as never);
+    expect(transaction).not.toHaveBeenCalled();
+    const keys = tx.energySummary.findFirst.mock.calls.map(([query]) => query.where);
+    expect(keys.map((key) => key.periodType).sort()).toEqual(['DAY', 'HOUR', 'MONTH', 'TEST']);
+    expect(keys.find((key) => key.periodType === 'TEST').testId).toBe(parent.id);
+    expect(keys.filter((key) => key.periodType !== 'TEST').every((key) =>
+      key.installationId === parent.installationId && key.testId === null)).toBe(true);
+  });
+  it('recalcula horas intermediárias afetadas por vizinhos, inclusive virada do mês UTC', async () => {
+    const { service, tx } = setup();
+    const samples = createTelemetryFixtures().regular.samples.map((row, index) => ({ ...row,
+      capturedAt: new Date(Date.UTC(2026, 9, 1, 0, 0, index)) }));
+    tx.telemetrySample.findMany.mockResolvedValue(samples);
+    tx.telemetrySample.aggregate.mockResolvedValueOnce({ _max: { capturedAt: new Date('2026-09-30T22:59:59Z') } })
+      .mockResolvedValueOnce({ _min: { capturedAt: new Date('2026-10-01T02:00:01Z') } });
+    await service.recomputeMessage('message', tx as never);
+    const keys = tx.energySummary.findFirst.mock.calls.map(([query]) => query.where);
+    expect(keys.filter((key) => key.periodType === 'HOUR').map((key) => key.periodStart.toISOString())).toEqual([
+      '2026-09-30T22:00:00.000Z', '2026-09-30T23:00:00.000Z', '2026-10-01T00:00:00.000Z',
+      '2026-10-01T01:00:00.000Z', '2026-10-01T02:00:00.000Z']);
+    expect(keys.filter((key) => key.periodType === 'MONTH').map((key) => key.periodStart.toISOString()))
+      .toEqual(['2026-09-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z']);
+    expect(tx.telemetrySample.aggregate.mock.calls[0][0].where).toMatchObject({
+      installationId: samples[0].installationId, deviceId: samples[0].deviceId, testId: samples[0].testId,
+      capturedAt: { lt: samples[0].capturedAt } });
+  });
+  it('reparo de mensagem processada usa uma transação própria e conserva a identidade do resumo', async () => {
+    const { service, tx, transaction, summary } = setup();
+    tx.energySummary.findFirst.mockResolvedValue(summary);
+    await service.recomputeMessage('message');
+    expect(transaction).toHaveBeenCalledTimes(1); expect(tx.energySummary.create).not.toHaveBeenCalled();
+    expect(tx.energySummary.update).toHaveBeenCalled();
+  });
+  it('mensagem sem amostras não fabrica resumo nem abre locks de origem', async () => {
+    const { service, tx } = setup(); tx.telemetrySample.findMany.mockResolvedValue([]);
+    await service.recomputeMessage('message', tx as never);
+    expect(tx.$queryRaw).not.toHaveBeenCalled(); expect(tx.energySummary.findFirst).not.toHaveBeenCalled();
+  });
+  it('cada origem mantém seus próprios vizinhos e testId null não é agrupado com teste', async () => {
+    const { service, tx } = setup(); const samples = createTelemetryFixtures().regular.samples;
+    samples[1].testId = null; tx.telemetrySample.findMany.mockResolvedValue(samples);
+    await service.recomputeMessage('message', tx as never);
+    const sources = tx.telemetrySample.aggregate.mock.calls.map(([query]) => query.where.testId);
+    expect(sources).toContain(null); expect(sources).toContain(samples[0].testId);
+  });
+  it('falha durante um período aborta antes de concluir os demais', async () => {
+    const { service, tx } = setup(); tx.energySummary.create.mockRejectedValue(new Error('summary failed'));
+    await expect(service.recomputeMessage('message', tx as never)).rejects.toThrow('summary failed');
+    expect(tx.energySummary.create).toHaveBeenCalledTimes(1);
+  });
+  it('amostra atrasada na fronteira redistribui energia usando contador sem duplicar total', async () => {
+    const { service, tx, parent } = setup();
+    const times = ['2026-09-30T23:59:30Z', '2026-10-01T00:00:00Z', '2026-10-01T00:00:30Z'];
+    const counters = [0, 0.02, 0.1];
+    const samples = createTelemetryFixtures().regular.samples.map((row, index) => ({ ...row,
+      capturedAt: new Date(times[index]), accumulatedEnergyWh: counters[index] }));
+    parent.startedAt = samples[0].capturedAt; parent.endedAt = samples[2].capturedAt;
+    tx.telemetrySample.findMany.mockResolvedValueOnce([samples[1]]).mockResolvedValue(samples);
+    tx.telemetrySample.aggregate.mockResolvedValueOnce({ _max: { capturedAt: samples[0].capturedAt } })
+      .mockResolvedValueOnce({ _min: { capturedAt: samples[2].capturedAt } });
+    await service.recomputeMessage('late-message', tx as never);
+    const hours = tx.energySummary.create.mock.calls.map(([query]) => query.data).filter((row) => row.periodType === 'HOUR');
+    expect(hours).toHaveLength(2);
+    expect(hours[0].recoveredEnergyWh).toBeCloseTo(0.02, 12);
+    expect(hours[1].recoveredEnergyWh).toBeCloseTo(0.08, 12);
+    expect(hours.reduce((sum, row) => sum + row.recoveredEnergyWh, 0)).toBeCloseTo(0.1, 12);
   });
 });

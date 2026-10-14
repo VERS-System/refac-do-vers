@@ -70,8 +70,11 @@ Executar test:unit, lint/build e diff --check; conferir saúde do container.
 
 - Em 14/10/2026 o programador escolheu "Buscar pelo REST": evento externo
   informa atualização; valores continuam nas consultas REST autorizadas.
-- Limites por sessão/conta/recurso, janela de revogação e indisponibilidade de
-  Redis serão apresentados com sugestão concreta antes dos respectivos lotes.
+- Falha Redis: programador escolheu pausar novas recepções MQTT, concluindo
+  transações em curso; retomar com sessão persistente quando Redis voltar.
+  REST continua disponível. Coordenador dessa política ainda não implementado.
+- Limites por sessão/conta/recurso e janela de revogação serão apresentados
+  com sugestão concreta antes dos respectivos lotes.
 - Integração com frontend e ativação real do pipeline permanecem fora de 8.1.
 
 ## Evidência local 8.1 — 14/10/2026
@@ -114,3 +117,63 @@ Limites de conexões/assinaturas e fallback quando Redis fica indisponível
 continuam pendentes de decisão antes de ativar transporte; essa escolha não
 foi inferida da preferência por REST. Revisão documental e diff --check são a
 validação deste lote; não alegar cobertura de Redis/Socket.IO por testes 8.1.
+
+## Escopo autorizado 8.3 — transporte Redis passivo
+
+Programador solicitou próximo lote em 14/10/2026. Ao decidir falha de Redis,
+escolheu **pausar também a ingestão**, em vez de manter ingestão ativa.
+Confirmou concluir transações já iniciadas, pausar novas recepções MQTT até
+Redis voltar, preservar sessão persistente e brutos pendentes. REST permanece
+disponível; sem polling automático ou fila Redis.
+Essa política exige coordenador posterior: o transporte isolado não pode alegar
+que já pausa MQTT. Não ativar nada no bootstrap até integrar/testar a política.
+
+Criar modules/realtime/realtime-contract.ts/spec.ts, realtime-pubsub.service.ts/
+spec.ts e realtime.module.ts; registrar módulo passivo em AppModule. ConfigModule
+e REDIS_HOST/PORT existentes; ioredis já instalado. Sem schema/migration,
+dependência, configuração real ou frontend. Usar eventos internos confiáveis
+data.updated e status.changed para posterior gateway/coordenador.
+
+start explícito abre duas conexões Redis lazy (publicação/assinatura), sem fila
+offline ou reenvio automático de comandos pendentes. Reconexão limitada e nova
+PSUBSCRIBE após ready; estado ok apenas com ambas prontas e assinatura aceita.
+Canal vers:v1:realtime:{test|installation}:{uuid}, pattern interno controlado;
+payload externo 8.2 estrito, máximo técnico de 1.024 bytes. Reutilizar validador
+UTC atual e UUID v4. Validar também relação canal/recurso e recusar campos extras.
+Limite é do conteúdo entregue à aplicação, sem alegar bloqueio pré-alocação Redis.
+
+Publicar retorna booleano seguro, sem jogar falha de transporte na transação
+de persistência. O coordenador posterior observa disponibilidade para pausar
+novas atividades conforme decisão; histórico já confirmado nunca é desfeito.
+Falha ambígua após PUBLISH não prova que o Redis não entregou; sem retry manual.
+Shutdown desconecta ambos sem fila durável e ignora callbacks tardios. Eventos
+de disponibilidade não iniciam MQTT nem buscam REST automaticamente neste lote.
+
+Testes primeiro: parser válido/limites/allowlist/UUID/data; constructor inerte,
+start duplo, opções sem fila, duas conexões, assinatura/reconexão, callback antigo,
+canal divergente, payload inválido, falha de publicar/conectar/assinar, listeners
+com erro, status e shutdown. Confirmar RED, depois test:unit/lint/build.
+Documentar limites e coordenador pendente; reconstruir somente backend e
+verificar saúde. Sem ensaio Redis real: autorização anterior é só MQTT/DB.
+
+Antes da ativação em 8.5, implementar e testar coordenador de pausa/retomada:
+não usar onModuleDestroy como pausa reversível; aguardar trabalhos em curso,
+impedir novas recepções/reconexões enquanto Redis indisponível e recuperar
+pendências ao retomar. Sessão persistente não garante retenção ilimitada no
+broker; limites reais continuam dependentes do ensaio autorizado.
+
+### Evidência local 8.3
+
+TDD RED por módulos ausentes; depois RED para estado incorretamente ok após
+falha PUBLISH e listener anterior bloqueando o próximo. Corrigidos no transporte:
+falha de publicar sinaliza indisponibilidade/reconexão e cada listener possui
+contenção própria, preservando once. Import reflect-metadata reutilizado do
+padrão de contrato MQTT para executar validador UTC também isoladamente.
+
+GREEN: 41 suítes/845 testes unitários, 33 novos; lint/build aprovados. Parser,
+canal/recurso, callbacks antigos, queda das duas conexões, publicação sem fila,
+reconexão/assinatura, listeners e shutdown testados com mocks. Nenhum ensaio
+real Redis ou garantia de retenção/entrega inferida. Backend reconstruído e
+reiniciado. Primeiras probes sem resposta durante início; depois live ok,
+readiness 503 e repetição ok com database/redis ok e MQTT disabled. Transporte
+Pub/Sub não iniciado. diff --check e espaços finais dos arquivos novos aprovados.

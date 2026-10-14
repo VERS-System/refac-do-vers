@@ -65,8 +65,8 @@ carregamento e assinatura; reconexão exige nova consulta autorizada.
 Decisão: o evento externo avisa que há dados atualizados e o cliente consulta
 os valores pelo REST autorizado. Não transportar medições completas no aviso.
 Autenticação existente usa cookies HttpOnly e sessão validada no banco, sem
-token em query ou auth. Limites, revogação, Origin e indisponibilidade Redis
-serão definidos antes da implementação de transporte.
+token em query ou auth. Limites, revogação e Origin serão definidos antes da
+ativação do transporte externo.
 
 ## Contrato externo 8.2 — a implementar
 
@@ -112,7 +112,8 @@ Erros usam `{ "ok": false, "version": 1, "code": "RESOURCE_UNAVAILABLE" }`.
 Recurso ausente e recurso sem acesso recebem esse mesmo código, sem detalhes.
 Outros códigos previstos: INVALID_REQUEST, UNAUTHENTICATED, LIMIT_EXCEEDED e
 REALTIME_UNAVAILABLE. Nenhum erro contém payload recebido, token ou causa interna.
-Valores dos limites e critérios de disponibilidade serão fechados antes do código.
+Valores dos limites serão fechados antes do código do gateway. Política Redis
+aprovada em 8.3 está registrada abaixo.
 
 ### Aviso data.updated
 
@@ -171,8 +172,7 @@ descartar avisos futuros do mesmo recurso. Buscar estado atual pelo REST é a
 reconciliação; paginação offset não promete snapshot atômico entre páginas.
 
 Desconexão/perda de aviso não apaga o histórico. UI deve mostrar condição
-desatualizada quando não puder confirmar atualização. Frequência de consulta
-alternativa e política quando Redis falha seguem pendentes; não criar polling
+desatualizada quando não puder confirmar atualização. Não criar polling
 automático sem decisão. Encerrar teste/recálculo sem mensagem MQTT ainda não
 produz aviso no código atual: implementação futura precisa cobrir essa origem
 ou documentar sua atualização por nova consulta, sem alegar cobertura existente.
@@ -188,3 +188,59 @@ ADMIN não ganha exceção global. Assinar uma instalação não libera seus tes
 Não adicionar types/helpers sem consumidor apenas para representar este plano.
 Lotes 8.3–8.5 implementarão e testarão validação, lifecycle e autorização nas
 fronteiras de Redis/Socket.IO. Este documento não comprova transporte funcional.
+
+## Transporte interno Redis — lote 8.3
+
+RealtimeModule registra/exporta RealtimePubSubService no backend. Constructor
+não abre rede; nenhum bootstrap chama start. start explícito cria duas conexões
+ioredis, publicação e assinatura, usando REDIS_HOST/PORT existentes. Nenhuma
+conexão de health é reaproveitada para Pub/Sub. Não há Socket.IO neste lote.
+
+Canal de publicação: `vers:v1:realtime:{test|installation}:{uuid}`. Assinatura
+interna usa PSUBSCRIBE `vers:v1:realtime:*`. Ambos transportam somente o aviso
+data.updated validado, nunca envelope MQTT ou permissões do usuário. Validação
+do canal recebido exige correspondência exata com tipo/ID do recurso no aviso.
+Essa assinatura interna não autoriza clientes finais a receber os eventos.
+
+Parser exige versão/tipo, campos permitidos, UUID v4 e data UTC válida. Conteúdo
+é limitado a 1.024 bytes antes do JSON.parse; ioredis já recebeu/decodificou a
+mensagem nesse ponto, portanto não é proteção pré-alocação no Redis/rede.
+Publicação também revalida e serializa apenas os campos conhecidos.
+
+Estados locais: stopped antes do início/após shutdown, unavailable durante
+conexão/quedas e ok somente após ambas prontas e assinatura confirmada. Eventos
+internos status.changed usam `{ "status": "ok" }`, unavailable ou stopped;
+data.updated usa o envelope validado. Listeners são isolados individualmente,
+inclusive rejeições assíncronas e once, com log apenas de código seguro.
+
+Reconexão pelo ioredis com backoff de 1 a 30 s; PSUBSCRIBE refeito após ready.
+Geração da assinatura impede callback anterior à queda de tornar o canal ok.
+Sem fila offline, reenvio automático de comandos ou retry manual de PUBLISH.
+Timeout de conexão/comando de dois segundos. Falha de PUBLISH sinaliza
+unavailable e força reconexão; payload inválido é recusado sem derrubar canal.
+publish retorna false quando não pode publicar, sem lançar falha de transporte
+para transação histórica. true indica resposta de PUBLISH, não entrega a um
+usuário; zero assinantes continua possível. Falha/timeout pode ter ocorrido
+após entrega, portanto false não prova ausência de aviso.
+
+Shutdown desconecta ambas uma vez, interrompe reconexões e ignora callbacks
+posteriores; não promete drenar publicações em voo. Não existe fila durável,
+replay ou busca REST automática no servidor.
+
+### Decisão operacional de falha Redis — 14/10/2026
+
+Programador escolheu **pausar também a ingestão**, e confirmou concluir
+transações já iniciadas e interromper novas recepções MQTT até o Redis voltar.
+Preservar sessão persistente e brutos pendentes; REST permanece disponível.
+Não descartar nem desfazer dados já confirmados. Retomada do canal exige nova
+consulta REST pelo cliente conforme fluxo de recuperação acima.
+
+O transporte 8.3 apenas fornece disponibilidade: ainda não há coordenador
+MQTT→Redis, resolução das amostras afetadas ou pausa/retomada aplicada ao
+pipeline. Implementar/testar essa coordenação antes de qualquer ativação, sem
+usar shutdown definitivo como pausa reversível. Retenção finita do broker
+precisa ser conferida no ambiente real, sem alegar garantia ilimitada offline.
+
+Evidência deste lote usa mocks: constructor inerte, duas conexões, validação,
+canal divergente, quedas, assinatura antiga, erros, listener e shutdown. Ensaio
+real Redis/MQTT/Socket.IO continua reservado ao lote isolado autorizado 8.7.

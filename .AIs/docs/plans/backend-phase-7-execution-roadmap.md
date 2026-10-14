@@ -3,6 +3,7 @@
 
 Estado: recortes locais 7.1–7.3 entregues para revisão em 14/10/2026;
 7.4 entregue para revisão com mocks, testes, lint/build e container atualizado.
+7.5 entregue para revisão com mocks/testes/lint/build e container atualizado.
 Sequência, políticas temporais e REST não bloqueado por MQTT aprovados;
 integração real não iniciada.
 F05 preservada; F06 permanece com as decisões registradas. F08 e F09 serão
@@ -143,6 +144,71 @@ silenciosa, com evidência de transações/concorrência em PostgreSQL isolado.
    serão associadas; o backend não muda regras operacionais por suposição.
 
 ## Arquivos previstos e limites
+
+### Plano autorizado 7.5 — normalização e persistência atômica
+
+Programador solicitou próximo lote em 14/10/2026 e confirmou capturas futuras
+como SUSPECT, preservadas e excluídas dos cálculos F06. Atraso não altera
+qualidade elétrica. Mantidas decisões 7.4 e preservação de leituras externas ao
+intervalo com testId null na instalação; leitura terminal pode associar.
+
+Escopo informado: novos mqtt-normalization.ts/spec.ts e
+mqtt-processing.service.spec.ts; mqtt-reception.service.ts extrai seus próprios
+locks/autorização para reutilizar em receive e novo process(id). Atualizar
+contrato MQTT, plano, índice e contexto. Sem schema/migration, dependência,
+controller/REST, worker, broker, resumo ou evento. Consumidor continua passivo.
+
+Normalizador recebe envelope revalidado e contexto autorizado. Campos ausentes
+viram null, zero permanece zero, potência reportada é preservada e potência
+calculada reutiliza calculatePowerW. VALID exige V/I/contador; ausência de algum
+gera PARTIAL, inclusive measurements vazio. Somente qualidade temporal futura
+sobrescreve para SUSPECT, mantendo medições e potência elétrica calculada.
+Não inventar máximos físicos/tolerância de potência nem classificar contador
+reiniciado como erro: segmentação continua na F06. Valores estruturalmente
+inválidos recusam lote antes de qualquer amostra, como no parser 7.1.
+
+Método process recebe ID interno, lê bruto, revalida parser/metadados e origem
+atual, bloqueia veículo → instalação → dispositivo → teste → mensagem e relê
+estado sob lock. REJECTED/PROCESSED não são reescritos. Origem revogada/removida,
+teste agora CANCELLED/alheio/inválido ou transporte incompatível tornam bruto
+REJECTED sem amostras. Recepção conserva comportamento já testado.
+createMany sem skipDuplicates mais PROCESSED/processedAt/testId na mesma
+transação ReadCommitted; falha propaga erro fixo e rollback é responsabilidade
+do PostgreSQL, sem esconder conflito de amostras pré-existentes. Payload e
+metadados brutos nunca são atualizados. Sem limpeza de dados.
+
+Retorno interno informa entrega CURRENT/DELAYED/CLOCK_SKEW e associação por
+índice ASSOCIATED/OUTSIDE_TEST/NO_TEST. Sem nova coluna/flag pública: persistência
+conserva testId individual, qualidade, capturedAt e referência ao bruto para
+rastrear a classificação. SUSPECT não entra na F06; sinalização OUTSIDE_TEST
+não transforma qualidade elétrica em erro. Recuperação automática e ligação
+receive→process→resumos/eventos ficam no lote 7.6, com revalidação obrigatória.
+
+TDD antes de implementar: unidades/null/zero/todos os sensores, potência versus
+reportada, contador reiniciado, lotes parciais, atraso/futuro misto, fronteiras,
+oracles F06; persistência/estado na mesma transação, locks, concorrente já
+concluído, fonte/teste alterados, parser/metadados e falha de createMany/update
+sem sucesso parcial. Mocks não comprovam concorrência ou rollback SQL real.
+Rodar test:unit/lint/build, diff --check; reconstruir backend e verificar health.
+
+#### Entrega local 7.5
+
+Criados normalizador puro, testes de normalização e testes de processamento.
+Receptor oferece process(id), reutilizando locks/autorização antes da escrita;
+não é ligado automaticamente ao transporte. createMany e estado PROCESSED
+na mesma transação; falhas propagam código fixo. Estado relido após lock da
+mensagem impede duplicação cooperativa. Bruto e metadados não são atualizados.
+Qualidade/ausência/zero, captura futura SUSPECT, vínculo por amostra e potência
+real usam funções existentes. Contador é preservado para F06, sem cálculo de
+energia novo. Retorno interno informa delivery/associações por índice.
+TDD RED por módulo/método ausentes; GREEN 90 testes das três suítes envolvidas,
+38 novos. Corrigida descrição de caso BigInt que usava serialização JSON do
+Jest; nenhum ajuste de regra por causa do teste. Regressão 38 suítes/778 testes,
+lint/build e diff --check aprovados. Sem ensaio SQL real nem alegação de
+rollback/concorrência comprovados por mocks. Próximo lote 7.6: recuperação de
+mensagens e pipeline de resumos/eventos após commit; broker segue pendente.
+Backend reconstruído e reiniciado; live ok e readiness ok na repetição após
+503 inicial, com banco/Redis ok e MQTT disabled. Sem ensaio de ingestão real.
 
 ### Plano autorizado 7.4 — autorização e associação do envelope
 

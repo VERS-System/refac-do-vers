@@ -388,3 +388,56 @@ originais e não reautoriza. Conflito não sobrescreve bruto. Mensagens antigas
 RECEIVED exigirão revalidação no pipeline antes de gerar amostras, pois teste
 ou dispositivo podem mudar após recepção. Consumidor permanece passivo,
 sem start automático, broker, schema ou migration neste recorte.
+
+### Normalização local 7.5
+
+MqttReceptionService.process(id) processa ID interno persistido; não expõe rota
+nem é chamado automaticamente por receive. A recepção continua devolvendo
+RECEIVED/DUPLICATE/REJECTED e ACK continua relativo à persistência do bruto.
+Ligação com processamento/recuperação automática será lote 7.6.
+
+O processador revalida payload e consistência com messageId/schemaVersion/
+sequence/capturedAt brutos, além do deviceId persistido. Reutiliza os locks e
+regras de origem/teste da 7.4, acrescentando lock da mensagem por último.
+Assim, origem revogada ou teste agora CANCELLED impede normalização. Teste
+encerrado autorizado continua aceitando captura histórica. Estado da mensagem
+é relido sob lock; PROCESSED/REJECTED não são reescritos. Ausência retorna
+NOT_FOUND sem criar registro. Falha de banco/commit lança MQTT_PROCESSING_FAILED
+sem copiar causa interna ou payload. Rejeição permanente fica no próprio bruto.
+
+createMany grava posições originais sampleIndex e só depois atualiza estado
+PROCESSED/processedAt/testId; ambas as operações na mesma transação ReadCommitted.
+Não há skipDuplicates: violação de unicidade ou falha de estado aborta a
+transação em vez de esconder inconsistência. Mesmo ID não produz dois lotes
+por processamento concorrente cooperativo sob lock; constraints continuam
+defesa adicional. Essa propriedade SQL ainda exige ensaio real autorizado.
+
+normalizeTelemetry é puro, recebe envelope validado/contexto autorizado e
+reutiliza calculatePowerW, classifyDelivery e resolveSampleTest. Ausente/null
+vira null somente na amostra normalizada; zero permanece medição. Sem V, I ou
+contador a qualidade elétrica é PARTIAL; com os três é VALID. Sensores
+opcionais ausentes não reduzem sozinhos qualidade. Potência reportada não
+substitui V × I; reinício de contador é preservado para segmentação na F06.
+Parser recusa lote estruturalmente inválido inteiro antes de criar amostras;
+não fabrica INVALID a partir de valor malformado nem inventa limites físicos.
+
+Decisão do programador em 14/10: somente capturas futuras em relação ao
+receivedAt original ficam SUSPECT. Medições, potência calculada e capturedAt
+permanecem; F06 exclui SUSPECT do cálculo. Processar amanhã não torna confiável
+captura que era futura na recepção. Atraso comum conserva qualidade elétrica.
+
+Cada amostra recebe instalação/dispositivo e referência ao bruto; testId é
+resolvido individualmente, inclusive leitura terminal. Fora do intervalo fica
+testId null na instalação, mantendo qualidade elétrica; nunca contabiliza no
+teste indicado. Retorno interno PROCESSED informa delivery/idades e vetor de
+associações por índice ASSOCIATED/OUTSIDE_TEST/NO_TEST. Não há novo campo REST
+ou coluna de flags: testId/quality/capturedAt e vínculo ao bruto conservam a
+rastreabilidade, sem misturar qualidade elétrica com vínculo de teste.
+
+Sem worker, broker, publicação, resumo, evento, migration ou limpeza nesta
+entrega. Recuperação de RECEIVED e recomputação/eventos ficam para 7.6.
+
+Validação local: 38 testes novos, regressão 38 suítes/778 testes, lint/build
+aprovados. Docker reconstruído e backend reiniciado; live/readiness ok após
+503 inicial do readiness. MQTT disabled. Mocks não provam SQL/rollback/locks
+ou entrega de broker reais; ensaio autorizado continua pendente.

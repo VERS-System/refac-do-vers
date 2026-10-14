@@ -17,7 +17,7 @@ arquitetura; estes documentos definem como executar cada fase.
 | 04 | [Autenticação e autorização](04-autenticacao-autorizacao.md) | Concluída — revisão e PR confirmados pelo programador em 06/10/2026 | Fase 03 |
 | 05 | [Recursos de domínio](05-recursos-dominio.md) | Recorte executável concluído — avanço aprovado em 13/10/2026; pendências reais preservadas | Fase 04 |
 | 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Recorte local pronto para revisão — lotes 6.1–6.8 entregues; aceite e ensaio PostgreSQL pendentes | Fase 05 |
-| 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Recortes locais 7.1–7.4 entregues para revisão; autorização testada com mocks, integração real pendente | Fase 06 + hardware/simulador |
+| 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Recortes locais 7.1–7.5 entregues para revisão; autorização/normalização testadas com mocks, integração real pendente | Fase 06 + hardware/simulador |
 | 08 | [Tempo real](08-tempo-real.md) | Planejada | Fase 07 |
 | 09 | [Operação e entrega](09-operacao-entrega.md) | Planejada | Fases 00–08 |
 

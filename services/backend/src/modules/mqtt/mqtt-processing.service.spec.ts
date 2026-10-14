@@ -32,6 +32,10 @@ function setup(): { service: MqttReceptionService; row: ReturnType<typeof stored
   const row = stored();
   const tx = { $queryRaw: jest.fn().mockImplementation(async (sql: TemplateStringsArray) => {
     const text = sql.join(' ');
+    if (text.includes('payload::text')) {
+      const stored = await tx.mqttMessage.findUnique();
+      return stored ? [{ ...stored, payloadText: JSON.stringify(stored.payload) }] : [];
+    }
     return text.includes('FROM mqtt_messages') ? [{ id, status: row.status }] :
       text.includes('FROM tests') ? [{ ...test }] : [{ id: 'locked', status: 'ONLINE' }];
   }), device: { findUnique: jest.fn().mockResolvedValue(device) },
@@ -69,10 +73,11 @@ describe('processamento MQTT', () => {
   });
   it('bloqueia veículo/instalação/dispositivo/teste/mensagem antes da gravação', async () => {
     await h.service.process(id);
-    expect(h.tx.$queryRaw.mock.calls.map(([sql]) => (sql as TemplateStringsArray).join(' '))).toEqual([
+    const locks = h.tx.$queryRaw.mock.calls.filter(([sql]) => (sql as TemplateStringsArray).join(' ').includes('FOR UPDATE'));
+    expect(locks.map(([sql]) => (sql as TemplateStringsArray).join(' '))).toEqual([
       expect.stringContaining('FROM vehicles'), expect.stringContaining('FROM vers_installations'),
       expect.stringContaining('FROM devices'), expect.stringContaining('FROM tests'), expect.stringContaining('FROM mqtt_messages')]);
-    expect(h.tx.$queryRaw.mock.calls.every(([sql]) => (sql as TemplateStringsArray).join(' ').includes('FOR UPDATE'))).toBe(true);
+    expect(locks.every(([sql]) => (sql as TemplateStringsArray).join(' ').includes('FOR UPDATE'))).toBe(true);
     expect(h.tx.$queryRaw.mock.invocationCallOrder.at(-1)).toBeLessThan(h.tx.telemetrySample.createMany.mock.invocationCallOrder[0]);
   });
   it('processar duas vezes não duplica amostras nem troca horários', async () => {
@@ -85,7 +90,7 @@ describe('processamento MQTT', () => {
   it.each(['PROCESSED', 'REJECTED'])('relê estado %s após lock para não reprocessar decisão concorrente', async (status) => {
     const base = h.tx.$queryRaw.getMockImplementation()!;
     h.tx.$queryRaw.mockImplementation(async (sql: TemplateStringsArray, ...args: unknown[]) =>
-      sql.join(' ').includes('FROM mqtt_messages') ? [{ id, status }] : base(sql, ...args));
+      sql.join(' ').includes('FROM mqtt_messages') && sql.join(' ').includes('FOR UPDATE') ? [{ id, status }] : base(sql, ...args));
     expect(await h.service.process(id)).toMatchObject({ outcome: status === 'PROCESSED' ? 'ALREADY_PROCESSED' : 'REJECTED', id });
     expect(h.tx.telemetrySample.createMany).not.toHaveBeenCalled(); expect(h.tx.mqttMessage.update).not.toHaveBeenCalled();
   });
@@ -100,7 +105,8 @@ describe('processamento MQTT', () => {
     expect(h.tx.telemetrySample.createMany.mock.calls[0][0].data.every((row: { testId: string | null }) => row.testId === null)).toBe(true);
   });
   it.each(['PROVISIONING', 'REVOKED'])('não normaliza dispositivo agora %s', async (status) => {
-    h.tx.$queryRaw.mockResolvedValueOnce([{ id: 'v' }]).mockResolvedValueOnce([{ id: 'i' }])
+    h.tx.$queryRaw.mockResolvedValueOnce([{ ...h.row, payloadText: JSON.stringify(h.row.payload) }])
+      .mockResolvedValueOnce([{ id: 'v' }]).mockResolvedValueOnce([{ id: 'i' }])
       .mockResolvedValueOnce(status === 'REVOKED' ? [] : [{ id: device.id, status }]);
     expect(await h.service.process(id)).toMatchObject({ outcome: 'REJECTED', id });
     expect(h.tx.telemetrySample.createMany).not.toHaveBeenCalled();
@@ -113,7 +119,8 @@ describe('processamento MQTT', () => {
     expect(h.tx.telemetrySample.createMany).not.toHaveBeenCalled();
   });
   it.each(['CANCELLED', 'PLANNED'])('não processa teste que agora está %s', async (status) => {
-    h.tx.$queryRaw.mockResolvedValueOnce([{ id: 'v' }]).mockResolvedValueOnce([{ id: 'i' }])
+    h.tx.$queryRaw.mockResolvedValueOnce([{ ...h.row, payloadText: JSON.stringify(h.row.payload) }])
+      .mockResolvedValueOnce([{ id: 'v' }]).mockResolvedValueOnce([{ id: 'i' }])
       .mockResolvedValueOnce([{ id: device.id, status: 'ONLINE' }]).mockResolvedValueOnce([{ ...test, status }]);
     expect(await h.service.process(id)).toMatchObject({ outcome: 'REJECTED' });
     expect(h.tx.telemetrySample.createMany).not.toHaveBeenCalled();
@@ -167,7 +174,7 @@ describe('processamento MQTT', () => {
   it('mensagem removida antes de obter lock não cria amostras órfãs', async () => {
     const base = h.tx.$queryRaw.getMockImplementation()!;
     h.tx.$queryRaw.mockImplementation(async (sql: TemplateStringsArray, ...args: unknown[]) =>
-      sql.join(' ').includes('FROM mqtt_messages') ? [] : base(sql, ...args));
+      sql.join(' ').includes('FROM mqtt_messages') && sql.join(' ').includes('FOR UPDATE') ? [] : base(sql, ...args));
     expect(await h.service.process(id)).toEqual({ outcome: 'NOT_FOUND', id });
     expect(h.tx.telemetrySample.createMany).not.toHaveBeenCalled(); expect(h.tx.mqttMessage.update).not.toHaveBeenCalled();
   });

@@ -1,0 +1,55 @@
+# Complementa exclusivamente docker-compose.test-db.yml no projeto vers-mqtt-rehearsal.
+services:
+  mqtt-cert-init:
+    image: refacdovers-backend
+    user: "0:0"
+    entrypoint: ["sh", "-ec"]
+    command:
+      - |
+        openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj /CN=VERS-local-rehearsal -addext subjectAltName=DNS:localhost,IP:127.0.0.1 -keyout /tls/server.key -out /tls/server.crt
+        chown 1883:1883 /tls/server.key
+        chmod 600 /tls/server.key
+        chmod 644 /tls/server.crt
+    volumes:
+      - mqtt-test-tls:/tls
+
+  mqtt-auth-init:
+    image: eclipse-mosquitto:2
+    user: "0:0"
+    entrypoint: ["sh", "-ec"]
+    command:
+      - |
+        mosquitto_passwd -b -c /auth/passwords backend-test backend-test-only
+        mosquitto_passwd -b /auth/passwords vers-sim-001 synthetic-one-only
+        mosquitto_passwd -b /auth/passwords vers-sim-002 synthetic-two-only
+        chown -R 1883:1883 /auth
+        chmod 640 /auth/passwords
+    volumes:
+      - mqtt-test-auth:/auth
+
+  mqtt-test:
+    image: eclipse-mosquitto:2
+    user: "1883:1883"
+    ports:
+      - "127.0.0.1:58883:8883"
+    depends_on:
+      mqtt-cert-init:
+        condition: service_completed_successfully
+      mqtt-auth-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./docker/mqtt-test/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./docker/mqtt-test/acl:/mosquitto/config/acl:ro
+      - mqtt-test-tls:/tls:ro
+      - mqtt-test-auth:/auth
+      - mqtt-test-data:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+volumes:
+  mqtt-test-tls:
+  mqtt-test-auth:
+  mqtt-test-data:

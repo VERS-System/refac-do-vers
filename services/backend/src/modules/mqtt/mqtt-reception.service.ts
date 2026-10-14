@@ -3,8 +3,9 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { IPublishPacket } from 'mqtt';
 import { isDeepStrictEqual } from 'node:util';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { parseTelemetryMessage, TelemetryMessage } from './mqtt-contract';
+import { parseTelemetryMessage, TelemetryMessage, validateTelemetryMessage } from './mqtt-contract';
 import { NormalizedTelemetry, normalizeTelemetry } from './mqtt-normalization';
 import { EnergySummaryService } from '../data/energy-summary.service';
 
@@ -13,6 +14,8 @@ type PersistenceResult = Receipt | 'MQTT_DEVICE_UNAVAILABLE' | 'MQTT_MESSAGE_CON
 type Source = { id: string; installationId: string; vehicleId: string; status: string };
 type AuthorizedTest = { id: string; status: string; startedAt: Date | null; endedAt: Date | null };
 type Authorization = { test: AuthorizedTest | null; rejectionReason: string | null };
+type StoredMessage = { messageId: string; deviceId: string | null; schemaVersion: number; topic: string;
+  sequence: bigint; qos: number; retained: boolean; capturedAt: Date; receivedAt: Date; payloadText: string };
 type ProcessingResult = { id: string; outcome: 'NOT_FOUND' | 'ALREADY_PROCESSED' | 'REJECTED' } |
   ({ id: string; outcome: 'PROCESSED' } & Omit<NormalizedTelemetry, 'samples'>);
 const parserRejections = new Set(['MQTT_INVALID_TOPIC', 'MQTT_PAYLOAD_TOO_LARGE',
@@ -42,7 +45,8 @@ export class MqttReceptionService implements OnModuleDestroy {
     try {
       try { result = await this.persist(packet, message, receivedAt); }
       catch (error) {
-        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') throw error;
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) ||
+          (error.code !== 'P2002' && !(error.code === 'P2010' && error.meta?.code === '23505'))) throw error;
         // PostgreSQL aborta a transação após unicidade; reconsulta em uma transação nova.
         result = await this.persist(packet, message, receivedAt);
       }
@@ -57,23 +61,27 @@ export class MqttReceptionService implements OnModuleDestroy {
       const device = await this.lockDevice(tx, message.deviceUid);
       if (!device) return 'MQTT_DEVICE_UNAVAILABLE';
       const sequence = BigInt(message.sequence);
-      const existing = await tx.mqttMessage.findFirst({ where: { OR: [
-        { messageId: message.messageId }, { deviceId: device.id, sequence },
-      ] }, select: { id: true, messageId: true, deviceId: true, sequence: true, topic: true, payload: true } });
+      const [existing] = await tx.$queryRaw<(Pick<StoredMessage, 'messageId' | 'deviceId' | 'sequence' | 'topic' | 'payloadText'> & { id: string })[]>`
+        SELECT id, message_id AS "messageId", device_id AS "deviceId", sequence, topic, payload::text AS "payloadText"
+        FROM mqtt_messages WHERE message_id = ${message.messageId}
+        OR (device_id = ${device.id}::uuid AND sequence = ${sequence})`;
       if (existing) {
         // JSON persistido normaliza -0/0; comparação não depende da ordem das chaves.
         const comparable: unknown = JSON.parse(JSON.stringify(message));
         return existing.deviceId === device.id && existing.messageId === message.messageId &&
-          existing.sequence === sequence && existing.topic === packet.topic && isDeepStrictEqual(existing.payload, comparable)
+          existing.sequence === sequence && existing.topic === packet.topic && isDeepStrictEqual(JSON.parse(existing.payloadText), comparable)
           ? { outcome: 'DUPLICATE', id: existing.id } : 'MQTT_MESSAGE_CONFLICT';
       }
       const { rejectionReason } = await this.authorize(tx, message.testId, packet, device);
-      const row = await tx.mqttMessage.create({ data: { messageId: message.messageId, deviceId: device.id,
-        testId: rejectionReason ? null : message.testId, schemaVersion: message.schemaVersion, topic: packet.topic,
-        payload: message as unknown as Prisma.InputJsonObject, sequence, qos: packet.qos, retained: packet.retain,
-        capturedAt: new Date(message.capturedAt), receivedAt,
-        ...(rejectionReason ? { status: 'REJECTED', rejectionReason, processedAt: new Date() } : { status: 'RECEIVED' }),
-      }, select: { id: true } });
+      // Prisma JSON arredonda doubles nesta versão; texto parametrizado conserva a precisão do envelope.
+      const [row] = await tx.$queryRaw<{ id: string }[]>`
+        INSERT INTO mqtt_messages (id, message_id, device_id, test_id, schema_version, topic, payload,
+          sequence, qos, retained, captured_at, received_at, status, rejection_reason, processed_at, updated_at)
+        VALUES (${randomUUID()}::uuid, ${message.messageId}, ${device.id}::uuid,
+          ${rejectionReason ? null : message.testId}::uuid, ${message.schemaVersion}, ${packet.topic},
+          ${JSON.stringify(message)}::jsonb, ${sequence}, ${packet.qos}, ${packet.retain},
+          ${new Date(message.capturedAt)}, ${receivedAt}, ${rejectionReason ? 'REJECTED' : 'RECEIVED'}::mqtt_processing_status,
+          ${rejectionReason}, ${rejectionReason ? new Date() : null}, ${new Date()}) RETURNING id`;
       return { outcome: rejectionReason ? 'REJECTED' : 'RECEIVED', id: row.id };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
   }
@@ -82,11 +90,14 @@ export class MqttReceptionService implements OnModuleDestroy {
   async process(id: string): Promise<ProcessingResult> {
     try {
       return await this.prisma.$transaction(async (tx): Promise<ProcessingResult> => {
-        const raw = await tx.mqttMessage.findUnique({ where: { id } });
+        const [raw] = await tx.$queryRaw<StoredMessage[]>`
+          SELECT message_id AS "messageId", device_id AS "deviceId", schema_version AS "schemaVersion", topic,
+            sequence, qos, retained, captured_at AS "capturedAt", received_at AS "receivedAt", payload::text AS "payloadText"
+          FROM mqtt_messages WHERE id = ${id}::uuid`;
         if (!raw) return { outcome: 'NOT_FOUND', id };
         let message: TelemetryMessage | undefined;
         let rejectionReason: string | null = null;
-        try { message = parseTelemetryMessage(raw.topic, Buffer.from(JSON.stringify(raw.payload))); }
+        try { message = validateTelemetryMessage(raw.topic, JSON.parse(raw.payloadText)); }
         catch (error) {
           if (!(error instanceof Error) || !parserRejections.has(error.message)) throw error;
           rejectionReason = error.message;

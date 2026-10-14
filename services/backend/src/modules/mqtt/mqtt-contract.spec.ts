@@ -1,5 +1,5 @@
 // Confere o envelope MQTT e metadados temporais sem broker, banco ou normalização.
-import { parseTelemetryMessage, classifyDelivery, resolveSampleTest } from './mqtt-contract';
+import { parseTelemetryMessage, classifyDelivery, resolveSampleTest, validateTelemetryMessage } from './mqtt-contract';
 
 /** Cria um lote isolado para testar entradas sem compartilhar mutações. */
 function payload(): Record<string, unknown> {
@@ -19,6 +19,12 @@ function bytes(value: unknown = payload()): Buffer {
 const topic = 'vers/v1/devices/vers-sim-001/telemetry';
 
 describe('contrato MQTT v1', () => {
+  it('revalida objeto do bruto sem reaplicar tamanho textual do banco, mantendo limite na rede', () => {
+    const expanded = Buffer.from(' '.repeat(65536) + JSON.stringify(payload()));
+    expect(() => parseTelemetryMessage(topic, expanded)).toThrow('MQTT_PAYLOAD_TOO_LARGE');
+    expect(validateTelemetryMessage(topic, JSON.parse(expanded.toString('utf8')))).toEqual(payload());
+    expect(() => validateTelemetryMessage(topic, { ...payload(), forbidden: true })).toThrow('MQTT_INVALID_ENVELOPE');
+  });
   it('aceita lote, identifica posições pela ordem e preserva payload', () => {
     expect(parseTelemetryMessage(topic, bytes())).toEqual(payload());
   });

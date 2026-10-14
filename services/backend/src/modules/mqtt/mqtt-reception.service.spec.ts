@@ -35,8 +35,22 @@ function setup(): {
     mqttMessage: { findFirst: jest.Mock; create: jest.Mock; update: jest.Mock } };
   transaction: jest.Mock;
 } {
-  const tx = { $queryRaw: jest.fn().mockImplementation(async (sql: TemplateStringsArray) =>
-    sql.join(' ').includes('FROM tests') ? [{ ...authorizedTest }] : [{ id: 'locked', status: 'ONLINE' }]),
+  const tx = { $queryRaw: jest.fn().mockImplementation(async (sql: TemplateStringsArray, ...params: unknown[]) => {
+    const text = sql.join(' ');
+    if (text.includes('INSERT INTO mqtt_messages')) {
+      // Decodifica somente parâmetros do INSERT estático para conservar assertions de conteúdo/erro da recepção.
+      const [, messageId, deviceId, testId, schemaVersion, topic, payload, sequence, qos, retained,
+        capturedAt, receivedAt, status, rejectionReason, processedAt] = params;
+      return [await tx.mqttMessage.create({ data: { messageId, deviceId, testId, schemaVersion, topic,
+        payload: JSON.parse(payload as string), sequence, qos, retained, capturedAt, receivedAt, status,
+        ...(rejectionReason ? { rejectionReason, processedAt } : {}) }, select: { id: true } })];
+    }
+    if (text.includes('FROM mqtt_messages')) {
+      const existing = await tx.mqttMessage.findFirst();
+      return existing ? [{ ...existing, payloadText: JSON.stringify(existing.payload) }] : [];
+    }
+    return text.includes('FROM tests') ? [{ ...authorizedTest }] : [{ id: 'locked', status: 'ONLINE' }];
+  }),
     device: { findUnique: jest.fn().mockResolvedValue(device) },
     mqttMessage: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn().mockResolvedValue({ id: 'persisted-id' }),
       update: jest.fn() } };
@@ -88,7 +102,8 @@ describe('recepção MQTT', () => {
   it('bloqueia veículo, instalação e dispositivo antes de gravar, sem interpolar SQL', async () => {
     await harness.service.receive(packet(), receivedAt);
     const calls = harness.tx.$queryRaw.mock.calls;
-    expect(calls.map(([sql]) => (sql as TemplateStringsArray).join(' '))).toEqual([
+    expect(calls.filter(([sql]) => (sql as TemplateStringsArray).join(' ').includes('FOR UPDATE'))
+      .map(([sql]) => (sql as TemplateStringsArray).join(' '))).toEqual([
       expect.stringContaining('FROM vehicles'), expect.stringContaining('FROM vers_installations'),
       expect.stringContaining('FROM devices'), expect.stringContaining('FROM tests')]);
     expect((calls[2][0] as TemplateStringsArray).join(' ')).toContain('revoked_at IS NULL');
@@ -217,7 +232,7 @@ describe('recepção MQTT', () => {
     expect(await harness.service.receive(packet(), receivedAt)).toEqual({ outcome: 'REJECTED', id: 'persisted-id' });
     expect(harness.tx.mqttMessage.create.mock.calls[0][0].data).toMatchObject({ payload: message(),
       status: 'REJECTED', testId: null, rejectionReason: 'MQTT_DEVICE_NOT_READY', processedAt: receivedAt });
-    expect(harness.tx.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(harness.tx.$queryRaw.mock.calls.some(([sql]) => (sql as TemplateStringsArray).join(' ').includes('FROM tests'))).toBe(false);
   });
   it.each([{ qos: 0, retain: false }, { qos: 2, retain: false }, { qos: 1, retain: true }])(
     'não processa transporte fora do contrato %j', async (metadata) => {
@@ -228,12 +243,12 @@ describe('recepção MQTT', () => {
     });
   it('testId null conserva telemetria da instalação e não consulta teste', async () => {
     await harness.service.receive(packet({ ...message(), testId: null }), receivedAt);
-    expect(harness.tx.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(harness.tx.$queryRaw.mock.calls.some(([sql]) => (sql as TemplateStringsArray).join(' ').includes('FROM tests'))).toBe(false);
     expect(harness.tx.mqttMessage.create.mock.calls[0][0].data).toMatchObject({ status: 'RECEIVED', testId: null });
   });
   it('consulta e bloqueia teste somente da mesma instalação e veículo', async () => {
     await harness.service.receive(packet(), receivedAt);
-    const [sql, ...params] = harness.tx.$queryRaw.mock.calls[3];
+    const [sql, ...params] = harness.tx.$queryRaw.mock.calls.find(([query]) => (query as TemplateStringsArray).join(' ').includes('FROM tests'))!;
     expect((sql as TemplateStringsArray).join(' ')).toEqual(expect.stringContaining('FOR UPDATE'));
     expect((sql as TemplateStringsArray).join(' ')).toEqual(expect.stringContaining('installation_id ='));
     expect((sql as TemplateStringsArray).join(' ')).toEqual(expect.stringContaining('vehicle_id ='));
@@ -249,7 +264,7 @@ describe('recepção MQTT', () => {
     [{ ...authorizedTest, status: 'COMPLETED', endedAt: authorizedTest.startedAt }],
   ].map((rows) => ({ rows })))('rejeita processamento com vínculo/estado/intervalo de teste inválido %#', async ({ rows }) => {
     harness.tx.$queryRaw.mockResolvedValueOnce([{ id: 'vehicle' }]).mockResolvedValueOnce([{ id: 'installation' }])
-      .mockResolvedValueOnce([{ id: device.id, status: 'ONLINE' }]).mockResolvedValueOnce(rows);
+      .mockResolvedValueOnce([{ id: device.id, status: 'ONLINE' }]).mockResolvedValueOnce([]).mockResolvedValueOnce(rows);
     expect(await harness.service.receive(packet(), receivedAt)).toEqual({ outcome: 'REJECTED', id: 'persisted-id' });
     expect(harness.tx.mqttMessage.create.mock.calls[0][0].data).toMatchObject({ payload: message(),
       status: 'REJECTED', rejectionReason: 'MQTT_TEST_UNAVAILABLE', testId: null, processedAt: receivedAt });
@@ -258,7 +273,7 @@ describe('recepção MQTT', () => {
   it.each(['COMPLETED', 'FAILED'])('aceita captura histórica em teste %s sem alterar seu estado', async (status) => {
     const test = { ...authorizedTest, status, endedAt: new Date('2026-10-14T12:00:05.000Z') };
     harness.tx.$queryRaw.mockResolvedValueOnce([{ id: 'vehicle' }]).mockResolvedValueOnce([{ id: 'installation' }])
-      .mockResolvedValueOnce([{ id: device.id, status: 'OFFLINE' }]).mockResolvedValueOnce([test]);
+      .mockResolvedValueOnce([{ id: device.id, status: 'OFFLINE' }]).mockResolvedValueOnce([]).mockResolvedValueOnce([test]);
     await harness.service.receive(packet(), new Date('2026-10-14T13:00:00.000Z'));
     expect(harness.tx.mqttMessage.create.mock.calls[0][0].data).toMatchObject({ status: 'RECEIVED', testId: test.id });
     expect(resolveSampleTest(test.endedAt, test)).toEqual({ testId: test.id, association: 'ASSOCIATED' });
@@ -269,13 +284,26 @@ describe('recepção MQTT', () => {
   it('retransmissão de rejeitada mantém decisão original sem reautorizar ou alterar bruto', async () => {
     harness.tx.mqttMessage.findFirst.mockResolvedValue({ ...existing(), status: 'REJECTED', rejectionReason: 'MQTT_TEST_UNAVAILABLE' });
     expect(await harness.service.receive(packet(), receivedAt)).toEqual({ outcome: 'DUPLICATE', id: 'existing-id' });
-    expect(harness.tx.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(harness.tx.$queryRaw.mock.calls.some(([sql]) => (sql as TemplateStringsArray).join(' ').includes('FROM tests'))).toBe(false);
     expect(harness.tx.mqttMessage.create).not.toHaveBeenCalled(); expect(harness.tx.mqttMessage.update).not.toHaveBeenCalled();
   });
   it('falha ao bloquear teste não confirma nem persiste decisão parcial', async () => {
     harness.tx.$queryRaw.mockResolvedValueOnce([{ id: 'vehicle' }]).mockResolvedValueOnce([{ id: 'installation' }])
-      .mockResolvedValueOnce([{ id: device.id, status: 'ONLINE' }]).mockRejectedValueOnce(new Error('CANARY_SECRET'));
+      .mockResolvedValueOnce([{ id: device.id, status: 'ONLINE' }]).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('CANARY_SECRET'));
     await expect(harness.service.receive(packet(), receivedAt)).rejects.toThrow('MQTT_PERSISTENCE_FAILED');
     expect(harness.tx.mqttMessage.create).not.toHaveBeenCalled(); expect(Logger.prototype.warn).not.toHaveBeenCalled();
+  });
+  it('23505 do INSERT SQL reconsulta em nova transação sem reutilizar transação abortada', async () => {
+    harness.tx.mqttMessage.create.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError('CANARY_SECRET',
+      { code: 'P2010', clientVersion: 'test', meta: { code: '23505' } }));
+    harness.tx.mqttMessage.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(existing());
+    expect(await harness.service.receive(packet(), receivedAt)).toEqual({ outcome: 'DUPLICATE', id: 'existing-id' });
+    expect(harness.transaction).toHaveBeenCalledTimes(2);
+  });
+  it('outro SQLSTATE não entra em retry de unicidade nem expõe causa', async () => {
+    harness.tx.mqttMessage.create.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError('CANARY_SECRET',
+      { code: 'P2010', clientVersion: 'test', meta: { code: '23514' } }));
+    await expect(harness.service.receive(packet(), receivedAt)).rejects.toThrow('MQTT_PERSISTENCE_FAILED');
+    expect(harness.transaction).toHaveBeenCalledTimes(1);
   });
 });

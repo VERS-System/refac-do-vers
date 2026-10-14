@@ -38,12 +38,18 @@ function timestamp(value: unknown): number {
 
 /** Limita bytes antes do parse e valida cada campo, preservando ausente/null/zero no payload original. */
 export function parseTelemetryMessage(topic: string, payload: Buffer): TelemetryMessage {
-  const match = /^vers\/v1\/devices\/([A-Za-z0-9_-]{1,64})\/telemetry$/.exec(topic);
-  if (!match) throw new Error('MQTT_INVALID_TOPIC');
+  if (!/^vers\/v1\/devices\/([A-Za-z0-9_-]{1,64})\/telemetry$/.test(topic)) throw new Error('MQTT_INVALID_TOPIC');
   if (payload.length > 65536) throw new Error('MQTT_PAYLOAD_TOO_LARGE');
   let decoded: unknown;
   try { decoded = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(payload)); }
   catch { throw new Error('MQTT_INVALID_JSON'); }
+  return validateTelemetryMessage(topic, decoded);
+}
+
+/** Revalida formato de JSONB já recebido sem confundir expansão textual do banco com bytes da rede. */
+export function validateTelemetryMessage(topic: string, decoded: unknown): TelemetryMessage {
+  const match = /^vers\/v1\/devices\/([A-Za-z0-9_-]{1,64})\/telemetry$/.exec(topic);
+  if (!match) throw new Error('MQTT_INVALID_TOPIC');
   const envelope = object(decoded, ['schemaVersion', 'messageId', 'deviceUid', 'sequence', 'capturedAt', 'testId', 'samples']);
   if (envelope.schemaVersion !== 1 || envelope.deviceUid !== match[1] ||
     typeof envelope.messageId !== 'string' || !isUUID(envelope.messageId, '4') ||

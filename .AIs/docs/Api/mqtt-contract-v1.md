@@ -498,3 +498,27 @@ Validação local 7.6: 39 suítes/806 testes, 28 novos, lint/build aprovados.
 Backend reconstruído/reiniciado; live ok, readiness inicialmente 503 e depois
 ok com banco/Redis disponíveis e MQTT disabled. Pipeline não foi iniciado;
 timer/recuperação/broker reais não foram exercitados nesta verificação HTTP.
+
+### Ensaio local 7.7
+
+Ensaio autorizado em 14/10/2026 com PostgreSQL 16 e Mosquitto TLS isolados;
+comandos e matriz em [F07.7](../plans/backend-phase-7-rehearsal.md).
+33 testes PostgreSQL e sete cenários de broker aprovados, além de 809 unitários,
+lint/build e tipagem. Concorrência, rollback, recuperação em novo processo,
+sessão offline, reconexão, TLS, ACL e recusa de novas conexões revogadas
+exercitados de fato. Serviços de ensaio parados com volumes preservados.
+
+Corrigido arredondamento do codec JSON do Prisma 6.19.3: envelope entra como
+texto parametrizado ::jsonb e é lido via payload::text para comparação e
+normalização. Retransmissão idêntica permanece duplicata; valor double adjacente
+permanece conflito, sem tolerância no bruto. JSONB conserva valores, sem
+prometer formatação textual original; Float normalizado/derivado mantém
+tolerância numérica da F06. Revalidação do objeto armazenado preserva allowlist
+sem aplicar limite de bytes MQTT à expansão textual do JSONB.
+
+Broker local recusa pacote excessivo (MQTT 5 reason 149), publicação em tópico
+alheio e publicação pelo consumidor. ACL de leitura foi conferida na entrega,
+pois Mosquitto pode conceder assinatura sem autorizar os dados. Remoção de
+senha impede novas conexões; não comprova expulsão de sessões existentes.
+HiveMQ Cloud, credenciais/ACL reais, ESP32, status/events e retenção continuam
+pendentes. Consumer do backend habitual continua sem início automático.

@@ -5,8 +5,10 @@ Estado: recortes locais 7.1–7.3 entregues para revisão em 14/10/2026;
 7.4 entregue para revisão com mocks, testes, lint/build e container atualizado.
 7.5 entregue para revisão com mocks/testes/lint/build e container atualizado.
 7.6 entregue para revisão com mocks/testes/lint/build e container atualizado.
+7.7 entregue para revisão com PostgreSQL/Mosquitto TLS isolados autorizados;
+evidências e comandos em [ensaio local](backend-phase-7-rehearsal.md).
 Sequência, políticas temporais e REST não bloqueado por MQTT aprovados;
-integração real não iniciada.
+integração HiveMQ/ESP32 ainda não iniciada.
 F05 preservada; F06 permanece com as decisões registradas. F08 e F09 serão
 planejadas separadamente após validação do programador.
 

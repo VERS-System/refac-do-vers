@@ -31,6 +31,7 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [Revisão do pull da Fase 3](problems/backend-f03-review-24-09-2026.md) | Aderência aos lotes e problemas identificados. |
 | [Roadmap executável do backend](plans/backend-roadmap/README.md)  | Fases detalhadas do backend, dependências, etapas e critérios de saída. |
 | [Fechamento local da F06](plans/backend-phase-6-closure-13-10-2026.md) | Matriz de evidências, ensaio de 10 mil amostras e pendências reais para revisão. |
+| [Ensaio isolado F07.7](plans/backend-phase-7-rehearsal.md) | Autorização, isolamento e resultados reais de ingestão com PostgreSQL e broker TLS locais. |
 | [Roadmap de telas do mobile](plans/mobile-roadmap/README.md)      | Tasks por tela, navegação, estados visuais e encaixe com o backend.     |
 
 ## Organização

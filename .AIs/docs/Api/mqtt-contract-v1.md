@@ -522,3 +522,11 @@ pois Mosquitto pode conceder assinatura sem autorizar os dados. Remoção de
 senha impede novas conexões; não comprova expulsão de sessões existentes.
 HiveMQ Cloud, credenciais/ACL reais, ESP32, status/events e retenção continuam
 pendentes. Consumer do backend habitual continua sem início automático.
+
+### Evento interno versionado — F08.1
+
+O evento telemetry.processed passa a conter version=1, type, messageId interno,
+correlationId igual ao ID interno e occurredAt UTC de emissão, conforme
+[contrato de tempo real](realtime-contract-v1.md). Mantém emissão somente após
+commit e nenhuma notificação nova em reparo de PROCESSED. Não é payload externo
+autorizado nem ativa Redis/Socket.IO. Metadata não contém amostras ou bruto.

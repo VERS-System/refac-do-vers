@@ -6,6 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EnergySummaryService } from '../data/energy-summary.service';
 import { MqttReceptionService } from './mqtt-reception.service';
 import { MqttService } from './mqtt.service';
+import { TELEMETRY_PROCESSED_EVENT, TelemetryProcessedEvent } from './mqtt-events';
 
 type RecoveryReport = { handled: number; failed: number };
 
@@ -63,7 +64,9 @@ export class MqttPipelineService implements OnModuleDestroy {
     const result = await this.reception.process(id);
     if (result.outcome === 'ALREADY_PROCESSED') await this.summaries.recomputeMessage(id);
     if (result.outcome !== 'PROCESSED') return;
-    try { this.events.emit('telemetry.processed', { messageId: id }); }
+    const event: TelemetryProcessedEvent = { version: 1, type: TELEMETRY_PROCESSED_EVENT,
+      messageId: id, correlationId: id, occurredAt: new Date().toISOString() };
+    try { this.events.emit(TELEMETRY_PROCESSED_EVENT, event); }
     catch { this.logger.warn('mqtt_event_failed'); }
   }
 

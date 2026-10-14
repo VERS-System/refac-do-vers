@@ -25,13 +25,17 @@ describe('pipeline MQTT', () => {
     expect(jest.getTimerCount()).toBe(0);
   });
   it('recebe, processa e emite somente após a promessa de commit resolver', async () => {
+    jest.setSystemTime(new Date('2026-10-14T12:00:00.000Z'));
     let commit!: () => void; const event = jest.fn(); h.service.events.on('telemetry.processed', event);
     h.reception.process.mockImplementationOnce(() => new Promise((resolve) => {
       commit = (): void => { resolve({ outcome: 'PROCESSED', id: 'message' }); };
     }));
     const pending = h.service.handle({} as never, new Date()); await Promise.resolve(); await Promise.resolve();
-    expect(event).not.toHaveBeenCalled(); commit(); await pending;
-    expect(event).toHaveBeenCalledWith({ messageId: 'message' });
+    expect(event).not.toHaveBeenCalled();
+    jest.setSystemTime(new Date('2026-10-14T12:00:01.000Z')); commit(); await pending;
+    expect(event).toHaveBeenCalledTimes(1);
+    expect(event).toHaveBeenCalledWith({ version: 1, type: 'telemetry.processed', messageId: 'message',
+      correlationId: 'message', occurredAt: '2026-10-14T12:00:01.000Z' });
     expect(h.reception.receive.mock.invocationCallOrder[0]).toBeLessThan(h.reception.process.mock.invocationCallOrder[0]);
   });
   it('duplicata RECEIVED retoma processamento e não reinventa recepção', async () => {
@@ -43,6 +47,20 @@ describe('pipeline MQTT', () => {
     const event = jest.fn(); h.service.events.on('telemetry.processed', event);
     await h.service.handle({} as never, new Date());
     expect(h.summaries.recomputeMessage).toHaveBeenCalledWith('message'); expect(event).not.toHaveBeenCalled();
+  });
+  it('recuperação emite o mesmo contrato mínimo após processamento pendente', async () => {
+    jest.setSystemTime(new Date('2026-10-14T13:00:00.000Z'));
+    h.prisma.mqttMessage.findMany.mockResolvedValueOnce([{ id: 'pending' }]);
+    const event = jest.fn(); h.service.events.on('telemetry.processed', event);
+    await h.service.recover();
+    expect(event).toHaveBeenCalledWith({ version: 1, type: 'telemetry.processed', messageId: 'pending',
+      correlationId: 'pending', occurredAt: '2026-10-14T13:00:00.000Z' });
+    expect(h.reception.process).toHaveBeenCalledWith('pending');
+  });
+  it.each(['REJECTED', 'NOT_FOUND'])('processamento %s não emite atualização', async (outcome) => {
+    h.reception.process.mockResolvedValue({ outcome, id: 'message' });
+    const event = jest.fn(); h.service.events.on('telemetry.processed', event);
+    await h.service.handle({} as never, new Date()); expect(event).not.toHaveBeenCalled();
   });
   it.each([{ outcome: 'REJECTED', id: 'message' }, { outcome: 'REJECTED', id: null }])(
     'rejeição permanente é confirmável sem processar novamente %#', async (receipt) => {

@@ -18,7 +18,7 @@ arquitetura; estes documentos definem como executar cada fase.
 | 05 | [Recursos de domínio](05-recursos-dominio.md) | Recorte executável concluído — avanço aprovado em 13/10/2026; pendências reais preservadas | Fase 04 |
 | 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Recorte local pronto para revisão — lotes 6.1–6.8 entregues; aceite e ensaio PostgreSQL pendentes | Fase 05 |
 | 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Recortes 7.1–7.7 entregues para revisão; PostgreSQL e broker TLS locais ensaiados, HiveMQ/ESP32 pendentes | Fase 06 + hardware/simulador |
-| 08 | [Tempo real](08-tempo-real.md) | Planejada | Fase 07 |
+| 08 | [Tempo real](08-tempo-real.md) | Lote local 8.1 entregue para revisão; contrato interno versionado, sem Redis/Socket.IO ativados | Fase 07 |
 | 09 | [Operação e entrega](09-operacao-entrega.md) | Planejada | Fases 00–08 |
 
 ```text
@@ -56,6 +56,8 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Fechamento local e matriz de revisão da Fase 6](../backend-phase-6-closure-13-10-2026.md)
 - [Plano executável da Fase 7 — recortes locais para revisão](../backend-phase-7-execution-roadmap.md)
 - [Ensaio isolado F07.7 — autorização, comandos e evidências](../backend-phase-7-rehearsal.md)
+- [Plano executável da Fase 8](../backend-phase-8-execution-roadmap.md)
+- [Contrato incremental de tempo real v1](../../Api/realtime-contract-v1.md)
 - [Contrato MQTT v1 local do simulador](../../Api/mqtt-contract-v1.md)
 - [Schema v2 proposto](../schema-mobile-mqtt.md)
 - [Roadmap estratégico de Backend e MQTT](../backend-mqtt-roadmap.md)

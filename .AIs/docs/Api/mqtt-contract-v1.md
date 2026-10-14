@@ -349,8 +349,42 @@ SQL/locks/rollback/trigger/concorrência reais; ensaio PostgreSQL isolado penden
 Recorte local de telemetria 7.1 entregue para revisão, com validador/gerador.
 Transporte local 7.2 entregue para revisão, sem ativação automática.
 Recepção local 7.3 entregue para revisão, sem broker ou ensaio SQL real.
-Persistência de amostras, classificação temporal pública, vínculo de teste,
-validação completa de domínio, recomputação e reenvio ainda não implementados.
+Na entrega 7.3, persistência de amostras, classificação temporal pública,
+vínculo de teste, validação completa de domínio, recomputação e reenvio ainda
+não estavam implementados; a autorização de envelope evolui na 7.4 abaixo.
 Deduplicação básica foi implementada, mas concorrência real continua sem ensaio.
 Status/events permanecem reservados, sem tratamento. Não declarar F07 completa,
 F06 encerrada ou marco de integração cumprido sem broker e ensaios autorizados.
+
+### Autorização local 7.4
+
+Decisões do programador em 14/10/2026: permitir processamento de dispositivos
+ONLINE/OFFLINE/FAULT e instalações em qualquer estado para capturas históricas.
+Origem desconhecida/revogada continua recusada antes de persistir; PROVISIONING
+preserva envelope íntegro como REJECTED, motivo MQTT_DEVICE_NOT_READY.
+QoS diferente de 1 ou retained true preserva bruto com MQTT_TRANSPORT_NOT_ALLOWED.
+
+Para envelope novo com testId, após deduplicação e locks de origem, bloquear
+somente teste da mesma instalação e veículo. RUNNING exige startedAt e nenhum
+endedAt; COMPLETED/FAILED exigem startedAt e endedAt maior que startedAt.
+CANCELLED, PLANNED, teste ausente/alheio ou intervalo inconsistente geram
+REJECTED, MQTT_TEST_UNAVAILABLE e testId relacional null. O testId declarado
+continua no payload original. Não consultar/expor detalhes de teste alheio.
+
+Recusas de domínio persistidas recebem processedAt do backend e retornam
+internamente outcome REJECTED com ID de correlação do bruto. Não entram nos
+logs de rejeições de entrada: o próprio registro é a evidência durável.
+Falha no commit lança erro seguro, sem confirmação positiva do transporte.
+
+Envelope autorizado permanece RECEIVED, com testId relacional autorizado;
+testId null não exige teste. Esse vínculo é do envelope, não de todas as suas
+amostras. Capturas fora do intervalo continuam preservadas no bruto e o helper
+resolveSampleTest retorna OUTSIDE_TEST/testId null para futura normalização.
+Captura terminal é associável; chegada após encerramento não altera o teste.
+Persistência de TelemetrySample e sinalização individual ficam para 7.5.
+
+Retransmissão equivalente, inclusive de rejeitada, conserva ID/estado/motivo
+originais e não reautoriza. Conflito não sobrescreve bruto. Mensagens antigas
+RECEIVED exigirão revalidação no pipeline antes de gerar amostras, pois teste
+ou dispositivo podem mudar após recepção. Consumidor permanece passivo,
+sem start automático, broker, schema ou migration neste recorte.

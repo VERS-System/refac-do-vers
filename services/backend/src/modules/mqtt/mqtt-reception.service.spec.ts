@@ -6,12 +6,15 @@ import { Prisma } from '@prisma/client';
 import { connect, IPublishPacket } from 'mqtt';
 import { MqttReceptionService } from './mqtt-reception.service';
 import { MqttService } from './mqtt.service';
+import { resolveSampleTest } from './mqtt-contract';
 
 jest.mock('mqtt', () => ({ connect: jest.fn() }));
 const receivedAt = new Date('2026-10-14T12:00:10.000Z');
 const topic = 'vers/v1/devices/vers-sim-001/telemetry';
 const device = { id: '00000000-0000-4000-8000-000000000601',
   installationId: '00000000-0000-4000-8000-000000000201', vehicleId: '00000000-0000-4000-8000-000000000101' };
+const authorizedTest = { id: '00000000-0000-4000-8000-000000000501', status: 'RUNNING',
+  startedAt: new Date('2026-10-14T12:00:00.000Z'), endedAt: null as Date | null };
 
 /** Cria envelope isolado para verificar dados originais e conflitos de conteúdo. */
 function message(): Record<string, unknown> {
@@ -32,7 +35,8 @@ function setup(): {
     mqttMessage: { findFirst: jest.Mock; create: jest.Mock; update: jest.Mock } };
   transaction: jest.Mock;
 } {
-  const tx = { $queryRaw: jest.fn().mockResolvedValue([{ id: 'locked' }]),
+  const tx = { $queryRaw: jest.fn().mockImplementation(async (sql: TemplateStringsArray) =>
+    sql.join(' ').includes('FROM tests') ? [{ ...authorizedTest }] : [{ id: 'locked', status: 'ONLINE' }]),
     device: { findUnique: jest.fn().mockResolvedValue(device) },
     mqttMessage: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn().mockResolvedValue({ id: 'persisted-id' }),
       update: jest.fn() } };
@@ -55,22 +59,23 @@ describe('recepção MQTT', () => {
   });
   afterEach(() => { harness.service.onModuleDestroy(); jest.restoreAllMocks(); jest.useRealTimers(); jest.clearAllMocks(); });
 
-  it('persiste envelope íntegro e metadados sem associar teste ainda não autorizado', async () => {
+  it('persiste envelope íntegro e associa somente teste autorizado na transação', async () => {
     const { service, tx, transaction } = harness;
     expect(await service.receive(packet(), receivedAt)).toEqual({ outcome: 'RECEIVED', id: 'persisted-id' });
     expect(transaction).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
     expect(tx.mqttMessage.create).toHaveBeenCalledWith({ data: {
-      messageId: message().messageId, deviceId: device.id, testId: null, schemaVersion: 1,
+      messageId: message().messageId, deviceId: device.id, testId: authorizedTest.id, schemaVersion: 1,
       topic, payload: message(), sequence: 1n, qos: 1, retained: false,
       capturedAt: new Date('2026-10-14T12:00:00.000Z'), receivedAt, status: 'RECEIVED',
     }, select: { id: true } });
     expect(tx.mqttMessage.update).not.toHaveBeenCalled(); expect(Logger.prototype.warn).not.toHaveBeenCalled();
   });
-  it('mantém QoS/retained como metadados e não inventa potência para null/zero', async () => {
+  it('preserva bruto/metadados de transporte recusado sem inventar potência para null/zero', async () => {
     const source = packet(); source.qos = 0; source.retain = true;
     await harness.service.receive(source, receivedAt);
     const saved = harness.tx.mqttMessage.create.mock.calls[0][0].data;
     expect(saved).toMatchObject({ qos: 0, retained: true, payload: message() });
+    expect(saved).toMatchObject({ status: 'REJECTED', testId: null, rejectionReason: 'MQTT_TRANSPORT_NOT_ALLOWED', processedAt: receivedAt });
     expect(saved.payload.samples[0].measurements).not.toHaveProperty('powerW');
   });
   it.each(['2026-10-14T11:00:00.000Z', '2026-10-14T13:00:00.000Z'])(
@@ -84,7 +89,7 @@ describe('recepção MQTT', () => {
     const calls = harness.tx.$queryRaw.mock.calls;
     expect(calls.map(([sql]) => (sql as TemplateStringsArray).join(' '))).toEqual([
       expect.stringContaining('FROM vehicles'), expect.stringContaining('FROM vers_installations'),
-      expect.stringContaining('FROM devices')]);
+      expect.stringContaining('FROM devices'), expect.stringContaining('FROM tests')]);
     expect((calls[2][0] as TemplateStringsArray).join(' ')).toContain('revoked_at IS NULL');
     expect((calls[2][0] as TemplateStringsArray).join(' ')).toContain("status <> 'REVOKED'");
     expect(calls[2]).toEqual(expect.arrayContaining([device.id, 'vers-sim-001', device.installationId, device.vehicleId]));
@@ -198,5 +203,78 @@ describe('recepção MQTT', () => {
       const failedAck = jest.fn(); client.handleMessage(packet(), failedAck); await jest.advanceTimersByTimeAsync(0);
       expect(failedAck).toHaveBeenCalledWith(new Error('MQTT_PROCESSING_FAILED')); expect(client.stream.destroy).toHaveBeenCalled();
     } finally { await transport.onModuleDestroy(); }
+  });
+
+  it.each(['ONLINE', 'OFFLINE', 'FAULT'])('processa dispositivo %s sem depender de presença online', async (status) => {
+    harness.tx.$queryRaw.mockResolvedValueOnce([{ id: 'vehicle' }]).mockResolvedValueOnce([{ id: 'installation' }])
+      .mockResolvedValueOnce([{ id: device.id, status }]);
+    expect(await harness.service.receive(packet(), receivedAt)).toEqual({ outcome: 'RECEIVED', id: 'persisted-id' });
+  });
+  it('preserva bruto de PROVISIONING como rejeitado sem consultar teste ou gerar vínculo', async () => {
+    harness.tx.$queryRaw.mockResolvedValueOnce([{ id: 'vehicle' }]).mockResolvedValueOnce([{ id: 'installation' }])
+      .mockResolvedValueOnce([{ id: device.id, status: 'PROVISIONING' }]);
+    expect(await harness.service.receive(packet(), receivedAt)).toEqual({ outcome: 'REJECTED', id: 'persisted-id' });
+    expect(harness.tx.mqttMessage.create.mock.calls[0][0].data).toMatchObject({ payload: message(),
+      status: 'REJECTED', testId: null, rejectionReason: 'MQTT_DEVICE_NOT_READY', processedAt: receivedAt });
+    expect(harness.tx.$queryRaw).toHaveBeenCalledTimes(3);
+  });
+  it.each([{ qos: 0, retain: false }, { qos: 2, retain: false }, { qos: 1, retain: true }])(
+    'não processa transporte fora do contrato %j', async (metadata) => {
+      expect(await harness.service.receive({ ...packet(), ...metadata } as never, receivedAt))
+        .toEqual({ outcome: 'REJECTED', id: 'persisted-id' });
+      expect(harness.tx.mqttMessage.create.mock.calls[0][0].data).toMatchObject({ payload: message(),
+        status: 'REJECTED', rejectionReason: 'MQTT_TRANSPORT_NOT_ALLOWED', testId: null });
+    });
+  it('testId null conserva telemetria da instalação e não consulta teste', async () => {
+    await harness.service.receive(packet({ ...message(), testId: null }), receivedAt);
+    expect(harness.tx.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(harness.tx.mqttMessage.create.mock.calls[0][0].data).toMatchObject({ status: 'RECEIVED', testId: null });
+  });
+  it('consulta e bloqueia teste somente da mesma instalação e veículo', async () => {
+    await harness.service.receive(packet(), receivedAt);
+    const [sql, ...params] = harness.tx.$queryRaw.mock.calls[3];
+    expect((sql as TemplateStringsArray).join(' ')).toEqual(expect.stringContaining('FOR UPDATE'));
+    expect((sql as TemplateStringsArray).join(' ')).toEqual(expect.stringContaining('installation_id ='));
+    expect((sql as TemplateStringsArray).join(' ')).toEqual(expect.stringContaining('vehicle_id ='));
+    expect(params).toEqual([authorizedTest.id, device.installationId, device.vehicleId]);
+    expect((harness.tx.$queryRaw.mock.calls[1][0] as TemplateStringsArray).join(' ')).not.toContain('status');
+  });
+  it.each([
+    [], [{ ...authorizedTest, status: 'PLANNED', startedAt: null }],
+    [{ ...authorizedTest, status: 'CANCELLED', endedAt: receivedAt }],
+    [{ ...authorizedTest, startedAt: null }], [{ ...authorizedTest, endedAt: receivedAt }],
+    [{ ...authorizedTest, status: 'COMPLETED', endedAt: null }],
+    [{ ...authorizedTest, status: 'FAILED', endedAt: new Date('2026-10-14T11:00:00.000Z') }],
+    [{ ...authorizedTest, status: 'COMPLETED', endedAt: authorizedTest.startedAt }],
+  ].map((rows) => ({ rows })))('rejeita processamento com vínculo/estado/intervalo de teste inválido %#', async ({ rows }) => {
+    harness.tx.$queryRaw.mockResolvedValueOnce([{ id: 'vehicle' }]).mockResolvedValueOnce([{ id: 'installation' }])
+      .mockResolvedValueOnce([{ id: device.id, status: 'ONLINE' }]).mockResolvedValueOnce(rows);
+    expect(await harness.service.receive(packet(), receivedAt)).toEqual({ outcome: 'REJECTED', id: 'persisted-id' });
+    expect(harness.tx.mqttMessage.create.mock.calls[0][0].data).toMatchObject({ payload: message(),
+      status: 'REJECTED', rejectionReason: 'MQTT_TEST_UNAVAILABLE', testId: null, processedAt: receivedAt });
+    expect(Logger.prototype.warn).not.toHaveBeenCalled();
+  });
+  it.each(['COMPLETED', 'FAILED'])('aceita captura histórica em teste %s sem alterar seu estado', async (status) => {
+    const test = { ...authorizedTest, status, endedAt: new Date('2026-10-14T12:00:05.000Z') };
+    harness.tx.$queryRaw.mockResolvedValueOnce([{ id: 'vehicle' }]).mockResolvedValueOnce([{ id: 'installation' }])
+      .mockResolvedValueOnce([{ id: device.id, status: 'OFFLINE' }]).mockResolvedValueOnce([test]);
+    await harness.service.receive(packet(), new Date('2026-10-14T13:00:00.000Z'));
+    expect(harness.tx.mqttMessage.create.mock.calls[0][0].data).toMatchObject({ status: 'RECEIVED', testId: test.id });
+    expect(resolveSampleTest(test.endedAt, test)).toEqual({ testId: test.id, association: 'ASSOCIATED' });
+    expect(resolveSampleTest(new Date(test.endedAt.getTime() + 1), test))
+      .toEqual({ testId: null, association: 'OUTSIDE_TEST' });
+    expect(test.status).toBe(status);
+  });
+  it('retransmissão de rejeitada mantém decisão original sem reautorizar ou alterar bruto', async () => {
+    harness.tx.mqttMessage.findFirst.mockResolvedValue({ ...existing(), status: 'REJECTED', rejectionReason: 'MQTT_TEST_UNAVAILABLE' });
+    expect(await harness.service.receive(packet(), receivedAt)).toEqual({ outcome: 'DUPLICATE', id: 'existing-id' });
+    expect(harness.tx.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(harness.tx.mqttMessage.create).not.toHaveBeenCalled(); expect(harness.tx.mqttMessage.update).not.toHaveBeenCalled();
+  });
+  it('falha ao bloquear teste não confirma nem persiste decisão parcial', async () => {
+    harness.tx.$queryRaw.mockResolvedValueOnce([{ id: 'vehicle' }]).mockResolvedValueOnce([{ id: 'installation' }])
+      .mockResolvedValueOnce([{ id: device.id, status: 'ONLINE' }]).mockRejectedValueOnce(new Error('CANARY_SECRET'));
+    await expect(harness.service.receive(packet(), receivedAt)).rejects.toThrow('MQTT_PERSISTENCE_FAILED');
+    expect(harness.tx.mqttMessage.create).not.toHaveBeenCalled(); expect(Logger.prototype.warn).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,8 @@
 <!-- Planeja a ingestão MQTT em etapas revisáveis antes da integração real. -->
 # F07 — Contrato e ingestão MQTT
 
-Estado: recortes locais 7.1–7.3 entregues para revisão em 14/10/2026.
+Estado: recortes locais 7.1–7.3 entregues para revisão em 14/10/2026;
+7.4 entregue para revisão com mocks, testes, lint/build e container atualizado.
 Sequência, políticas temporais e REST não bloqueado por MQTT aprovados;
 integração real não iniciada.
 F05 preservada; F06 permanece com as decisões registradas. F08 e F09 serão
@@ -142,6 +143,58 @@ silenciosa, com evidência de transações/concorrência em PostgreSQL isolado.
    serão associadas; o backend não muda regras operacionais por suposição.
 
 ## Arquivos previstos e limites
+
+### Plano autorizado 7.4 — autorização e associação do envelope
+
+Continuidade solicitada pelo programador em 14/10/2026. Decisões explícitas:
+processar dispositivos ONLINE/OFFLINE/FAULT, recusar PROVISIONING/REVOKED;
+instalação pode estar em qualquer estado para preservar histórico. Teste
+inexistente, alheio ou nunca iniciado: preservar bruto e rejeitar processamento.
+Somente RUNNING/COMPLETED/FAILED podem receber associação; CANCELLED não.
+Encerramento não impede captura histórica dentro do intervalo. Fora do
+intervalo, amostra futura permanece na instalação sem vínculo, como em 7.1.
+
+Escopo informado: mqtt-reception.service.ts/spec.ts, contrato MQTT, este plano,
+índice operacional e contexto. Reutilizar parser e resolveSampleTest existentes,
+Prisma/constraints e locks veículo → instalação → dispositivo → teste.
+Sem migration, dependência, rota REST ou mudança no ciclo de testes.
+
+Receptor preserva recusa prévia de origem desconhecida/revogada sem armazenar
+bruto. Para origem conhecida não revogada, PROVISIONING, QoS diferente de 1,
+retained ou teste não autorizado geram envelope REJECTED com motivo fixo e
+processedAt do backend. Isso não expõe dados de teste alheio nem altera bruto.
+Envelope aceito permanece RECEIVED; testId relacional indica somente teste
+autorizado, não associa automaticamente todas as amostras do lote. Helper de
+7.1 resolve intervalo individual; persistência das amostras continua em 7.5.
+Teste em execução exige início válido e nenhum fim; encerrado exige intervalo
+válido. Consulta bloqueia somente teste da mesma instalação e veículo.
+
+Deduplicação precede decisão de domínio: retransmissão equivalente conserva
+ID/estado/motivo/horários originais; conflito não sobrescreve. Mensagens antigas
+RECEIVED não são retroativamente autorizadas por este lote: pipeline 7.5–7.6
+deverá revalidar origem/teste antes de normalizar sob os mesmos locks.
+
+TDD: estados, vínculo/instantes, chegada pós-encerramento, fronteiras via
+helper existente, QoS/retained, bruto imutável, deduplicação de rejeitada,
+ordem dos locks, falha de banco sem ACK e P2002. Testes com mocks; sem alegar
+concorrência/rollback PostgreSQL real. Rodar test:unit, lint e build; atualizar
+documentação e rebuildar backend local. Consumidor MQTT continua passivo.
+
+#### Entrega local 7.4
+
+Autorização implementada no receptor existente, sem novo serviço ou dependência.
+Estado do dispositivo lido sob lock; teste consultado por ID/instalação/veículo
+e bloqueado antes da escrita. Bruto e metadados preservados; envelope recusado
+recebe REJECTED/motivo fixo/processedAt, sem vínculo relacional com teste.
+Duplicatas e conflitos mantêm regra anterior. Intervalo individual permanece
+no helper 7.1 para uso obrigatório pela futura normalização.
+TDD RED: 19 falhas das regras novas, após corrigir parametrização da suíte.
+GREEN: 52 testes do receptor, 21 novos; regressão 36 suítes/740 testes,
+lint/build aprovados. Somente mocks para persistência/locks; nenhum ensaio SQL.
+Próximo lote 7.5: normalização/amostras, revalidando autorização na transação.
+Sem fechamento F06/F07, start MQTT, migration ou alteração REST.
+Backend reconstruído/reiniciado; live ok e readiness ok após primeira resposta
+503. Banco/Redis disponíveis e MQTT disabled. Isso não é ensaio de ingestão.
 
 ### Plano autorizado 7.3 — recepção e rastreabilidade
 

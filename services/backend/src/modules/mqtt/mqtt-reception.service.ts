@@ -57,8 +57,8 @@ export class MqttReceptionService implements OnModuleDestroy {
         SELECT id FROM vers_installations WHERE id = ${device.installationId}::uuid
         AND vehicle_id = ${device.vehicleId}::uuid FOR UPDATE`;
       if (!installations.length) return 'MQTT_DEVICE_UNAVAILABLE';
-      const devices = await tx.$queryRaw<{ id: string }[]>`
-        SELECT id FROM devices WHERE id = ${device.id}::uuid AND device_uid = ${message.deviceUid}
+      const devices = await tx.$queryRaw<{ id: string; status: string }[]>`
+        SELECT id, status FROM devices WHERE id = ${device.id}::uuid AND device_uid = ${message.deviceUid}
         AND installation_id = ${device.installationId}::uuid AND vehicle_id = ${device.vehicleId}::uuid
         AND revoked_at IS NULL AND status <> 'REVOKED' FOR UPDATE`;
       if (!devices.length) return 'MQTT_DEVICE_UNAVAILABLE';
@@ -73,12 +73,32 @@ export class MqttReceptionService implements OnModuleDestroy {
           existing.sequence === sequence && existing.topic === packet.topic && isDeepStrictEqual(existing.payload, comparable)
           ? { outcome: 'DUPLICATE', id: existing.id } : 'MQTT_MESSAGE_CONFLICT';
       }
+      const rejectionReason = !['ONLINE', 'OFFLINE', 'FAULT'].includes(devices[0].status) ? 'MQTT_DEVICE_NOT_READY' :
+        packet.qos !== 1 || packet.retain ? 'MQTT_TRANSPORT_NOT_ALLOWED' :
+          await this.authorizeTest(tx, message.testId, device);
       const row = await tx.mqttMessage.create({ data: { messageId: message.messageId, deviceId: device.id,
-        testId: null, schemaVersion: message.schemaVersion, topic: packet.topic,
+        testId: rejectionReason ? null : message.testId, schemaVersion: message.schemaVersion, topic: packet.topic,
         payload: message as unknown as Prisma.InputJsonObject, sequence, qos: packet.qos, retained: packet.retain,
-        capturedAt: new Date(message.capturedAt), receivedAt, status: 'RECEIVED' }, select: { id: true } });
-      return { outcome: 'RECEIVED', id: row.id };
+        capturedAt: new Date(message.capturedAt), receivedAt,
+        ...(rejectionReason ? { status: 'REJECTED', rejectionReason, processedAt: new Date() } : { status: 'RECEIVED' }),
+      }, select: { id: true } });
+      return { outcome: rejectionReason ? 'REJECTED' : 'RECEIVED', id: row.id };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+  }
+
+  /** Bloqueia somente teste da origem e autoriza o envelope; intervalo individual continua em resolveSampleTest. */
+  private async authorizeTest(tx: Prisma.TransactionClient, testId: string | null,
+    device: { installationId: string; vehicleId: string }): Promise<'MQTT_TEST_UNAVAILABLE' | null> {
+    if (testId === null) return null;
+    const [test] = await tx.$queryRaw<{ id: string; status: string; startedAt: Date | null; endedAt: Date | null }[]>`
+      SELECT id, status, started_at AS "startedAt", ended_at AS "endedAt" FROM tests
+      WHERE id = ${testId}::uuid AND installation_id = ${device.installationId}::uuid
+      AND vehicle_id = ${device.vehicleId}::uuid FOR UPDATE`;
+    if (!test?.startedAt || !['RUNNING', 'COMPLETED', 'FAILED'].includes(test.status) ||
+      (test.status === 'RUNNING' ? test.endedAt !== null : !test.endedAt || test.endedAt <= test.startedAt)) {
+      return 'MQTT_TEST_UNAVAILABLE';
+    }
+    return null;
   }
 
   /** Conta apenas códigos controlados pelo backend, mantendo um único timer por janela. */

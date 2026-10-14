@@ -2,6 +2,7 @@
 import { Prisma } from '@prisma/client';
 import { MqttReceptionService } from './mqtt-reception.service';
 import { TelemetryMessage } from './mqtt-contract';
+import { EnergySummaryService } from '../data/energy-summary.service';
 
 const now = new Date('2026-10-14T12:00:10.000Z');
 const id = '00000000-0000-4000-8000-000000000701';
@@ -25,6 +26,7 @@ function stored(): { id: string; messageId: string; deviceId: string | null; tes
 
 /** Emula somente chamadas/transição final, sem alegar rollback ou concorrência SQL reais. */
 function setup(): { service: MqttReceptionService; row: ReturnType<typeof stored>; transaction: jest.Mock;
+  summaries: { recomputeMessage: jest.Mock };
   tx: { $queryRaw: jest.Mock; device: { findUnique: jest.Mock }; mqttMessage: { findUnique: jest.Mock; update: jest.Mock };
     telemetrySample: { createMany: jest.Mock } } } {
   const row = stored();
@@ -37,7 +39,9 @@ function setup(): { service: MqttReceptionService; row: ReturnType<typeof stored
     Object.assign(row, data); return row;
   }) }, telemetrySample: { createMany: jest.fn().mockResolvedValue({ count: 3 }) } };
   const transaction = jest.fn(async (fn: (value: typeof tx) => Promise<unknown>): Promise<unknown> => fn(tx));
-  return { service: new MqttReceptionService({ $transaction: transaction } as never), row, tx, transaction };
+  const summaries = { recomputeMessage: jest.fn().mockResolvedValue(undefined) };
+  return { service: new MqttReceptionService({ $transaction: transaction } as never,
+    summaries as unknown as EnergySummaryService), row, tx, transaction, summaries };
 }
 
 describe('processamento MQTT', () => {
@@ -166,5 +170,16 @@ describe('processamento MQTT', () => {
       sql.join(' ').includes('FROM mqtt_messages') ? [] : base(sql, ...args));
     expect(await h.service.process(id)).toEqual({ outcome: 'NOT_FOUND', id });
     expect(h.tx.telemetrySample.createMany).not.toHaveBeenCalled(); expect(h.tx.mqttMessage.update).not.toHaveBeenCalled();
+  });
+  it('recompõe resumos após amostras e antes de PROCESSED usando o mesmo client transacional', async () => {
+    await h.service.process(id);
+    expect(h.summaries.recomputeMessage).toHaveBeenCalledWith(id, h.tx);
+    expect(h.tx.telemetrySample.createMany.mock.invocationCallOrder[0]).toBeLessThan(h.summaries.recomputeMessage.mock.invocationCallOrder[0]);
+    expect(h.summaries.recomputeMessage.mock.invocationCallOrder[0]).toBeLessThan(h.tx.mqttMessage.update.mock.invocationCallOrder[0]);
+  });
+  it('falha de resumo impede PROCESSED e retorna erro seguro para abortar a transação', async () => {
+    h.summaries.recomputeMessage.mockRejectedValue(new Error('CANARY_SECRET'));
+    await expect(h.service.process(id)).rejects.toThrow('MQTT_PROCESSING_FAILED');
+    expect(h.tx.mqttMessage.update).not.toHaveBeenCalled(); expect(h.row.status).toBe('RECEIVED');
   });
 });

@@ -6,6 +6,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { PrismaService } from '../../prisma/prisma.service';
 import { parseTelemetryMessage, TelemetryMessage } from './mqtt-contract';
 import { NormalizedTelemetry, normalizeTelemetry } from './mqtt-normalization';
+import { EnergySummaryService } from '../data/energy-summary.service';
 
 type Receipt = { outcome: 'RECEIVED' | 'DUPLICATE' | 'REJECTED'; id: string | null };
 type PersistenceResult = Receipt | 'MQTT_DEVICE_UNAVAILABLE' | 'MQTT_MESSAGE_CONFLICT';
@@ -24,7 +25,7 @@ export class MqttReceptionService implements OnModuleDestroy {
   private logTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Reutiliza Prisma global sem abrir conexão MQTT ou criar timers antes da recepção. */
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly summaries: EnergySummaryService) {}
 
   /** Valida antes de escrever e só resolve depois do commit ou de rejeição permanente segura. */
   async receive(packet: Pick<IPublishPacket, 'topic' | 'payload' | 'qos' | 'retain'>, receivedAt: Date): Promise<Receipt> {
@@ -118,6 +119,7 @@ export class MqttReceptionService implements OnModuleDestroy {
         const normalized = normalizeTelemetry(message, { messageId: id, deviceId: device.id,
           installationId: device.installationId, test: authorization.test }, raw.receivedAt);
         await tx.telemetrySample.createMany({ data: normalized.samples });
+        await this.summaries.recomputeMessage(id, tx);
         await tx.mqttMessage.update({ where: { id }, data: { status: 'PROCESSED', processedAt: new Date(),
           rejectionReason: null, testId: authorization.test?.id ?? null } });
         return { outcome: 'PROCESSED', id, delivery: normalized.delivery, associations: normalized.associations };

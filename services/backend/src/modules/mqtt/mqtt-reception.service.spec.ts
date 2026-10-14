@@ -41,7 +41,8 @@ function setup(): {
     mqttMessage: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn().mockResolvedValue({ id: 'persisted-id' }),
       update: jest.fn() } };
   const transaction = jest.fn(async (fn: (value: typeof tx) => Promise<unknown>): Promise<unknown> => fn(tx));
-  return { service: new MqttReceptionService({ $transaction: transaction } as never), tx, transaction };
+  return { service: new MqttReceptionService({ $transaction: transaction } as never,
+    { recomputeMessage: jest.fn() } as never), tx, transaction };
 }
 
 /** Representa envelope existente sem expor seu conteúdo em logs ou resultados públicos. */

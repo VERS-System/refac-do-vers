@@ -441,3 +441,60 @@ Validação local: 38 testes novos, regressão 38 suítes/778 testes, lint/build
 aprovados. Docker reconstruído e backend reiniciado; live/readiness ok após
 503 inicial do readiness. MQTT disabled. Mocks não provam SQL/rollback/locks
 ou entrega de broker reais; ensaio autorizado continua pendente.
+
+### Pipeline local 7.6
+
+MqttModule exporta MqttPipelineService. Constructor/bootstrap não iniciam
+consumidor, timers ou varredura. start() explícito, com MQTT habilitado, recupera
+pendências antes de assinar e agenda recuperação a cada 60 s, conforme decisão
+do programador. Configuração disabled torna start inerte. Mesmo habilitado,
+esta entrega não chama start no bootstrap nem autoriza broker/credenciais reais.
+
+handle(packet, receivedAt) persiste bruto e chama process, inclusive após
+retransmissão equivalente. A partir deste lote, process grava amostras,
+recomputa resumos e marca PROCESSED na mesma transação ReadCommitted. Falha de
+amostra, resumo ou estado aborta a transação, deixando o bruto recebido para
+retomada. Falha propaga MQTT_PIPELINE_FAILED ao transporte, sem confirmação
+positiva; rejeição permanente é confirmável. Resumos usam exclusivamente F06.
+
+EnergySummaryService.recomputeMessage(id, tx?) usa a transação da ingestão ou
+abre uma própria para reparo de mensagem já processada. Recompõe TEST encerrado
+e períodos HOUR/DAY/MONTH UTC afetados, incluindo vizinhos imediatamente antes
+e depois da mensagem para cada origem dispositivo/teste e períodos sem amostra
+entre pontas. Não usa horário de chegada nem adiciona energia incremental.
+Fronteiras, contador reiniciado, ausência e SUSPECT continuam regras da F06.
+Mensagem PROCESSED recebida novamente pode reparar seus resumos sem recriar
+amostras. Esse reparo também permite reconciliar processamento local pré-7.6.
+
+recover() pagina RECEIVED por ID com corte de criação e até 100 registros por
+consulta, sem offset. Itens que falham permanecem pendentes, sem impedir itens
+posteriores; a próxima varredura tenta de novo. Retorno informa handled/failed;
+handled conta mensagens cuja tentativa concluiu, inclusive rejeição permanente.
+Falhas de consulta abortam a varredura e geram código seguro na execução periódica.
+Timer e chamadas explícitas compartilham uma única varredura em curso.
+
+A varredura também pagina testes encerrados que já têm amostras e recomputa
+TEST. Assim, finalizar teste sem nova mensagem gera resumo na próxima janela
+ou retomada. Preserva regra F06 para histórico CANCELLED já associado, sem
+permitir novas associações canceladas, conforme 7.4. Erros são agregados em
+código/contagem sem payload, tópico, credencial ou causa interna.
+
+events, EventEmitter nativo, emite telemetry.processed com apenas messageId
+interno depois de process resolver o commit. Listeners síncronos/assíncronos
+com erro geram mqtt_event_failed sem desfazer histórico ou impedir ACK. Não há
+outbox/garantia de evento após crash: cliente futuro precisa resincronizar via
+histórico autorizado. F08 deverá aplicar autorização antes de expor qualquer
+conteúdo do evento. Nenhum Redis Pub/Sub ou WebSocket foi ativado neste lote.
+
+Shutdown impede trabalho novo, cancela timer, fecha transporte e aguarda
+processamentos/varredura em curso. start repetido ou após shutdown é recusado.
+Sem schema/migration/dependência nova. Intervalos históricos muito extensos
+podem exceder timeout transacional; falham sem truncar energia ou apagar bruto,
+mantendo RECEIVED. Particionar esse trabalho duravelmente exige evolução quando
+carga real demonstrar necessidade. Concorrência/rollback SQL e broker reais
+ainda precisam do ensaio autorizado 7.7; mocks não os comprovam.
+
+Validação local 7.6: 39 suítes/806 testes, 28 novos, lint/build aprovados.
+Backend reconstruído/reiniciado; live ok, readiness inicialmente 503 e depois
+ok com banco/Redis disponíveis e MQTT disabled. Pipeline não foi iniciado;
+timer/recuperação/broker reais não foram exercitados nesta verificação HTTP.

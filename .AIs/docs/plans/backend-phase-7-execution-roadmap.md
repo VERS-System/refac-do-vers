@@ -4,6 +4,7 @@
 Estado: recortes locais 7.1–7.3 entregues para revisão em 14/10/2026;
 7.4 entregue para revisão com mocks, testes, lint/build e container atualizado.
 7.5 entregue para revisão com mocks/testes/lint/build e container atualizado.
+7.6 entregue para revisão com mocks/testes/lint/build e container atualizado.
 Sequência, políticas temporais e REST não bloqueado por MQTT aprovados;
 integração real não iniciada.
 F05 preservada; F06 permanece com as decisões registradas. F08 e F09 serão
@@ -144,6 +145,76 @@ silenciosa, com evidência de transações/concorrência em PostgreSQL isolado.
    serão associadas; o backend não muda regras operacionais por suposição.
 
 ## Arquivos previstos e limites
+
+### Plano autorizado 7.6 — pipeline, recuperação e resumos após captura
+
+Programador solicitou próximo lote em 14/10/2026 e aprovou recuperação no início
+explícito do pipeline e a cada 60 s. Não ligar no bootstrap, conectar broker
+ou usar Redis como fila. Skills Ponytail/Backend-master/IoT-master/DatArquiteto.
+
+Escopo informado: novo mqtt-pipeline.service.ts/spec.ts, MqttModule e receptor;
+energy-summary.service.ts/spec.ts, testes de processamento/recepção afetados;
+contrato MQTT, plano/índice/contexto. Sem schema, migration, dependência, REST,
+mudança de estado de teste ou frontend. Commits continuam com o programador.
+
+process(id) passa a gravar amostras, recomputar resumos e marcar PROCESSED na
+mesma transação. EnergySummaryService expõe recomputeMessage(id, tx?) e permite
+recomputeTest na transação existente, reutilizando persist/cálculo F06 e locks.
+Recálculo inclui HOUR/DAY/MONTH UTC afetados pelas novas capturas e vizinhos
+imediatos da mesma origem dispositivo/teste, inclusive intervalos sem amostra
+entre pontas. TEST somente após encerramento, conforme regra F06 existente.
+Sem somar deltas incrementalmente, duplicar energia ou usar chegada como captura.
+Intervalos muito extensos podem exceder timeout: abortar e manter RECEIVED,
+sem descarte nem truncamento. Particionar trabalho durável quando carga real
+demonstrar necessidade; não inventar limite de idade/calibração nesta etapa.
+
+Pipeline handle recebe→persiste→processa; duplicata equivalente também retoma
+mensagem pendente. Rejeição permanente é confirmável; falha lança código seguro
+sem ACK positivo. PROCESSED anterior pode reparar resumo por recomputeMessage,
+sem recriar amostras. Evento interno telemetry.processed carrega somente ID
+interno e sai após resolução do commit; perda/falha de listener não desfaz
+histórico. EventEmitter nativo com tratamento de erros síncronos/assíncronos,
+sem promessa de entrega durável ou exposição WebSocket nesta fase.
+
+recover pagina RECEIVED por ID, 100 por consulta, sem offset sobre coleção
+mutável; falha de uma mensagem não bloqueia as posteriores e fica para outra
+varredura. Pagina também testes encerrados com amostras para gerar TEST após
+encerramento sem depender de nova mensagem MQTT, inclusive após crash. Mantém
+regra F06 para histórico já associado de teste cancelado; 7.4 continua impedindo
+novas associações CANCELLED. Falhas agregadas sem payload/causa/IDs do remetente.
+Varredura usa corte de criação e não executa em paralelo consigo mesma.
+
+start explícito só opera quando transporte habilitado; primeiro recupera e só
+depois liga consumidor. Timer único de 60 s é cancelado no shutdown; aguardar
+varredura em curso e impedir nova recepção/reconexão pelo ciclo do transporte.
+Nenhum timer, leitura de histórico ou rede no bootstrap/constructor.
+
+TDD: retomada/retransmissão, falha entre amostra/resumo/estado, commit/evento,
+erro de listener, paginação/falha sem starvation, início/timer/shutdown, teste
+encerrado sem nova telemetria, fronteiras UTC/vizinhos/origins e idempotência.
+Mocks não provam transação/concorrência SQL; ensaio PostgreSQL isolado e broker
+continuam sujeitos à autorização específica e ao fechamento 7.7. Rodar testes
+unitários, lint/build/diff --check e reconstruir/verificar backend no Docker.
+
+#### Entrega local 7.6
+
+Pipeline passivo registrado/exportado; início explícito recupera antes de
+consumir e agenda 60 s, sem sobreposição. Recuperação pagina pendências e
+testes encerrados por ID; falhas não bloqueiam itens posteriores. Shutdown
+aguarda trabalhos iniciados. Evento interno após commit, com tratamento de
+falha de listeners síncronos/assíncronos; evento não é garantia durável.
+Resumos F06 e PROCESSED agora compartilham a transação das amostras. Reparo
+de PROCESSED legado recompõe sem novas amostras. Calendário inclui vizinhos
+por origem e TEST após encerramento, sem mudança operacional no teste.
+TDD RED por módulo/método ausentes; ajuste de inferência de página antes do
+GREEN. Regressão 39 suítes/806 testes, 28 novos; lint/build/diff --check aprovados.
+Oracle real F06 na virada UTC distribui 0,02 + 0,08 Wh, total 0,1 Wh.
+Limite transacional para intervalos extensos documentado, sem truncamento ou
+descarte. Nenhum broker, fila, schema/migration ou dado real de ensaio alterado.
+SQL/rollback/concorrência reais pendentes do ensaio autorizado 7.7; não encerrar
+F07 ou pendências F06 com esta evidência de mocks.
+Backend reconstruído/reiniciado; live ok e readiness ok na repetição após
+503 inicial, banco/Redis ok e MQTT disabled. Pipeline não iniciado nesta sessão.
 
 ### Plano autorizado 7.5 — normalização e persistência atômica
 

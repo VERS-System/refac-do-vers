@@ -17,6 +17,10 @@ export default defineConfig({
     alias: { '@': resolve(__dirname, 'src/renderer') },
   },
   plugins: [react(), tailwindcss()],
-  // Porta própria para não colidir com outros projetos Vite (5173).
-  server: { port: 5180 },
+  server: {
+    // Porta própria para não colidir com outros projetos Vite (5173).
+    port: 5180,
+    // O cliente HTTP usa a URL relativa /api/v1; em desenvolvimento ela vai para a API local.
+    proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } },
+  },
 });

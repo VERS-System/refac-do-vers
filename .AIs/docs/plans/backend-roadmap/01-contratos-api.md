@@ -1,0 +1,80 @@
+<!-- Fase 01 do roadmap executável do backend VERS. -->
+
+# Fase 01 — Contratos das APIs
+
+## Objetivo
+
+Permitir que clientes e backend compartilhem formatos estáveis antes de banco,
+controllers e MQTT.
+
+## Estado
+
+Concluída em 22/09/2026. Os planos e decisões estão em
+[backend-api-contracts-phase-1.md](../backend-api-contracts-phase-1.md) e
+[backend-api-contracts-phase-1-completion.md](../backend-api-contracts-phase-1-completion.md).
+
+## Etapa A — Fundação compartilhada — concluída
+
+- envelopes de sucesso, erro e paginação;
+- catálogo inicial de erros;
+- testes de compilação do `@vers/shared-types`;
+- fixtures sintéticas;
+- OpenAPI 3.1 e documentação humana.
+
+## Etapa B — Autenticação, perfil e veículos — concluída
+
+- JWT somente em cookies `HttpOnly`, sem tokens no JSON;
+- perfil e papéis globais;
+- veículos, vínculo `OWNER` e regras de principal;
+- placa imutável e documentos pessoais fora do contrato.
+
+## Etapa C — Instalações e configurações — concluída
+
+- listar e consultar instalações autorizadas;
+- listar configurações versionadas;
+- definir campos públicos de dispositivo sem credenciais;
+- definir erros de propriedade, estado e conflito.
+
+Contratos de leitura, fixtures, testes de compilação, documentação humana e
+OpenAPI concluídos em 22/09/2026. A ausência de acesso é apresentada como
+`404`; o conflito de estado está catalogado para futuras operações de escrita,
+pois as rotas deste lote são somente de leitura.
+
+## Etapa D — Testes experimentais — concluída
+
+- criar, iniciar, finalizar, cancelar e consultar testes;
+- definir transições de estado e conflitos concorrentes;
+- separar contexto do teste de medições e agregados;
+- definir filtros, paginação e intervalos.
+
+Contratos de ciclo de vida, snapshot histórico, fixtures, testes de compilação,
+documentação humana e OpenAPI concluídos em 22/09/2026. Instantes de início e
+fim são atribuídos pelo servidor; transições inválidas ou concorrentes usam
+`TEST_STATE_CONFLICT`.
+
+## Etapa E — Telemetria, resumos e suporte — concluída
+
+- contratos paginados de telemetria — concluídos;
+- séries e resumos com unidade explícita — concluídos;
+- qualidade de dados e comparação entre testes — concluídas;
+- criação e acompanhamento de solicitações de revisão — concluídos.
+
+Os lotes 4 e 5 passaram em `test:unit`, lint e build do pacote compartilhado.
+O OpenAPI 3.1 final contém 23 rotas e 185 referências internas válidas.
+
+## Validação
+
+- TypeScript rejeita campos extras e contratos inválidos;
+- OpenAPI e tipos possuem os mesmos campos e erros;
+- fixtures não contêm tokens, documentos ou dados reais;
+- nenhuma decisão de schema vaza para os clientes.
+
+## Saída
+
+Clientes conseguem implementar todos os fluxos previstos usando contratos e
+fixtures, sem depender do banco ou do MQTT.
+
+Validação final: `test:unit`, lint e build aprovados em `@vers/shared-types` e
+`@vers/backend`; backend com 7 suítes e 23 testes aprovados. O catálogo de
+erros em TypeScript coincide com o OpenAPI. A documentação foi movida para
+`.AIs/docs/Api/`. Nenhum controller, schema Prisma ou banco foi alterado.

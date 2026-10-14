@@ -3,10 +3,17 @@
 # Arquitetura do sistema
 
 > **Estado em 13/08/2026:** a implementação digital usa um monorepo com NestJS,
-> Prisma/PostgreSQL (Neon), React, Electron, React Native e FastAPI. MQTT e
+> Prisma/PostgreSQL (Neon), React/Vite/Tailwind, React Native e FastAPI. MQTT e
 > WebSocket possuem scaffolds dentro do backend, mas sua integração funcional
 > ainda será validada pelas fases 0, 5 e 7 do
 > [roadmap do core](plans/core-roadmap.md).
+
+A autenticação dos clientes usa JWT próprio no backend NestJS. Access e refresh
+tokens trafegam exclusivamente em cookies `HttpOnly`, sem exposição ao
+JavaScript ou aos corpos JSON. Em produção, a API e os clientes devem operar por
+HTTPS e os cookies devem usar o atributo `Secure`. CORS com credenciais,
+proteção CSRF e a política `SameSite` serão fechados antes da implementação do
+módulo de autenticação.
 
 ## 1. Camadas do VERS
 

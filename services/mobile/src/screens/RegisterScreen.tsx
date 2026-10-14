@@ -4,39 +4,57 @@
 
 import { useMemo, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
+  ActivityIndicator,
   Pressable,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthTextField } from '../components/AuthTextField';
 import { PasswordRequirements, evaluatePassword } from '../components/PasswordRequirements';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { ScreenShell } from '../components/ScreenShell';
 import { VersLogo } from '../components/VersLogo';
-import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
 export type RegisterCredentials = {
   email: string;
   password: string;
 };
 
+/** Estados visuais do cadastro; a origem (rede, conflito) é do backend. */
+export type RegisterStatus =
+  | 'idle'
+  | 'sending'
+  | 'conflict'
+  | 'genericError'
+  | 'success';
+
 type RegisterScreenProps = {
   onLogin?: () => void;
   onRegister?: (credentials: RegisterCredentials) => void;
+  /** Estado visual atual; `idle` libera o envio. */
+  status?: RegisterStatus;
+  /** Contador de focos da tela usado para disparar a animação da logo. */
+  animationRun?: number;
 };
 
 /**
  * Mantém os dados locais, apresenta a validação em tempo real e só libera o
  * envio quando todos os critérios e a confirmação de senha estiverem válidos.
  */
-export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
+export function RegisterScreen({ onLogin, onRegister, status = 'idle', animationRun }: RegisterScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+
+  const isSending = status === 'sending';
+  const isConflict = status === 'conflict';
+  const isGenericError = status === 'genericError';
+  const isSuccess = status === 'success';
 
   const canSubmit = useMemo(() => {
     const requirements = evaluatePassword(password);
@@ -47,7 +65,7 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
 
   /** Envia as credenciais somente após a validação completa do formulário. */
   function handleRegister() {
-    if (!canSubmit) {
+    if (!canSubmit || isSending || isSuccess) {
       return;
     }
 
@@ -55,19 +73,13 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} testID="register-screen">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardArea}
-      >
-        <ScrollView
-          bounces={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.content}>
-            <VersLogo size={100} />
+    <ScreenShell testID="register-screen">
+      <View style={styles.content}>
+            <VersLogo animation="register" animationRun={animationRun} size={100} />
+
+            <Text accessibilityRole="header" style={styles.title}>
+              Create account
+            </Text>
 
             <View style={styles.form}>
               <AuthTextField
@@ -75,7 +87,7 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
                 keyboardType="email-address"
                 label="Email:"
                 onChangeText={setEmail}
-                placeholder="Emailexample@example.com.ex"
+                placeholder="Enter your email"
                 textContentType="emailAddress"
                 value={email}
               />
@@ -83,9 +95,23 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
                 autoComplete="new-password"
                 label="Password:"
                 onChangeText={setPassword}
-                placeholder="Password123!!"
-                secureTextEntry
+                placeholder="Enter your password"
+                secureTextEntry={!isPasswordVisible}
                 textContentType="newPassword"
+                trailing={
+                  <Pressable
+                    accessibilityLabel={isPasswordVisible ? 'Ocultar senha' : 'Mostrar senha'}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => setIsPasswordVisible((visible) => !visible)}
+                  >
+                    <Ionicons
+                      color={theme.colors.primary}
+                      name={isPasswordVisible ? 'eye' : 'eye-outline'}
+                      size={20}
+                    />
+                  </Pressable>
+                }
                 value={password}
               />
 
@@ -95,67 +121,128 @@ export function RegisterScreen({ onLogin, onRegister }: RegisterScreenProps) {
                 autoComplete="new-password"
                 label="Confirm Password:"
                 onChangeText={setConfirmPassword}
-                placeholder="Password123!!"
-                secureTextEntry
+                placeholder="Enter your password"
+                secureTextEntry={!isConfirmVisible}
                 textContentType="newPassword"
+                trailing={
+                  <Pressable
+                    accessibilityLabel={isConfirmVisible ? 'Ocultar confirmação' : 'Mostrar confirmação'}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => setIsConfirmVisible((visible) => !visible)}
+                  >
+                    <Ionicons
+                      color={theme.colors.primary}
+                      name={isConfirmVisible ? 'eye' : 'eye-outline'}
+                      size={20}
+                    />
+                  </Pressable>
+                }
                 value={confirmPassword}
               />
 
               <View style={styles.signUpButton}>
                 <PrimaryButton
-                  accessibilityLabel="Sign-up"
-                  disabled={!canSubmit}
-                  label="SING-UP"
+                  accessibilityLabel="Sign up"
+                  disabled={!canSubmit || isSending || isSuccess}
+                  label="SIGN UP"
                   onPress={handleRegister}
                 />
               </View>
+              {isSending && (
+                <ActivityIndicator
+                  accessibilityLabel="Enviando"
+                  color={theme.colors.primary}
+                  style={styles.sendingIndicator}
+                  testID="register-sending"
+                />
+              )}
+              {isConflict && (
+                <Text
+                  accessibilityLabel="Este email já está em uso. Entre ou use outro email."
+                  accessibilityRole="alert"
+                  style={styles.errorText}
+                  testID="register-conflict"
+                >
+                  Este email já está em uso. Entre ou use outro email.
+                </Text>
+              )}
+              {isGenericError && (
+                <Text
+                  accessibilityLabel="Não foi possível criar a conta. Tente novamente."
+                  accessibilityRole="alert"
+                  style={styles.errorText}
+                  testID="register-error"
+                >
+                  Não foi possível criar a conta. Tente novamente.
+                </Text>
+              )}
+              {isSuccess && (
+                <Text
+                  accessibilityLabel="Conta criada com sucesso. Volte ao Login para entrar."
+                  accessibilityRole="alert"
+                  style={styles.successText}
+                  testID="register-success"
+                >
+                  Conta criada com sucesso. Volte ao Login para entrar.
+                </Text>
+              )}
             </View>
 
             <View style={styles.accountRow}>
-              <Text style={styles.accountText}>Alredy have an account? </Text>
+              <Text style={styles.accountText}>Already have an account? </Text>
               <Pressable
                 accessibilityLabel="Voltar para o Login"
                 accessibilityRole="button"
                 hitSlop={8}
                 onPress={onLogin}
               >
-                <Text style={styles.accountLink}>Login right here</Text>
+                <Text style={styles.accountLink}>Sign In</Text>
               </Pressable>
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: colors.background,
-    flex: 1,
-  },
-  keyboardArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
   content: {
     alignItems: 'center',
     flex: 1,
     paddingBottom: 48,
-    paddingHorizontal: 40,
     paddingTop: 48,
+  },
+  title: {
+    marginTop: 28,
+    color: theme.colors.primary,
+    fontSize: 26,
+    fontWeight: '600',
+    marginBottom: 22,
   },
   form: {
     gap: 26,
-    marginTop: 42,
-    maxWidth: 300,
+    maxWidth: 350,
     width: '100%',
   },
   signUpButton: {
-    marginHorizontal: 38,
-    marginTop: 58,
+    width: '100%',
+    maxWidth: 350,
+    marginTop: 34,
+  },
+  sendingIndicator: {
+    marginTop: 16,
+  },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 13,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  successText: {
+    color: theme.colors.success,
+    fontSize: 13,
+    marginTop: 16,
+    textAlign: 'center',
   },
   accountRow: {
     alignItems: 'center',
@@ -164,11 +251,11 @@ const styles = StyleSheet.create({
     marginTop: 31,
   },
   accountText: {
-    color: colors.white,
+    color: theme.colors.white,
     fontSize: 14,
   },
   accountLink: {
-    color: colors.primary,
+    color: theme.colors.primary,
     fontSize: 14,
     textDecorationLine: 'underline',
   },

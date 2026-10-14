@@ -1,0 +1,286 @@
+<!-- Organiza a F05 em lotes revisáveis, começando pelo perfil autenticado. -->
+# F05 — Recursos de domínio
+
+F04 revisada e PR realizado, conforme confirmação do programador em 06/10/2026.
+F05 autorizada para iniciar; um lote por vez, com TDD e revisão entre entregas.
+
+## Lotes
+
+1. Perfil: GET/PATCH /users/me; projeção pública, campos permitidos, auth e CSRF.
+2. Veículos: cadastro/listagem/detalhe; vínculo e primeiro principal.
+3. Veículos: atualização, promoção e desvinculação transacionais, histórico preservado.
+4. Instalações/configurações: leituras autorizadas dos contratos existentes.
+5. Testes: planejamento, listagem e detalhe com snapshot e autorização.
+6. Testes: início/finalização/cancelamento com concorrência e horários do servidor.
+7. Suporte: criação e consultas próprias, limites do contrato.
+8. Regressão e conferência dos contratos, documentação e revisão final.
+
+Provisionamento e mutações administrativas dependem de contrato e decisões
+operacionais antes de implementação. Não antecipar endpoints sem contrato.
+
+## Lote 1 — plano
+
+Arquivos: modules/users (DTO, controller, service, module e teste HTTP),
+app.module.ts; contratos REST/OpenAPI, índice do backend e contexto diário.
+Reutilizar guards, decorador CurrentUser, Prisma e envelope existentes.
+GET seleciona apenas campos públicos e serializa datas UTC.
+PATCH rejeita extras, body vazio, tipos inválidos, nome acima de 120 caracteres
+e URI inválida; null limpa o campo e ausência mantém o valor.
+Não buscar avatar remotamente. Não permitir alterar email, status ou papéis.
+Selecionar/atualizar apenas a conta autenticada; USER_NOT_FOUND para ausência
+após autenticação; falha de banco permanece erro público genérico.
+
+Testes HTTP antes do código: leitura sem segredos, atualização parcial/null,
+auth ausente/revogada, CSRF, validação e falha de banco. Baseline e GREEN por
+test:unit, lint/build e diff --check, com dependências sintéticas sem .env.
+Sem novas dependências, migration, Docker ou serviços externos.
+
+## Lote 1 — entregue em 06/10/2026
+
+13 testes HTTP falharam primeiro por rotas inexistentes; após implementação,
+23 suítes/152 testes passaram, assim como lint e build. O DTO usa URL nativo
+para validar URI absoluta, pois a versão instalada do class-validator não
+exporta IsRFC3986. Autenticação/CSRF e persistência são exercitados com JWT
+real e Prisma simulado; nenhum banco externo foi usado.
+pnpm abortou sua checagem de dependências sem TTY; scripts npm.cmd equivalentes
+passaram sem reinstalação. Lote 2 segue após revisão do programador.
+
+## Lote 2 — plano autorizado pela continuação
+
+GET/POST /vehicles e GET /vehicles/{vehicleId}. Novos arquivos em modules/vehicles:
+DTO, service, controller, module e teste HTTP; registro em app.module.ts.
+Atualizar contratos, índice e contexto após validação. Sem migration ou dependência.
+Normalizar placa para maiúsculas sem espaços/hífen, validar padrão brasileiro,
+marca/modelo e ano conforme OpenAPI; rejeitar null, extras e IDs do cliente.
+Consultar UserVehicle da própria conta junto aos campos públicos do veículo,
+sem checagem separada que permita corrida; ausência e recurso alheio usam 404.
+Paginação 1/20, máximo 100, ordem createdAt decrescente e id como desempate.
+Cadastro cria veículo e vínculo OWNER na mesma transação. Bloquear a linha da
+conta antes de contar vínculos para serializar primeiros cadastros concorrentes;
+somente o primeiro fica principal. Placa duplicada usa o conflito contratado.
+Testes HTTP antes da implementação: guards/CSRF, payloads, projeção, vínculo,
+paginação, primeiro/próximos, falhas e ordem transacional com Prisma simulado.
+Baseline e GREEN com test:unit, lint/build e diff --check. Concorrência real
+em PostgreSQL permanece ensaio separado; não confundir doubles com prova SQL.
+
+### Lote 2 entregue — 06/10/2026
+
+Implementados cadastro, listagem e detalhe no módulo vehicles e registrados no
+AppModule. DTO preserva tipos originais apesar da coerção global; projeção
+restrita aos campos públicos e vínculo próprio, inclusive para ADMIN.
+Listagem usa snapshot RepeatableRead; cadastro bloqueia a conta antes da
+contagem e cria veículo/vínculo atomicamente. Sem migration/dependência.
+TDD: baseline 152 testes; RED das rotas; GREEN 24 suítes/183 testes.
+Lint, build e diff --check aprovados. Concorrência real em PostgreSQL pendente.
+Próximo lote: atualização, promoção do principal e desvinculação de veículos.
+
+## Lote 3 — plano
+
+Alterar controller/service/testes de vehicles; criar DTO de atualização e query
+de exclusão. Atualizar contratos, índice e contexto. Sem dependências/migration.
+PATCH aceita brand/model/modelYear nullable e isPrimary boolean; preserva tipos,
+rejeita vazio/extras e só true promove (false mantém o principal existente).
+Mutações bloqueiam conta e veículo, nessa ordem, antes de consultar vínculo.
+Promoção desmarca anterior antes de marcar destino na mesma transação.
+DELETE valida substituto próprio/distinto; principal com um candidato promove
+automaticamente, com vários exige substituto. Sem outros vínculos remove veículo
+com cascatas/SetNull existentes, preservando testes e telemetria. FK MQTT bruta
+RESTRICT e trigger imutável impedem a cascata; programador autorizou apagar
+mensagens brutas no último vínculo, preservando testes, amostras e resumos.
+Limpeza dos envelopes e exclusão física ficam na mesma transação.
+TDD HTTP com doubles: payloads, auth/CSRF, vínculo, ordem, principal, candidatos,
+compartilhamento e falhas sem escrita parcial. test:unit, lint/build, diff --check.
+Ensaio de concorrência e cascatas em PostgreSQL real permanece pendente.
+
+### Lote 3 entregue — 06/10/2026
+
+PATCH/DELETE registrados com guards, CSRF e DTOs estritos. Conta e veículo
+bloqueados nessa ordem; promoção desmarca anterior antes do destino. Exclusão
+valida substituto antes de escrever e preserva veículo compartilhado.
+Último vínculo remove envelopes MQTT antes do veículo na mesma transação,
+conforme autorização explícita; FKs existentes preservam histórico normalizado.
+TDD: 29 novos casos RED antes das rotas; GREEN final 24 suítes/214 testes,
+incluindo limpeza MQTT, falha dessa limpeza e query extra. Lint/build aprovados.
+Doubles verificam chamadas/ordem; rollback, cascatas e concorrência reais não
+foram exercitados contra PostgreSQL nesta entrega. Próximo: lote 4, leituras
+de instalações/configurações. Sem alteração de schema/dependências.
+
+## Lote 4 — plano
+
+Criar modules/installations (DTOs, service, controller, module, teste HTTP),
+registrar AppModule e atualizar contratos/índice/contexto. Reutilizar guards,
+paginação, envelopes e tipos públicos; nenhuma migration/dependência.
+GET lista/detalhe de instalações e GET lista/detalhe de configurações.
+Filtrar vínculo UserVehicle na própria consulta, inclusive ADMIN; UUID/status
+e extras validados. Listagem de instalações por createdAt desc/id asc, filtros
+opcionais vehicleId/status; configuração por version desc/id asc. Página 1/20,
+máximo 100. Listas usam RepeatableRead para linhas/contagem/autorização.
+Configuração de outra instalação retorna CONFIGURATION_NOT_FOUND; listagem de
+configurações exige instalação acessível, senão INSTALLATION_NOT_FOUND.
+Selecionar só campos públicos; dispositivo não revogado (revokedAt null e
+status diferente de REVOKED), ou null; datas UTC. Sem serial/deviceUid/tópicos.
+TDD HTTP antes da implementação, auth/revogação, acesso, filtros/paginação,
+projeção, ausência e falhas; test:unit, lint/build e diff --check.
+
+### Lote 4 entregue — 06/10/2026
+
+Quatro leituras registradas via InstallationsModule no AppModule. Consultas
+filtram vínculo próprio, inclusive ADMIN, e projetam só os campos contratados.
+Listagens consistentes com RepeatableRead; instalação ausente não vira lista
+de configurações vazia. Dispositivo público não inclui UID/serial/credenciais.
+TDD: 22 casos RED antes das rotas; GREEN 25 suítes/236 testes no backend.
+Lint, build e diff --check aprovados; sem banco externo, schema ou dependências.
+Próximo lote: planejamento, listagem e detalhe de testes experimentais.
+
+## Lote 5 — plano
+
+Criar modules/tests (DTOs/service/controller/module/teste HTTP), registrar
+AppModule; exportar validadores UTC existentes em common/dto/pagination.dto.ts
+para reutilização com paginação. Atualizar contratos/índice/contexto.
+GET/POST tests e GET tests/:id; transições ficam no lote 6.
+DTO estrito: UUIDs, enums, texto não vazio 120/160, notes nullable máximo 1000,
+peso nullable finito maior que zero; preservar tipos originais sem coerção.
+Listar/detalhar com OR criador ou vínculo atual pela instalação, inclusive ADMIN.
+Paginação 1/20 máximo 100; createdAt desc/id asc, filtros installationId/status
+e intervalo startedAt UTC [from,to); reaproveitar validadores, sem novas regras.
+Lista usa RepeatableRead para linhas/contagem. Projeção explícita pública sem
+vehicleId/placa. Criação transacional: bloquear conta, depois veículo/instalação
+acessível; ler montagem/configuração própria, exigir instalação ACTIVE (409
+INSTALLATION_STATE_CONFLICT), configuração correspondente (404), gravar PLANNED
+e criador/snapshot do servidor. Configuração imutável; modelo/local/piezos/versão
+preservados sem placa. Sem migration/dependência. Testes HTTP RED/GREEN antes
+do código, guards/CSRF/validação, acesso/histórico, snapshot e falhas. Regressão
+test:unit, lint/build, diff --check; concorrência PostgreSQL real não simulada.
+
+### Lote 5 entregue — 06/10/2026
+
+GET/POST tests e GET tests/:id registrados via TestsModule. Criação bloqueia
+conta e veículo/instalação acessível, valida ACTIVE/configuração e grava snapshot
+sem identificadores de placa. Consultas usam criador ou vínculo atual, mantendo
+histórico após exclusão. Reutilizados os validadores UTC com exports no DTO comum.
+TDD: 41 casos RED antes da implementação; mais dois casos de recurso desaparecido
+no bloqueio; GREEN final 26 suítes/279 testes. Lint/build/diff --check aprovados.
+Sem dependência/migration/banco externo. Próximo lote 6: start/finish/cancel.
+Locks, rollback e cascatas ainda requerem ensaio contra PostgreSQL real.
+
+## Lote 6 — plano autorizado em 07/10/2026
+
+Alterar test.dto.ts, tests.controller.ts, tests.service.ts e tests.spec.ts;
+atualizar REST/OpenAPI, índice e contexto. Reutilizar sessão/CSRF, projeção e
+autorização criador ou vínculo atual, inclusive ADMIN. POST start/finish/cancel
+retornam 200. DTO vazio estrito para start; finish/cancel conforme limites OpenAPI.
+Transação lê estado autorizado e faz updateMany condicionado ao estado anterior
+e acesso; zero alterações retorna TEST_STATE_CONFLICT. Ler projeção final na
+mesma transação. Horários do servidor; cancel PLANNED preserva horários nulos,
+cancel RUNNING define endedAt. Não alterar snapshot nem inventar medições.
+Programador decidiu acrescentar reason às notes preservando conteúdo existente;
+se combinação exceder 1000 caracteres, retornar VALIDATION_ERROR sem truncar.
+TDD HTTP cobre matriz de estados, validação, acesso/CSRF, preservação de dados,
+horários, falhas e disputa de escrita com double condicionado. Rodar test:unit,
+lint/build e diff --check. Concorrência PostgreSQL real segue ensaio separado.
+Sem migration, novas dependências ou integração MQTT neste lote.
+
+### Lote 6 entregue — 07/10/2026
+
+POST start/finish/cancel implementados com 200, sessão/CSRF e DTOs estritos.
+Estado autorizado é lido e updateMany exige o mesmo estado/acesso; resposta
+é relida sob o bloqueio da escrita na mesma transação. Conflitos retornam 409.
+Horários do servidor, endedAt nunca anterior a startedAt; campos ausentes
+preservados e null permitido conforme contrato. Motivo acrescentado às notes,
+sem truncamento; combinação acima de 1000 recusa cancelamento com 400.
+Baseline 279; 49 casos RED por rotas ausentes; dois casos extras de histórico
+e recuo do relógio. GREEN: 26 suítes/330 testes, lint/build aprovados.
+YAML OpenAPI válido. Scripts locais via npm.cmd após interromper pnpm que
+iniciou resolução de dependências; nenhum manifesto/lockfile alterado.
+Concorrência exercitada com double condicionado, sem prova PostgreSQL real.
+Próximo lote 7: suporte. Sem migration, .env, Docker, commit ou push.
+
+## Lote 7 — plano autorizado em 13/10/2026
+
+Criar modules/support (DTO, service, controller, module e teste HTTP), registrar
+AppModule; atualizar contratos, índice e contexto. GET/POST support-requests e
+GET support-requests/:supportRequestId, sem transições administrativas.
+Reutilizar JWT/CSRF, paginação 1/20 máximo 100 e envelopes existentes.
+Leituras filtram requesterId da sessão, inclusive ADMIN; histórico com referências
+nulas permanece acessível ao solicitante. Ordem createdAt desc/id asc e listas
+em RepeatableRead. Projeção só dos campos contratados, datas UTC.
+Criação bloqueia conta e veículo nessa ordem, verifica vínculo dentro da transação
+e instalação opcional do mesmo veículo acessível antes de gravar OPEN/requesterId.
+Ausência/alheio usa 404 de domínio; nenhuma instalação é presumida ou criada.
+DTO rejeita extras/null/tipos coercíveis, motivo vazio e acima de 1000 caracteres.
+Programador exigiu verificação do conteúdo: rejeitar padrões reconhecíveis de CPF
+(inclusive inválido), placa, documentos, JWT e credenciais; não repetir conteúdo
+em erros/logs. Esse filtro não comprova detecção de todo segredo em texto livre.
+TDD HTTP antes da implementação: rotas, sessão/CSRF, validação, conteúdo proibido,
+vínculo, instalação incompatível, histórico, paginação/projeção e falhas de banco.
+test:unit, lint/build e diff --check. Sem dependências/migration/serviços externos.
+Locks/rollback/cascatas reais permanecem ensaio PostgreSQL separado.
+
+### Lote 7 entregue — 13/10/2026
+
+GET/POST support-requests e GET support-requests/:supportRequestId registrados.
+Leituras próprias inclusive ADMIN, histórico com FKs nulas, lista RepeatableRead.
+Criação transacional bloqueia conta/veículo e verifica vínculo/instalação antes
+de gravar OPEN. DTO estrito e filtro conservador de conteúdo sensível aprovado
+pelo programador; erro sem ecoar motivo. Limite de 1000 e paginação 1/20/100.
+TDD: baseline 26 suítes/330 testes; 45 casos RED por rotas ausentes. GREEN final
+27 suítes/378 testes (48 novos), lint/build e diff --check aprovados. OpenAPI
+parseado e referências locais/CSRF conferidos. Corrigida incompatibilidade inicial
+do decorator NotMatches ausente na biblioteca instalada, usando validator nativo.
+Scripts npm.cmd locais conforme exceção documentada do pnpm; dependências intactas.
+Somente HTTP/JWT reais com Prisma simulado; banco real e concorrência não ensaiados.
+Sem migration, .env, Docker, commit/push. Próximo lote 8: fechamento da F05,
+após revisão desta entrega pelo programador; fase ainda em andamento.
+
+## Lote 8 — plano autorizado em 13/10/2026
+
+Programador solicitou próximo lote após commit do suporte e pull do front.
+Checkout limpo em 4762795; pull acrescentou telas/navegação mobile e contextos.
+Preservar essas alterações. Conferir controllers registrados, contratos OpenAPI,
+status HTTP, guards/CSRF e shared-types; executar regressão backend e testes de
+contrato, lint/build. Não criar endpoints administrativos sem contrato nem
+antecipar F06. Corrigir código somente se a revisão ou testes revelarem defeito.
+Arquivos previstos: este plano, backend-roadmap/README.md e 05-recursos-dominio.md,
+Api/endpoints.md e contexto diário. Sem dependências, schema, banco ou front.
+Registrar matriz contrato × implementação e pendências reais. Entrega pronta
+para revisão final não comprova ensaio PostgreSQL nem autoriza encerrar a fase
+automaticamente ou iniciar outra sem revisão do programador.
+
+### Lote 8 entregue — 13/10/2026
+
+Regressão após pull 4762795: backend 27 suítes/378 testes, lint e build aprovados;
+shared-types test:unit (compilação dos contratos), lint e build aprovados via
+scripts npm.cmd locais. Metadados dos controllers compilados conferidos com o
+OpenAPI: todas as 28 operações implementadas têm resposta de sucesso compatível,
+guards nos cinco controllers de domínio e Origin/CSRF em suas mutações.
+OpenAPI parseado e todas as referências locais resolvidas.
+
+| Grupo | Operações contratadas | Implementadas |
+| --- | ---: | ---: |
+| Health | 2 | 2 |
+| Auth | 6 | 6 |
+| Perfil | 2 | 2 |
+| Veículos | 5 | 5 |
+| Instalações/configurações | 4 | 4 |
+| Testes experimentais | 6 | 6 |
+| Suporte | 3 | 3 |
+| Telemetria/resumos/comparação (F06) | 4 | 0 |
+| Total | 32 | 28 |
+
+Revisão dos services e casos HTTP existentes confirma recorte de perfil,
+vínculos, snapshots, estado experimental e suporte próprio. Guards/CSRF,
+validação, projeção pública, histórico e conflitos simulados cobertos pelas
+suítes dos lotes. Não foi necessário alterar código nem criar testes duplicados.
+Somente documentação de fechamento/contexto alterada; front preservado.
+
+**F05 pronta para revisão final do programador, sem encerramento automático.**
+O recorte executável dos oito lotes não inclui provisionamento de dispositivo,
+criação/manutenção de instalação/configuração ou transições administrativas de
+suporte: continuam sem contratos/decisões operacionais aprovados. O roadmap
+estratégico menciona essas capacidades, mas não demonstra que foram entregues.
+
+Pendências: ensaio PostgreSQL real de concorrência, rollback e cascatas;
+integração nativa de cookies/Origin/CSRF; ativação de conta e origens de produção;
+limite do filtro de texto livre e marco MQTT. Não houve banco/Redis/broker reais,
+migration, .env, Docker, commit/push ou teste do front. Próxima etapa prevista,
+após revisão: F06 6.1, fechar regras/chave de recomputação e decisões restantes.

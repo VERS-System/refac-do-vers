@@ -7,6 +7,30 @@
 
 ## Docker Compose
 
+### Iniciar somente as APIs no Windows
+
+Abra o Docker Desktop com containers Linux e execute `rodar-apis.bat` na raiz
+(duplo clique ou terminal). Ele reconstrói e inicia backend, ai-service e Redis
+usando o Compose existente, sem iniciar web, dashboard ou mobile. Usa a pasta
+do próprio script mesmo quando chamado de outro diretório.
+
+A configuração local da raiz precisa conter DATABASE_URL e os segredos distintos
+JWT_ACCESS_SECRET/JWT_REFRESH_SECRET, conforme `.env.example`; API_PREFIX deve
+ser `api/v1`. O launcher não cria configuração nem aplica migrations. O banco
+continua no Neon. A IA atual expõe health e documentação FastAPI.
+
+- Backend: `http://localhost:3000/api/v1/health/live`.
+- Readiness: `http://localhost:3000/api/v1/health/ready` (exige banco e Redis).
+- IA: `http://localhost:8000/health` e `http://localhost:8000/docs`.
+- Logs: `docker compose logs -f backend ai-service`.
+- Parar: `docker compose stop backend ai-service redis` (preserva volumes).
+
+O comando detached inicia containers; confirmação de banco disponível vem do
+readiness, não apenas da saída do launcher. Portas 3000, 8000 e 6379 precisam
+estar disponíveis. Após alterar o backend, execute o .bat novamente para rebuild.
+Self-check sem Docker real: `powershell -NoProfile -ExecutionPolicy Bypass -File
+scripts/test-rodar-apis.ps1`.
+
 O ambiente de desenvolvimento local é gerenciado por Docker Compose.
 O arquivo `docker-compose.yml` na raiz define os serviços:
 
@@ -15,7 +39,7 @@ O arquivo `docker-compose.yml` na raiz define os serviços:
 | Redis      | 6379 → 6379              | Redis 7 Alpine           |
 | Backend    | 3000 → 3000              | NestJS (Node 22)         |
 | Web        | 3001 → 5173              | Vite + React + Tailwind  |
-| Dashboard  | 3050 → 5174              | Vite + React + Electron  |
+| Dashboard  | 3050 → 5174              | Vite + React + Tailwind  |
 | Mobile     | 8080 → 8081              | Expo + React Native      |
 | AI Service | 8000 → 8000              | FastAPI (Python 3.14)    |
 
@@ -42,7 +66,7 @@ docker compose down
 
 - **PostgreSQL não está no Docker.** O banco usado é Neon (nuvem), configurado via `DATABASE_URL` no `.env`.
 - **Redis** roda localmente via Docker para suportar Socket.IO e ioredis.
-- **Electron** (Dashboard) roda nativo no host e consome o Vite server do container `dashboard:3050`.
+- **Dashboard** é servido pelo Vite em `localhost:3050` no Docker ou `localhost:5174` no host. A API usa `/api/v1` pelo proxy Vite em desenvolvimento.
 - **Mobile** (Expo) precisa da variável `EXPO_HOST` com o IP da máquina na rede local para o dispositivo físico conectar.
 
 ---
@@ -59,7 +83,7 @@ docker compose down
 | `NODE_ENV`             | Não         | `development`  | Ambiente de execução          |
 | `PORT`                 | Não         | `3000`         | Porta do backend              |
 | `JWT_SECRET`           | Sim         | —              | Chave secreta JWT (mín. 16 caracteres) |
-| `JWT_EXPIRATION`       | Não         | `7d`           | Tempo de expiração do token   |
+| `JWT_EXPIRATION`       | Não         | `7d`           | Expiração JWT do baseline atual; será separada por tipo de token na implementação da autenticação |
 | `VITE_API_URL`         | Não         | `http://localhost:3000` | URL da API para web    |
 | `VITE_WS_URL`          | Não         | `ws://localhost:3000`   | URL do WebSocket       |
 | `EXPO_HOST`            | Não         | `localhost`    | IP do host para Expo          |
@@ -67,6 +91,17 @@ docker compose down
 | `OPENAI_MODEL`         | Não         | `gpt-4o-mini`  | Modelo OpenAI                 |
 
 Cada serviço também possui seu próprio `.env.example` com as variáveis específicas.
+
+### Transporte da autenticação
+
+- access e refresh tokens serão emitidos somente como cookies `HttpOnly`;
+- nenhum token será retornado em JSON ou disponibilizado ao JavaScript;
+- produção aceitará autenticação somente por HTTPS e usará cookies `Secure`;
+- refresh e logout usarão os cookies recebidos, sem token no body;
+- o backend deverá habilitar CORS com credenciais apenas para origens permitidas
+  e aplicar proteção CSRF adequada ao modelo de cookies;
+- a política provisória é `SameSite=Lax`, host-only, com `Origin` e token CSRF
+  nas mutações; domínios finais de implantação ainda serão definidos.
 
 ---
 

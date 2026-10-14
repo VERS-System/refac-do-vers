@@ -31,6 +31,10 @@ export default defineConfig({
       alias: { '@': resolve(__dirname, 'src/renderer') },
     },
     plugins: [react(), tailwindcss()],
+    // O cliente HTTP usa a URL relativa /api/v1; em desenvolvimento ela vai para a API local.
+    server: {
+      proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } },
+    },
     build: {
       rollupOptions: {
         input: resolve(__dirname, 'src/renderer/index.html'),

@@ -5,6 +5,15 @@
 
 import * as Joi from 'joi';
 
+const defaultCorsOrigins = [
+  'http://localhost:3001',
+  'http://localhost:3050',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:8081',
+  'http://localhost:8080',
+].join(',');
+
 export const envValidationSchema = Joi.object({
   // Banco de dados (Neon)
   DATABASE_URL: Joi.string()
@@ -17,18 +26,44 @@ export const envValidationSchema = Joi.object({
 
   // Redis
   REDIS_HOST: Joi.string().default('localhost'),
-  REDIS_PORT: Joi.number().default(6379),
+  REDIS_PORT: Joi.number().integer().min(1).max(65535).default(6379),
 
   // Aplicação
   NODE_ENV: Joi.string()
     .valid('development', 'production', 'test')
     .default('development'),
-  PORT: Joi.number().default(3000),
+  PORT: Joi.number().integer().min(1).max(65535).default(3000),
+  API_PREFIX: Joi.string()
+    .trim()
+    .pattern(
+      /^[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*(?:\/[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*)*$/,
+    )
+    .default('api/v1'),
+
+  // Clientes autorizados a acessar a API no navegador
+  CORS_ORIGINS: Joi.string().trim().min(1).default(defaultCorsOrigins),
 
   // JWT
-  JWT_SECRET: Joi.string().min(16).required().messages({
-    'string.min': 'JWT_SECRET deve ter no mínimo 16 caracteres',
-    'any.required': 'JWT_SECRET é obrigatória',
+  JWT_ACCESS_SECRET: Joi.string().min(16).required().messages({
+    'string.min': 'JWT_ACCESS_SECRET deve ter no mínimo 16 caracteres',
+    'any.required': 'JWT_ACCESS_SECRET é obrigatória',
   }),
-  JWT_EXPIRATION: Joi.string().default('7d'),
+  JWT_REFRESH_SECRET: Joi.string().min(16).required(),
+  JWT_ACCESS_EXPIRATION: Joi.string()
+    .trim()
+    .pattern(/^[1-9]\d*[smhd]$/)
+    .default('15m'),
+  JWT_REFRESH_EXPIRATION: Joi.string()
+    .trim()
+    .pattern(/^[1-9]\d*[smhd]$/)
+    .default('7d'),
+
+  // Proteção básica contra excesso de requisições
+  RATE_LIMIT_TTL_SECONDS: Joi.number().integer().positive().default(60),
+  RATE_LIMIT_MAX_REQUESTS: Joi.number().integer().positive().default(100),
+}).custom((value: Record<string, unknown>, helpers) => {
+  if (value.JWT_ACCESS_SECRET === value.JWT_REFRESH_SECRET) {
+    return helpers.error('any.invalid');
+  }
+  return value;
 });

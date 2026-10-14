@@ -1,7 +1,6 @@
 // Prisma schema do VERS
 //
-// Define as entidades do sistema: testes, configurações, telemetria,
-// mensagens MQTT, interações com IA e previsões.
+// Define as entidades de identidade, veículos, testes, telemetria e suporte.
 
 generator client {
   provider = "prisma-client-js"
@@ -12,136 +11,477 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Define os estados permitidos para uma conta do VERS.
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  PENDING_VERIFICATION
+
+  @@map("user_status")
+}
+
+// Define os papéis globais que podem coexistir em uma conta.
+enum UserRole {
+  USER
+  ADMIN
+
+  @@map("user_role")
+}
+
+// Define o tipo de vínculo de uma conta com um veículo.
+enum VehicleRelationship {
+  OWNER
+  DRIVER
+  ADMIN
+
+  @@map("vehicle_relationship")
+}
+
+// Define os estados públicos da instalação física VERS.
+enum InstallationStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+  FAULT
+
+  @@map("installation_status")
+}
+
+// Define os estados públicos de um ESP32 associado a uma instalação.
+enum DeviceStatus {
+  PROVISIONING
+  ONLINE
+  OFFLINE
+  REVOKED
+  FAULT
+
+  @@map("device_status")
+}
+
+// Descreve a ligação elétrica dos piezoelétricos no snapshot da montagem.
+enum PiezoAssociation {
+  SERIES
+  PARALLEL
+  MIXED
+
+  @@map("piezo_association")
+}
+
+// Descreve o armazenamento de energia usado pela montagem.
+enum StorageType {
+  BATTERY
+  SUPERCAPACITOR
+  CAPACITOR
+  NONE
+
+  @@map("storage_type")
+}
+
+// Define os estados persistidos de um teste experimental.
+enum TestStatus {
+  PLANNED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@map("test_status")
+}
+
+// Classifica o terreno informado para o ensaio.
+enum TerrainType {
+  HIGHWAY
+  CITY
+  OFFROAD
+  MIXED
+  OTHER
+
+  @@map("terrain_type")
+}
+
+// Classifica o resultado informado ao concluir um teste.
+enum TestOutcome {
+  SATISFACTORY
+  UNSATISFACTORY
+  INCONCLUSIVE
+
+  @@map("test_outcome")
+}
+
+// Classifica o processamento do envelope MQTT recebido.
+enum MqttProcessingStatus {
+  RECEIVED
+  PROCESSED
+  REJECTED
+
+  @@map("mqtt_processing_status")
+}
+
+// Classifica a confiabilidade de uma amostra normalizada.
+enum TelemetryQuality {
+  VALID
+  PARTIAL
+  SUSPECT
+  INVALID
+
+  @@map("telemetry_quality")
+}
+
+// Define a janela coberta por um resumo energético.
+enum SummaryPeriod {
+  TEST
+  HOUR
+  DAY
+  MONTH
+
+  @@map("summary_period")
+}
+
+// Classifica a qualidade dos dados usados em um resumo.
+enum SummaryQuality {
+  GOOD
+  PARTIAL
+  INVALID
+
+  @@map("summary_quality")
+}
+
+// Define o acompanhamento de uma solicitação de revisão.
+enum SupportStatus {
+  OPEN
+  IN_REVIEW
+  SCHEDULED
+  RESOLVED
+  CANCELLED
+
+  @@map("support_status")
+}
+
+// Registra o resultado mínimo de uma ação auditada.
+enum AuditResult {
+  SUCCESS
+  FAILURE
+
+  @@map("audit_result")
+}
+
+// Guarda a identidade local sem persistir senha ou token em texto puro.
+model User {
+  id              String           @id @default(uuid()) @db.Uuid
+  email           String           @unique @db.Citext
+  passwordHash    String           @map("password_hash")
+  displayName     String?          @map("display_name")
+  avatarUrl       String?          @map("avatar_url")
+  status          UserStatus       @default(PENDING_VERIFICATION)
+  emailVerifiedAt DateTime?        @map("email_verified_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  roles           UserRoleAssignment[]
+  refreshSessions RefreshSession[]
+  vehicles        UserVehicle[]
+  testsCreated    Test[]
+  supportRequests SupportRequest[]
+  auditEvents     AuditEvent[]
+
+  @@map("users")
+}
+
+// Associa papéis globais distintos ao mesmo usuário sem tabela de catálogo.
+model UserRoleAssignment {
+  userId    String   @map("user_id") @db.Uuid
+  role      UserRole
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, role])
+  @@map("user_role_assignments")
+}
+
+// Persiste somente hashes de refresh tokens e o histórico de revogação.
+model RefreshSession {
+  id                  String           @id @default(uuid()) @db.Uuid
+  userId              String           @map("user_id") @db.Uuid
+  tokenHash           String           @unique @map("token_hash")
+  deviceLabel         String?          @map("device_label")
+  expiresAt           DateTime         @map("expires_at")
+  revokedAt           DateTime?        @map("revoked_at")
+  replacedBySessionId String?          @map("replaced_by_session_id") @db.Uuid
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy          RefreshSession?  @relation("SessionReplacement", fields: [replacedBySessionId], references: [id], onDelete: SetNull)
+  replaces            RefreshSession[] @relation("SessionReplacement")
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([expiresAt])
+  @@map("refresh_sessions")
+}
+
+// Guarda a identificação atual do veículo enquanto houver contas vinculadas.
+model Vehicle {
+  id           String        @id @default(uuid()) @db.Uuid
+  licensePlate String        @unique @map("license_plate") @db.Citext
+  brand        String?
+  model        String?
+  modelYear    Int?          @map("model_year")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  users        UserVehicle[]
+  installations VersInstallation[]
+  tests         Test[]
+  supportRequests SupportRequest[]
+
+  @@map("vehicles")
+}
+
+// Associa contas e veículos sem transferir a propriedade do registro físico.
+model UserVehicle {
+  userId       String              @map("user_id") @db.Uuid
+  vehicleId    String              @map("vehicle_id") @db.Uuid
+  relationship VehicleRelationship
+  isPrimary    Boolean             @default(false) @map("is_primary")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  user         User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  vehicle      Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, vehicleId])
+  @@index([vehicleId])
+  @@map("user_vehicles")
+}
+
+// Liga uma montagem VERS ao veículo até a exclusão física deste registro.
+model VersInstallation {
+  id             String             @id @default(uuid()) @db.Uuid
+  vehicleId      String             @map("vehicle_id") @db.Uuid
+  systemModel    String             @map("system_model")
+  serialNumber   String?            @unique @map("serial_number")
+  status         InstallationStatus @default(INACTIVE)
+  installedAt    DateTime?          @map("installed_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  vehicle        Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  devices        Device[]
+  configurations Configuration[]
+  tests          Test[]
+  samples        TelemetrySample[]
+  energySummaries EnergySummary[]
+  supportRequests SupportRequest[]
+
+  @@unique([id, vehicleId])
+  @@index([vehicleId, status])
+  @@map("vers_installations")
+}
+
+// Identifica o ESP32 sem persistir credenciais MQTT em texto puro.
+model Device {
+  id              String           @id @default(uuid()) @db.Uuid
+  installationId  String           @map("installation_id") @db.Uuid
+  vehicleId       String           @map("vehicle_id") @db.Uuid
+  deviceUid       String           @unique @map("device_uid")
+  name            String?
+  firmwareVersion String?          @map("firmware_version")
+  status          DeviceStatus     @default(PROVISIONING)
+  lastSeenAt      DateTime?        @map("last_seen_at")
+  revokedAt       DateTime?        @map("revoked_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  installation    VersInstallation @relation(fields: [installationId, vehicleId], references: [id, vehicleId], onDelete: Cascade)
+  messages        MqttMessage[]
+  samples         TelemetrySample[]
+
+  @@index([installationId, vehicleId])
+  @@map("devices")
+}
+
 // ────────────────────────────────────────────
-// Configuration — montagem física usada nos testes
+// Configuration — versão imutável da montagem usada nos testes
 // ────────────────────────────────────────────
 model Configuration {
-  id                String   @id @default(uuid())
+  id                String           @id @default(uuid()) @db.Uuid
+  installationId    String           @map("installation_id") @db.Uuid
   name              String
-  piezoAssociation  String   @map("piezo_association") // series | parallel
-  installationPoint String   @map("installation_point")
-  storageType       String   @map("storage_type")
-  firmwareVersion   String   @map("firmware_version")
-  description       String?
-  createdAt         DateTime @default(now()) @map("created_at")
+  version           Int
+  activePiezoCount  Int              @map("active_piezo_count")
+  piezoAssociation  PiezoAssociation @map("piezo_association")
+  installationPoint String           @map("installation_point")
+  storageType       StorageType      @map("storage_type")
+  notes             String?
+  createdAt         DateTime         @default(now()) @map("created_at")
+  installation      VersInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  tests             Test[]
 
-  tests Test[]
-
+  @@unique([installationId, version])
   @@map("configurations")
 }
 
 // ────────────────────────────────────────────
-// Test — execução experimental
+// Test — execução experimental com contexto histórico sem identificadores da placa
 // ────────────────────────────────────────────
 model Test {
-  id               String    @id @default(uuid())
-  name             String
-  configurationId  String    @map("configuration_id")
-  satisfatory      Boolean   @default(false)
-  terrain          String    // highway | city | offroad | mixed | other
-  rpm              Float?
-  watts            Float?
-  amp              Float?
-  current          Float?
-  batteryUsed      Float?    @map("battery_used")
-  batteryGenerated Float?    @map("battery_generated")
-  numPiezos        Int       @map("num_piezos")
-  startTime        DateTime? @map("start_time")
-  endTime          DateTime? @map("end_time")
-  duration         Int?      // segundos
-  weight           Float?
-  avgSpeed         Float?    @map("avg_speed")
-  incline          Float?
-  notes            String?
-  status           String    @default("planned") // planned | running | completed | failed
-  createdAt        DateTime  @default(now()) @map("created_at")
+  id                           String            @id @default(uuid()) @db.Uuid
+  vehicleId                    String?           @map("vehicle_id") @db.Uuid
+  installationId               String?           @map("installation_id") @db.Uuid
+  configurationId              String?           @map("configuration_id") @db.Uuid
+  createdById                  String?           @map("created_by_id") @db.Uuid
+  name                         String            @db.VarChar(120)
+  status                       TestStatus        @default(PLANNED)
+  terrain                      TerrainType
+  snapshotVehicleModel         String?           @map("snapshot_vehicle_model")
+  snapshotTestLocation         String            @map("snapshot_test_location") @db.VarChar(160)
+  snapshotActivePiezoCount     Int               @map("snapshot_active_piezo_count")
+  snapshotConfigurationVersion Int               @map("snapshot_configuration_version")
+  startedAt                    DateTime?         @map("started_at")
+  endedAt                      DateTime?         @map("ended_at")
+  vehicleWeightKg              Float?            @map("vehicle_weight_kg")
+  averageEngineRpm             Float?            @map("average_engine_rpm")
+  averageSpeedKph              Float?            @map("average_speed_kph")
+  inclineDegrees               Float?            @map("incline_degrees")
+  outcome                      TestOutcome?
+  notes                        String?           @db.VarChar(1000)
+  createdAt                    DateTime          @default(now()) @map("created_at")
+  updatedAt                    DateTime          @updatedAt @map("updated_at")
+  vehicle                      Vehicle?          @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  installation                 VersInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
+  configuration                Configuration?    @relation(fields: [configurationId], references: [id], onDelete: SetNull)
+  createdBy                    User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  messages                     MqttMessage[]
+  samples                      TelemetrySample[]
+  energySummaries              EnergySummary[]
 
-  configuration Configuration @relation(fields: [configurationId], references: [id])
-  telemetry     Telemetry[]
-  predictions   AiPrediction[]
-
+  @@index([installationId, status, startedAt])
+  @@index([createdById, createdAt])
   @@map("tests")
 }
 
 // ────────────────────────────────────────────
-// Telemetry — leituras individuais dos sensores
+// TelemetrySample — leituras normalizadas com posição dentro da mensagem
 // ────────────────────────────────────────────
-model Telemetry {
-  id                String   @id @default(uuid())
-  testId            String   @map("test_id")
-  timestamp         DateTime
-  voltage           Float?
-  current           Float?
-  power             Float?
-  energyAccumulated Float?   @map("energy_accumulated")
-  accelerationX     Float?   @map("acceleration_x")
-  accelerationY     Float?   @map("acceleration_y")
-  accelerationZ     Float?   @map("acceleration_z")
-  temperature       Float?
-  sensorStatus      String?  @map("sensor_status")
-  quality           String?
-  createdAt         DateTime @default(now()) @map("created_at")
+model TelemetrySample {
+  id                  String           @id @default(uuid()) @db.Uuid
+  messageId           String?          @map("message_id") @db.Uuid
+  sampleIndex         Int              @map("sample_index")
+  testId              String?          @map("test_id") @db.Uuid
+  deviceId            String?          @map("device_id") @db.Uuid
+  installationId      String?          @map("installation_id") @db.Uuid
+  capturedAt          DateTime         @map("captured_at")
+  voltageV            Float?           @map("voltage_v")
+  currentA            Float?           @map("current_a")
+  powerW              Float?           @map("power_w")
+  devicePowerW        Float?           @map("device_power_w")
+  accumulatedEnergyWh Float?           @map("accumulated_energy_wh")
+  accelerationXMs2    Float?           @map("acceleration_x_ms2")
+  accelerationYMs2    Float?           @map("acceleration_y_ms2")
+  accelerationZMs2    Float?           @map("acceleration_z_ms2")
+  vibrationRmsMs2     Float?           @map("vibration_rms_ms2")
+  temperatureC        Float?           @map("temperature_c")
+  activePiezoCount    Int?             @map("active_piezo_count")
+  quality             TelemetryQuality
+  createdAt           DateTime         @default(now()) @map("created_at")
+  message             MqttMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  test                Test?            @relation(fields: [testId], references: [id], onDelete: SetNull)
+  device              Device?          @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  installation        VersInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
 
-  test Test @relation(fields: [testId], references: [id])
-
-  @@map("telemetries")
+  @@unique([messageId, sampleIndex])
+  @@index([testId, capturedAt])
+  @@index([deviceId, capturedAt])
+  @@index([installationId, capturedAt])
+  @@map("telemetry_samples")
 }
 
 // ────────────────────────────────────────────
-// EnergySummary — resumos diários/mensais para dashboard
+// EnergySummary — períodos de energia calculados sem perda de precisão monetária
 // ────────────────────────────────────────────
 model EnergySummary {
-  id              String   @id @default(uuid())
-  date            DateTime
-  period          String   // daily | monthly
-  batteryRecovered Float?  @map("battery_recovered")
-  batteryUsed     Float?   @map("battery_used")
-  energyPerHour   Json?    @map("energy_per_hour")
-  moneyEconomy    Float?   @map("money_economy")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id                  String            @id @default(uuid()) @db.Uuid
+  installationId      String?           @map("installation_id") @db.Uuid
+  testId              String?           @map("test_id") @db.Uuid
+  periodType          SummaryPeriod     @map("period_type")
+  periodStart         DateTime          @map("period_start")
+  periodEnd           DateTime          @map("period_end")
+  recoveredEnergyWh   Float             @map("recovered_energy_wh")
+  vehicleEnergyUsedWh Float?            @map("vehicle_energy_used_wh")
+  averagePowerW       Float?            @map("average_power_w")
+  peakPowerW          Float?            @map("peak_power_w")
+  moneySaved          Decimal?          @map("money_saved") @db.Decimal(18, 6)
+  currencyCode        String?           @map("currency_code") @db.VarChar(3)
+  energyTariffPerKwh  Decimal?          @map("energy_tariff_per_kwh") @db.Decimal(18, 8)
+  sampleCount         Int               @map("sample_count")
+  quality             SummaryQuality
+  calculationVersion  Int               @map("calculation_version")
+  calculatedAt        DateTime          @map("calculated_at")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  installation        VersInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
+  test                Test?             @relation(fields: [testId], references: [id], onDelete: SetNull)
 
+  @@index([installationId, periodType, periodStart])
+  @@index([testId, periodType, periodStart])
   @@map("energy_summaries")
 }
 
+// SupportRequest — pedido de revisão sem cópias de dados do veículo.
+model SupportRequest {
+  id             String            @id @default(uuid()) @db.Uuid
+  requesterId    String?           @map("requester_id") @db.Uuid
+  vehicleId      String?           @map("vehicle_id") @db.Uuid
+  installationId String?           @map("installation_id") @db.Uuid
+  reason         String            @db.VarChar(1000)
+  status         SupportStatus     @default(OPEN)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  requester      User?             @relation(fields: [requesterId], references: [id], onDelete: SetNull)
+  vehicle        Vehicle?          @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  installation   VersInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
+
+  @@index([requesterId, status, createdAt])
+  @@map("support_requests")
+}
+
+// AuditEvent — trilha mínima sem coluna para payload, token ou metadados livres.
+model AuditEvent {
+  id           String      @id @default(uuid()) @db.Uuid
+  actorId      String?     @map("actor_id") @db.Uuid
+  action       String      @db.VarChar(80)
+  resourceType String      @map("resource_type") @db.VarChar(40)
+  resourceId   String?     @map("resource_id") @db.Uuid
+  result       AuditResult
+  requestId    String?     @map("request_id") @db.VarChar(100)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  actor        User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([resourceType, resourceId])
+  @@map("audit_events")
+}
+
 // ────────────────────────────────────────────
-// MqttMessage — dados brutos recebidos via MQTT
+// MqttMessage — envelope bruto recebido via MQTT
 // ────────────────────────────────────────────
 model MqttMessage {
-  id        String   @id @default(uuid())
-  topic     String
-  payload   Json
-  timestamp DateTime
-  processed Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String               @id @default(uuid()) @db.Uuid
+  messageId       String               @unique @map("message_id")
+  deviceId        String?              @map("device_id") @db.Uuid
+  testId          String?              @map("test_id") @db.Uuid
+  schemaVersion   Int                  @map("schema_version")
+  topic           String
+  payload         Json
+  sequence        BigInt
+  qos             Int
+  retained        Boolean
+  capturedAt      DateTime             @map("captured_at")
+  receivedAt      DateTime             @default(now()) @map("received_at")
+  processedAt     DateTime?            @map("processed_at")
+  status          MqttProcessingStatus @default(RECEIVED)
+  rejectionReason String?              @map("rejection_reason") @db.VarChar(200)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  device          Device?              @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  test            Test?                @relation(fields: [testId], references: [id], onDelete: SetNull)
+  samples         TelemetrySample[]
 
+  @@unique([deviceId, sequence])
+  @@index([deviceId, capturedAt])
+  @@index([status, receivedAt])
   @@map("mqtt_messages")
-}
-
-// ────────────────────────────────────────────
-// AiInteraction — histórico do chat Viber
-// ────────────────────────────────────────────
-model AiInteraction {
-  id        String   @id @default(uuid())
-  sessionId String   @map("session_id")
-  question  String
-  answer    String
-  context   Json?
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("ai_interactions")
-}
-
-// ────────────────────────────────────────────
-// AiPrediction — previsões geradas pela IA
-// ────────────────────────────────────────────
-model AiPrediction {
-  id              String   @id @default(uuid())
-  testId          String   @map("test_id")
-  predictionType  String   @map("prediction_type") // anomaly | trend | forecast
-  predictionData  Json     @map("prediction_data")
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  test Test @relation(fields: [testId], references: [id])
-
-  @@map("ai_predictions")
 }

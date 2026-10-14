@@ -1,13 +1,16 @@
 /**
  * Implementa a barra inferior compartilhada pelas telas principais do VERS.
+ *
+ * O botão central usa a imagem `versAlt.png` fornecida pelo programador.
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { colors } from '../constants/colors';
-import { VersLogo } from './VersLogo';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { theme } from '../constants/theme';
+import { TAB_META, TAB_ORDER, type MainTab } from '../navigation/tabs';
 
-export type MainTab = 'home' | 'battery' | 'vers' | 'diagnostic' | 'profile';
+/** Reexporta o tipo para telas que já importam da barra. */
+export type { MainTab };
 
 type BottomNavigationProps = {
   activeTab: MainTab;
@@ -39,14 +42,15 @@ function NavigationIcon({ activeTab, icon, label, onPress, tab }: NavigationIcon
       onPress={handlePress}
       style={[styles.iconButton, isActive && styles.activeButton]}
     >
-      <Ionicons color={colors.primary} name={icon} size={25} />
+      <Ionicons color={theme.colors.primary} name={icon} size={25} />
     </Pressable>
   );
 }
 
 /**
- * Organiza as cinco áreas do app, dando destaque central à marca conforme os
- * mockups e permitindo que cada tela controle a navegação externamente.
+ * Organiza as quatro áreas do app a partir do mapa central de abas, dando
+ * destaque central à marca conforme os mockups e permitindo que cada tela
+ * controle a navegação externamente.
  */
 export function BottomNavigation({ activeTab, onTabPress }: BottomNavigationProps) {
   /** Encaminha o toque no botão central da marca. */
@@ -56,43 +60,41 @@ export function BottomNavigation({ activeTab, onTabPress }: BottomNavigationProp
 
   return (
     <View style={styles.container}>
-      <NavigationIcon
-        activeTab={activeTab}
-        icon="home-outline"
-        label="Início"
-        onPress={onTabPress}
-        tab="home"
-      />
-      <NavigationIcon
-        activeTab={activeTab}
-        icon="battery-charging-outline"
-        label="Bateria"
-        onPress={onTabPress}
-        tab="battery"
-      />
-      <Pressable
-        accessibilityLabel="VERS"
-        accessibilityRole="button"
-        accessibilityState={{ selected: activeTab === 'vers' }}
-        onPress={handleVersPress}
-        style={styles.brandButton}
-      >
-        <VersLogo size={52} />
-      </Pressable>
-      <NavigationIcon
-        activeTab={activeTab}
-        icon="pulse-outline"
-        label="Diagnóstico"
-        onPress={onTabPress}
-        tab="diagnostic"
-      />
-      <NavigationIcon
-        activeTab={activeTab}
-        icon="person-outline"
-        label="Perfil"
-        onPress={onTabPress}
-        tab="profile"
-      />
+      {TAB_ORDER.map((tab) => {
+        if (tab === 'vers') {
+          return (
+            <Pressable
+              accessibilityLabel={TAB_META.vers.label}
+              accessibilityRole="button"
+              accessibilityState={{ selected: activeTab === 'vers' }}
+              key="vers"
+              onPress={handleVersPress}
+              style={styles.brandButton}
+            >
+              <Image
+                accessibilityLabel="Logotipo do VERS"
+                resizeMode="contain"
+                source={require('../assets/versAlt.png')}
+                style={styles.brandImage}
+                testID="vers-brand-image"
+              />
+            </Pressable>
+          );
+        }
+
+        const meta = TAB_META[tab];
+
+        return (
+          <NavigationIcon
+            activeTab={activeTab}
+            icon={meta.icon!}
+            key={tab}
+            label={meta.label}
+            onPress={onTabPress}
+            tab={tab}
+          />
+        );
+      })}
     </View>
   );
 }
@@ -100,8 +102,8 @@ export function BottomNavigation({ activeTab, onTabPress }: BottomNavigationProp
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    backgroundColor: colors.background,
-    borderColor: colors.border,
+    backgroundColor: theme.colors.background,
+    borderColor: theme.colors.border,
     borderRadius: 29,
     borderWidth: StyleSheet.hairlineWidth,
     bottom: 12,
@@ -112,7 +114,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     position: 'absolute',
     right: 28,
-    shadowColor: colors.white,
+    shadowColor: theme.colors.white,
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -125,13 +127,18 @@ const styles = StyleSheet.create({
     width: 46,
   },
   activeButton: {
-    backgroundColor: '#292819',
+    backgroundColor: theme.colors.tabActive,
   },
   brandButton: {
     alignItems: 'center',
-    height: 52,
+    borderRadius: 23,
+    height: 46,
     justifyContent: 'center',
     overflow: 'hidden',
-    width: 58,
+    width: 46,
+  },
+  brandImage: {
+    height: 22,
+    width: 28,
   },
 });

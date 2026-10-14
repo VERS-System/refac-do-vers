@@ -66,10 +66,10 @@ no teste de commit; acrescentar recuperação e ausência em rejeição/NOT_FOUN
 Confirmar RED antes de implementar. Manter testes de rollback/listeners/shutdown.
 Executar test:unit, lint/build e diff --check; conferir saúde do container.
 
-## Decisões abertas
+## Decisões e pendências
 
-- Pergunta enviada: primeiro evento ao cliente invalida consultas REST ou leva
-  medições completas? Não implementar payload externo até resposta.
+- Em 14/10/2026 o programador escolheu "Buscar pelo REST": evento externo
+  informa atualização; valores continuam nas consultas REST autorizadas.
 - Limites por sessão/conta/recurso, janela de revogação e indisponibilidade de
   Redis serão apresentados com sugestão concreta antes dos respectivos lotes.
 - Integração com frontend e ativação real do pipeline permanecem fora de 8.1.
@@ -89,3 +89,28 @@ Backend reconstruído/reiniciado; live ok, readiness inicialmente com timeout
 de cliente/503 e depois ok com database/redis ok e MQTT disabled. Causa do
 transitório não atribuída. Sem novo ensaio SQL/broker, porque este lote
 altera apenas metadata em memória e mantém o processamento transacional.
+
+## Escopo 8.2 — contrato externo com busca REST
+
+Decisão do programador autoriza fechar o contrato de invalidação em
+Api/realtime-contract-v1.md. Definir namespace/comandos/ACK, envelope mínimo por
+recurso, consultas afetadas e recuperação. Atualizar este plano, índice do
+roadmap e contexto diário. Nenhuma implementação de transporte, frontend,
+schema, tipo compartilhado sem consumidor ou alteração de runtime neste lote;
+não reconstruir imagem sem mudança de código/configuração executável.
+
+O aviso externo não herda diretamente o evento interno: um acesso a teste não
+autoriza instalação e vice-versa. Usar apenas tipo/ID do recurso autorizado,
+versão e horário de emissão. Não enviar ID do bruto, medições ou IDs de outros
+recursos. Avisos são invalidações repetíveis, sem cursor de replay nem ordem
+global. Consumidor agrega consultas em curso e refaz após aviso concorrente.
+
+Assinatura confirmada antecede consulta REST; reconexão repete assinatura e
+consulta. Consulta em voo não pode apagar invalidação posterior. Mensagens
+tardias invalidam filtros históricos ativos, sem usar occurredAt como captura.
+Paginação continua contrato REST atual, sem prometer snapshot transacional.
+
+Limites de conexões/assinaturas e fallback quando Redis fica indisponível
+continuam pendentes de decisão antes de ativar transporte; essa escolha não
+foi inferida da preferência por REST. Revisão documental e diff --check são a
+validação deste lote; não alegar cobertura de Redis/Socket.IO por testes 8.1.

@@ -74,8 +74,14 @@ Executar test:unit, lint/build e diff --check; conferir saúde do container.
   transações em curso; retomar com sessão persistente quando Redis voltar.
   REST continua disponível. Coordenador local implementado em 8.3.1, passivo
   e testado sem serviços externos; integração real segue pendente.
-- Limites por sessão/conta/recurso e janela de revogação serão apresentados
-  com sugestão concreta antes dos respectivos lotes.
+- Em 15/10/2026 aprovados: Origin obrigatório da lista CORS, revalidação em cada
+  assinatura/aviso e sessão ociosa a cada 30 s; até 5 conexões/sessão e 20
+  recursos/conexão por instância. Serviço passivo no recorte 8.4; aplicação de
+  timers/contadores/entrega no gateway 8.5.
+- Recorte 8.4 entregue: parser/autorização passivos, cookie HS256/sessão atual,
+  Origin CORS obrigatório e ResourceAccessService, 44 suítes/920 testes,
+  lint/build e backend Docker atualizado com live/readiness ok. Evidências em
+  [sessão e autorização](backend-phase-8-session-authorization.md).
 - Integração com frontend e ativação real do pipeline permanecem fora de 8.1.
 
 ## Evidência local 8.1 — 14/10/2026

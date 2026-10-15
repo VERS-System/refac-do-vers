@@ -3,7 +3,8 @@
 
 Estado: evento interno 8.1 implementado; contrato externo 8.2 documentado após
 decisão do programador de buscar valores pelo REST em 14/10/2026. Namespace,
-comandos e transporte descritos abaixo ainda não estão implementados. Plano em
+comandos de rede e gateway descritos abaixo ainda não estão implementados;
+parser e autorização reutilizável disponíveis desde 8.4. Plano em
 [F08](../plans/backend-phase-8-execution-roadmap.md).
 
 ## Evento interno telemetry.processed
@@ -65,8 +66,8 @@ carregamento e assinatura; reconexão exige nova consulta autorizada.
 Decisão: o evento externo avisa que há dados atualizados e o cliente consulta
 os valores pelo REST autorizado. Não transportar medições completas no aviso.
 Autenticação existente usa cookies HttpOnly e sessão validada no banco, sem
-token em query ou auth. Limites, revogação e Origin serão definidos antes da
-ativação do transporte externo.
+token em query ou auth. Origin, revogação e limites aprovados em 15/10/2026
+estão registrados no lote 8.4 abaixo; aplicação no gateway segue pendente.
 
 ## Contrato externo 8.2 — a implementar
 
@@ -308,3 +309,33 @@ Ensaio local usa mocks e integração em memória com pipeline real. Não compro
 SQL/Redis reais, retenção de broker ou entrega/autorização Socket.IO. Recálculo
 de TEST sem mensagem nova ainda não possui evento próprio. Plano/evidências em
 [F08.3.2](../plans/backend-phase-8-notification-bridge.md).
+
+## Sessão e autorização — lote 8.4
+
+RealtimeAuthorizationService é passivo e exportado pelo RealtimeModule. O parser
+parseRealtimeSubscription aceita apenas o comando estrito v1 descrito acima.
+authenticate exige Origin presente e exatamente contido na lista CORS atual;
+ausência, null, wildcard ou origem alheia são recusados. Isso limita esta versão
+ao dashboard web; clientes nativos sem Origin dependem de decisão posterior.
+
+Somente cookie único vers_access é lido. JwtService valida assinatura HS256 e
+prazo; AuthService valida claims, sessão não revogada/substituída/expirada e
+conta ACTIVE no banco. authorize repete essa validação e aplica requireTest ou
+requireInstallation do REST, sem cache e sem exceção global ADMIN. Criador
+histórico continua autorizado no teste, sem conceder acesso à instalação.
+
+Falha de credencial/Origin retorna UNAUTHENTICATED; comando inválido,
+INVALID_REQUEST; recurso ausente ou alheio, RESOURCE_UNAVAILABLE. Falha de banco
+retorna REALTIME_UNAVAILABLE. Nenhum erro inclui causa, token ou conteúdo bruto.
+Serviço não abre namespace, sala, timer ou conexão e não entrega avisos sozinho.
+
+Políticas aprovadas para F08.5: revalidar sessão e vínculo em cada assinatura e
+antes de cada aviso; conferir sessão ociosa a cada 30 segundos. Até 5 conexões
+por sessão e 20 recursos por conexão, por instância do backend. Não são quotas
+globais entre réplicas. Refresh/expiração exigirá reconexão com cookie atualizado;
+não confiar permanentemente na autenticação do handshake nem emitir direto à
+sala sem conferir os destinatários. Revogação concorrente à consulta não oferece
+atomicidade com a entrega de rede. Timer/contadores/encerramento serão aplicados
+no gateway; este recorte apenas fornece verificações reutilizáveis.
+
+Plano e evidências: [F08.4](../plans/backend-phase-8-session-authorization.md).

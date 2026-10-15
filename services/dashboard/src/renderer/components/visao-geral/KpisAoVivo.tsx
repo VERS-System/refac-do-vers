@@ -9,9 +9,9 @@
 import { Zap } from 'lucide-react';
 import { BarraSegmentos } from '@/components/charts/BarraSegmentos';
 import { MedidorAnel } from '@/components/charts/MedidorAnel';
-import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { ESTADOS_BATERIA } from '@/components/energia/estadoBateria';
+import { Badge } from '@/components/ui/Badge';
 import { KpiConsulta } from '@/components/ui/KpiConsulta';
-import type { Bateria } from '@/data/tipos';
 import { useBateria, useCadeiaAoVivo, useResumoEnergia } from '@/hooks/useDados';
 import { formatarNumero, formatarPercentual, formatarPotencia } from '@/lib/format';
 
@@ -32,8 +32,14 @@ export function CardPotencia() {
         const potenciaMw = dados.pontos[0]?.potenciaMw ?? 0;
         return {
           value: formatarPotencia(potenciaMw).valor,
-          unit: 'mW',
-          children: <BarraSegmentos valor={potenciaMw} maximo={POTENCIA_MAXIMA_MW} rotulo="Nível de potência" />,
+          unit: formatarPotencia(potenciaMw).unidade,
+          children: (
+            <BarraSegmentos
+              valor={potenciaMw}
+              maximo={POTENCIA_MAXIMA_MW}
+              rotulo="Nível de potência"
+            />
+          ),
         };
       }}
     </KpiConsulta>
@@ -60,13 +66,6 @@ export function CardEficiencia() {
   );
 }
 
-/** Texto e tom do badge de cada estado da bateria. */
-const ESTADOS_BATERIA: Record<Bateria['estado'], { texto: string; tom: BadgeTone }> = {
-  carregando: { texto: 'Carregando', tom: 'accent' },
-  descarregando: { texto: 'Descarregando', tom: 'warning' },
-  ociosa: { texto: 'Ociosa', tom: 'neutral' },
-};
-
 /** Carga da bateria do sistema, com estado e barra de nível. */
 export function CardBateria() {
   const bateria = useBateria();
@@ -85,7 +84,10 @@ export function CardBateria() {
           ),
           children: (
             <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-surface-raised">
-              <div className="h-full rounded-full bg-accent" style={{ width: `${dados.cargaPercentual}%` }} />
+              <div
+                className="h-full rounded-full bg-accent"
+                style={{ width: `${dados.cargaPercentual}%` }}
+              />
             </div>
           ),
         };

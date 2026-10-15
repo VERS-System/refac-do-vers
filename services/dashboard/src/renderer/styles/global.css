@@ -106,3 +106,25 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/*
+ * Reduzir movimento: pela preferência do app (Configurações) ou do sistema
+ * operacional, as animações e transições são desligadas.
+ */
+:root[data-reduzir-movimento] *,
+:root[data-reduzir-movimento] *::before,
+:root[data-reduzir-movimento] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import type { Vibracao } from '@/data/tipos';
 import { useVibracao } from '@/hooks/useDados';
 import { cn } from '@/lib/cn';
-import { formatarMedida, formatarNumero } from '@/lib/format';
+import { formatarAceleracao, formatarMedida, formatarNumero } from '@/lib/format';
 
 /** Texto e cor de cada faixa de vibração. */
 const FAIXAS: Record<Vibracao['faixa'], { texto: string; classe: string }> = {
@@ -33,7 +33,10 @@ function PontosPiezos({ ativos, total }: { ativos: number; total: number }) {
   return (
     <span aria-hidden="true" className="flex gap-1">
       {Array.from({ length: total }, (_, i) => (
-        <span key={i} className={cn('size-2 rounded-full', i < ativos ? 'bg-accent' : 'bg-surface-raised')} />
+        <span
+          key={i}
+          className={cn('size-2 rounded-full', i < ativos ? 'bg-accent' : 'bg-surface-raised')}
+        />
       ))}
     </span>
   );
@@ -57,9 +60,11 @@ function ConteudoVibracao({ vibracao }: { vibracao: Vibracao }) {
       <div className="mt-4 flex items-baseline justify-between gap-3">
         <p className="flex items-baseline gap-1.5 font-mono">
           <span className="tabular text-[32px] leading-[38px] font-medium tracking-[-0.5px] text-fg">
-            {formatarNumero(vibracao.rmsMs2, 1)}
+            {formatarAceleracao(vibracao.rmsMs2).valor}
           </span>
-          <span className="text-sm text-fg-muted">m/s²</span>
+          <span className="text-sm text-fg-muted">
+            {formatarAceleracao(vibracao.rmsMs2).unidade}
+          </span>
         </p>
         <p className={cn('font-mono text-[13px]', faixa.classe)}>{faixa.texto}</p>
       </div>
@@ -72,7 +77,10 @@ function ConteudoVibracao({ vibracao }: { vibracao: Vibracao }) {
           <span>{`${vibracao.piezosAtivos} / ${vibracao.piezosTotal}`}</span>
         </Detalhe>
         <Detalhe rotulo="Frequência dominante">
-          {formatarMedida({ valor: formatarNumero(vibracao.frequenciaDominanteHz, 1), unidade: 'Hz' })}
+          {formatarMedida({
+            valor: formatarNumero(vibracao.frequenciaDominanteHz, 1),
+            unidade: 'Hz',
+          })}
         </Detalhe>
         <Detalhe rotulo="Temperatura no bloco">
           {formatarMedida({ valor: formatarNumero(vibracao.temperaturaBlocoC, 1), unidade: '°C' })}

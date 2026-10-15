@@ -2,6 +2,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { MqttPipelineService } from '../mqtt/mqtt-pipeline.service';
 import { RealtimePubSubService } from './realtime-pubsub.service';
+import { RealtimeNotificationService } from './realtime-notification.service';
 
 @Injectable()
 export class RealtimeIngestionService implements OnModuleDestroy {
@@ -16,14 +17,15 @@ export class RealtimeIngestionService implements OnModuleDestroy {
   private closing: Promise<void> | undefined;
 
   /** Recebe serviços passivos sem conectar, observar eventos ou iniciar ingestão no constructor. */
-  constructor(private readonly redis: RealtimePubSubService, private readonly pipeline: MqttPipelineService) {}
+  constructor(private readonly redis: RealtimePubSubService, private readonly pipeline: MqttPipelineService,
+    private readonly notifications: RealtimeNotificationService) {}
 
   /** Instala coordenação antes de abrir Redis; pipeline só começa depois de disponibilidade confirmada. */
   start(): void {
     if (this.stopping) throw new Error('REALTIME_INGESTION_STOPPED');
     if (this.started) throw new Error('REALTIME_INGESTION_ALREADY_STARTED');
     this.started = true; this.redis.events.on('status.changed', this.onStatus);
-    try { this.redis.start(); this.onStatus(); }
+    try { this.redis.start(); this.notifications.start(); this.onStatus(); }
     catch {
       this.redis.events.off('status.changed', this.onStatus); this.started = false;
       throw new Error('REALTIME_INGESTION_START_FAILED');
@@ -84,7 +86,8 @@ export class RealtimeIngestionService implements OnModuleDestroy {
     clearTimeout(this.retry); this.retry = undefined;
     this.closing = (async (): Promise<void> => {
       if (this.started) {
-        await this.pipeline.onModuleDestroy(); await this.work; this.redis.onModuleDestroy();
+        await this.pipeline.onModuleDestroy(); await this.work;
+        await this.notifications.onModuleDestroy(); this.redis.onModuleDestroy();
       }
     })();
     return this.closing;

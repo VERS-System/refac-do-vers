@@ -12,7 +12,7 @@ type RecoveryReport = { handled: number; failed: number };
 
 @Injectable()
 export class MqttPipelineService implements OnModuleDestroy {
-  readonly events = new EventEmitter({ captureRejections: true });
+  readonly events = new EventEmitter();
   private readonly logger = new Logger(MqttPipelineService.name);
   private readonly active = new Set<Promise<void>>();
   private recovery: Promise<RecoveryReport> | undefined;
@@ -24,11 +24,9 @@ export class MqttPipelineService implements OnModuleDestroy {
   private pausing: Promise<void> | undefined;
   private resuming: Promise<void> | undefined;
 
-  /** Reutiliza serviços existentes e captura falhas assíncronas de listeners sem abrir rede ou timers. */
+  /** Reutiliza serviços existentes sem abrir rede, timers ou registrar consumidores automaticamente. */
   constructor(private readonly prisma: PrismaService, private readonly reception: MqttReceptionService,
-    private readonly summaries: EnergySummaryService, private readonly transport: MqttService) {
-    this.events.on('error', () => { this.logger.warn('mqtt_event_failed'); });
-  }
+    private readonly summaries: EnergySummaryService, private readonly transport: MqttService) {}
 
   /** Recupera antes de consumir e agenda uma varredura única por minuto somente após início explícito. */
   async start(): Promise<void> {
@@ -69,8 +67,12 @@ export class MqttPipelineService implements OnModuleDestroy {
     if (result.outcome !== 'PROCESSED') return;
     const event: TelemetryProcessedEvent = { version: 1, type: TELEMETRY_PROCESSED_EVENT,
       messageId: id, correlationId: id, occurredAt: new Date().toISOString() };
-    try { this.events.emit(TELEMETRY_PROCESSED_EVENT, event); }
-    catch { this.logger.warn('mqtt_event_failed'); }
+    for (const listener of this.events.rawListeners(TELEMETRY_PROCESSED_EVENT)) {
+      try {
+        const result: unknown = listener.call(this.events, event);
+        void Promise.resolve(result).catch(() => { this.logger.warn('mqtt_event_failed'); });
+      } catch { this.logger.warn('mqtt_event_failed'); }
+    }
   }
 
   /** Compartilha varredura em curso, impedindo concorrência entre timer e recuperação explícita. */

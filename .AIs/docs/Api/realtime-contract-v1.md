@@ -47,8 +47,8 @@ atualização só porque uma captura mais recente já chegou.
 - ALREADY_PROCESSED repara resumos sem nova notificação de telemetria.
 - Erro síncrono/assíncrono de listener não desfaz histórico nem impede ACK;
   mantém código seguro de log, sem repassar causa ou conteúdo recebido.
-- EventEmitter não garante isolamento entre listeners síncronos: um listener
-  que lança pode impedir os seguintes. Listeners futuros devem conter falhas.
+- Desde 8.3.2 o pipeline isola cada listener síncrono/assíncrono, preservando
+  once: uma falha não impede os consumidores seguintes, incluindo a ponte.
 - Crash após commit pode perder evento. Não há outbox, replay ou garantia de
   entrega; PostgreSQL e REST autorizado continuam a fonte de verdade.
 - Recálculo de TEST ao encerrar teste, sem nova mensagem, ainda não produz
@@ -236,8 +236,8 @@ Não descartar nem desfazer dados já confirmados. Retomada do canal exige nova
 consulta REST pelo cliente conforme fluxo de recuperação acima.
 
 O transporte 8.3 fornece disponibilidade; coordenação reversível foi adicionada
-no lote 8.3.1 abaixo. Resolução das amostras afetadas/publicação de avisos ainda
-não implementadas. Retenção finita do broker precisa ser conferida no ambiente
+no lote 8.3.1 abaixo. Resolução das amostras afetadas/publicação de avisos está
+implementada passivamente em 8.3.2. Retenção finita do broker precisa ser conferida no ambiente
 real, sem alegar garantia ilimitada offline.
 
 Evidência deste lote usa mocks: constructor inerte, duas conexões, validação,
@@ -273,7 +273,38 @@ timer, aguarda transição/trabalhos e fecha dependências, sem retomada posteri
 Não há fila Redis, polling REST automático ou mudança em transações já
 confirmadas. Preservar sessão não garante retenção ilimitada do broker. Avisos
 perdidos continuam reconciliados pelo REST autorizado quando o cliente voltar.
-Ainda faltam ponte de recursos normalizados→data.updated, autorização/gateway
-Socket.IO e ensaio real da coordenação. Nada disso é ativado por este lote.
+Ponte de recursos normalizados→data.updated adicionada em 8.3.2. Autorização/
+gateway Socket.IO e ensaio real continuam pendentes. Ativação segue explícita.
 
 Plano e evidências em [F08.3.1](../plans/backend-phase-8-ingestion-coordination.md).
+
+## Ponte de avisos — lote 8.3.2
+
+RealtimeNotificationService é registrado no RealtimeModule e instalado pelo
+coordenador antes de iniciar/recuperar o pipeline. Constructor permanece inerte.
+O listener telemetry.processed valida versão, tipo, UUID interno, correlação e
+horário antes de consultar somente installationId/testId agrupados nas amostras
+normalizadas daquela mensagem. Não lê bruto, medições ou identidade de usuário.
+
+Cada instalação/teste distinto e não nulo recebe um data.updated pelo transporte
+existente, com occurredAt UTC do aviso. Instalação repetida em vários grupos só
+recebe um aviso por evento. Amostras sem teste avisam somente a instalação;
+teste órfão de instalação ainda pode receber aviso próprio; grupo com ambos
+nulos ou mensagem sem amostras não gera aviso. Teste não é inferido do bruto,
+inclusive em lote parcialmente fora do intervalo.
+
+Falha de consulta/publicação é contida em código seguro de log. Falha de um
+recurso não impede tentar os seguintes; não há retry manual, outbox ou garantia
+de entrega. Publicações acontecem após commit e não são aguardadas pelo ACK do
+pipeline. Redis indisponível continua sinalizando pausa ao coordenador; o
+histórico confirmado não é desfeito se um aviso falhar.
+
+Shutdown remove listener, espera tarefas aceitas e não publica resultados de
+lookup obtidos após início do encerramento. O coordenador tenta concluir
+pipeline/ponte antes de fechar Redis; hooks Nest podem ocorrer simultaneamente,
+portanto não prometer aviso final durante shutdown. Cliente reconcilia pelo REST.
+
+Ensaio local usa mocks e integração em memória com pipeline real. Não comprova
+SQL/Redis reais, retenção de broker ou entrega/autorização Socket.IO. Recálculo
+de TEST sem mensagem nova ainda não possui evento próprio. Plano/evidências em
+[F08.3.2](../plans/backend-phase-8-notification-bridge.md).

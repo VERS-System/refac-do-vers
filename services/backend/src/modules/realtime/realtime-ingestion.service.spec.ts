@@ -11,11 +11,13 @@ jest.mock('mqtt', () => ({ connect: jest.fn() }));
 
 /** Monta dependências com estado Redis e promessas MQTT controlados pelo teste. */
 function setup(): { service: RealtimeIngestionService; redis: { status: string; events: EventEmitter; start: jest.Mock;
-  onModuleDestroy: jest.Mock }; pipeline: { start: jest.Mock; pause: jest.Mock; resume: jest.Mock; onModuleDestroy: jest.Mock } } {
+  onModuleDestroy: jest.Mock }; pipeline: { start: jest.Mock; pause: jest.Mock; resume: jest.Mock; onModuleDestroy: jest.Mock };
+  notifications: { start: jest.Mock; onModuleDestroy: jest.Mock } } {
   const redis = { status: 'stopped', events: new EventEmitter(), start: jest.fn(), onModuleDestroy: jest.fn() };
   const pipeline = { start: jest.fn().mockResolvedValue(undefined), pause: jest.fn().mockResolvedValue(undefined),
     resume: jest.fn().mockResolvedValue(undefined), onModuleDestroy: jest.fn().mockResolvedValue(undefined) };
-  return { service: new RealtimeIngestionService(redis as never, pipeline as never), redis, pipeline };
+  const notifications = { start: jest.fn(), onModuleDestroy: jest.fn().mockResolvedValue(undefined) };
+  return { service: new RealtimeIngestionService(redis as never, pipeline as never, notifications as never), redis, pipeline, notifications };
 }
 
 describe('coordenador Redis e ingestão', () => {
@@ -32,6 +34,7 @@ describe('coordenador Redis e ingestão', () => {
     expect(h.redis.start).not.toHaveBeenCalled(); expect(h.redis.events.listenerCount('status.changed')).toBe(0);
     h.service.start(); await status('unavailable'); expect(h.pipeline.start).not.toHaveBeenCalled();
     await status('ok'); expect(h.pipeline.start).toHaveBeenCalledTimes(1);
+    expect(h.notifications.start.mock.invocationCallOrder[0]).toBeLessThan(h.pipeline.start.mock.invocationCallOrder[0]);
     expect(() => h.service.start()).toThrow('REALTIME_INGESTION_ALREADY_STARTED');
   });
   it('queda bloqueia pipeline imediatamente e retorno retoma sem novo start', async () => {
@@ -82,6 +85,7 @@ describe('coordenador Redis e ingestão', () => {
     await h.service.onModuleDestroy(); await status('ok'); await jest.advanceTimersByTimeAsync(60000);
     expect(h.redis.events.listenerCount('status.changed')).toBe(0); expect(h.pipeline.resume).not.toHaveBeenCalled();
     expect(h.redis.onModuleDestroy).toHaveBeenCalledTimes(1); expect(h.pipeline.onModuleDestroy).toHaveBeenCalledTimes(1);
+    expect(h.notifications.onModuleDestroy.mock.invocationCallOrder[0]).toBeLessThan(h.redis.onModuleDestroy.mock.invocationCallOrder[0]);
     expect(() => h.service.start()).toThrow('REALTIME_INGESTION_STOPPED');
   });
   it('integra coordenador, pipeline e transporte: commit/ACK precedem fechamento e retomada recupera primeiro', async () => {
@@ -101,7 +105,7 @@ describe('coordenador Redis e ingestão', () => {
     const reception = { receive: jest.fn().mockResolvedValue({ outcome: 'RECEIVED', id: 'message' }),
       process: jest.fn(() => new Promise((resolve) => { commit = (): void => { resolve({ outcome: 'PROCESSED', id: 'message' }); }; })) };
     const pipeline = new MqttPipelineService(prisma as never, reception as never, {} as never, transport);
-    h.service = new RealtimeIngestionService(h.redis as never, pipeline);
+    h.service = new RealtimeIngestionService(h.redis as never, pipeline, h.notifications as never);
     h.service.start(); await status('ok'); first.emit('connect');
     const ack = jest.fn(); first.handleMessage({ qos: 1 }, ack); await jest.advanceTimersByTimeAsync(0);
     await status('unavailable'); const rejected = jest.fn(); first.handleMessage({ qos: 1 }, rejected);

@@ -167,6 +167,10 @@ Coordenação local entregue no recorte [8.3.1](backend-phase-8-ingestion-coordi
 incluindo pausa reversível e recuperação antes da retomada. Não ativa transporte
 no bootstrap nem substitui ponte de recursos/gateway/ensaio real.
 
+Ponte local entregue no recorte [8.3.2](backend-phase-8-notification-bridge.md):
+recursos normalizados alimentam avisos mínimos após commit, sob início explícito.
+Autorização de sessão/recurso, gateway e ensaio real continuam etapas seguintes.
+
 ### Evidência local 8.3
 
 TDD RED por módulos ausentes; depois RED para estado incorretamente ok após

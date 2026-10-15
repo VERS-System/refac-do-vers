@@ -76,7 +76,9 @@ describe('pipeline MQTT', () => {
   });
   it('listener síncrono com erro não desfaz histórico nem bloqueia ACK', async () => {
     h.service.events.on('telemetry.processed', () => { throw new Error('CANARY_SECRET'); });
+    const next = jest.fn(); h.service.events.once('telemetry.processed', next);
     await expect(h.service.handle({} as never, new Date())).resolves.toBeUndefined();
+    expect(next).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(jest.mocked(Logger.prototype.warn).mock.calls)).not.toContain('CANARY_SECRET');
   });
   it('listener assíncrono com erro é capturado sem rejeição não tratada', async () => {

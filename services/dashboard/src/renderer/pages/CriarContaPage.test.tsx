@@ -84,10 +84,7 @@ describe('CriarContaPage — etapa Conta', () => {
 });
 
 describe('CriarContaPage — fluxo completo', () => {
-  /**
-   * Conta → Veículo → Instalação → confirmação, voltando sem perder dados.
-   * Digita campo a campo nas três etapas, por isso o limite de tempo maior.
-   */
+  /** Conta → Veículo → Instalação → confirmação, voltando sem perder dados. */
   it('cria a conta em três etapas', async () => {
     const registrar = vi.fn().mockResolvedValue(undefined);
     abrirCriarConta({ ...criarRepositorioMock(), registrar });
@@ -132,7 +129,7 @@ describe('CriarContaPage — fluxo completo', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Bem-vindo de volta' }),
     ).toBeInTheDocument();
-  }, 15_000);
+  });
 
   /** Se o backend recusar, a etapa final mostra o erro e permite tentar de novo. */
   it('mostra a recusa do cadastro', async () => {

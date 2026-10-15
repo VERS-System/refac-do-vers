@@ -22,5 +22,9 @@ export default defineConfig({
     setupFiles: [resolve(__dirname, 'src/renderer/test/setup.ts')],
     include: ['src/**/*.test.{ts,tsx}'],
     css: false,
+    // Os testes de tela digitam campo a campo e levam de 1 a 3 s; com a
+    // máquina carregada passam dos 5 s padrão. 15 s dá folga sem esconder
+    // um teste travado.
+    testTimeout: 15_000,
   },
 });

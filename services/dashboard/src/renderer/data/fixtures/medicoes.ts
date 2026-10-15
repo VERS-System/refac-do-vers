@@ -11,6 +11,7 @@
 
 import type { DiaMedido } from '../tipos';
 import type { ParametrosCurva } from './curva';
+import type { ParametrosAmostrasVibracao } from './vibracao';
 
 /**
  * Semana de 28/09 a 04/10/2026.
@@ -21,13 +22,55 @@ import type { ParametrosCurva } from './curva';
  * quinta tem o horário do pico registrado (17:42), como na referência.
  */
 export const SEMANA_EXEMPLO: DiaMedido[] = [
-  { data: '2026-09-28', horasMovimento: 1.4, pico: { potenciaMw: 371 }, energia: { p1: 258, p2: 225, p3: 198, p4: 138 }, lacunasPercentual: 0 },
-  { data: '2026-09-29', horasMovimento: 1.1, pico: { potenciaMw: 318 }, energia: { p1: 178, p2: 155, p3: 136, p4: 95 }, lacunasPercentual: 0 },
-  { data: '2026-09-30', horasMovimento: 1.6, pico: { potenciaMw: 389 }, energia: { p1: 306, p2: 267, p3: 236, p4: 165 }, lacunasPercentual: 0 },
-  { data: '2026-10-01', horasMovimento: 1.9, pico: { potenciaMw: 412, horario: '17:42' }, energia: { p1: 390, p2: 340, p3: 301, p4: 211 }, lacunasPercentual: 0 },
-  { data: '2026-10-02', horasMovimento: 1.5, pico: { potenciaMw: 356 }, energia: { p1: 267, p2: 233, p3: 204, p4: 142 }, lacunasPercentual: 4 },
-  { data: '2026-10-03', horasMovimento: 1.8, pico: { potenciaMw: 398 }, energia: { p1: 353, p2: 307, p3: 270, p4: 188 }, lacunasPercentual: 0 },
-  { data: '2026-10-04', horasMovimento: 1.0, pico: { potenciaMw: 334 }, energia: { p1: 168, p2: 146, p3: 127, p4: 88 }, lacunasPercentual: 0 },
+  {
+    data: '2026-09-28',
+    horasMovimento: 1.4,
+    pico: { potenciaMw: 371 },
+    energia: { p1: 258, p2: 225, p3: 198, p4: 138 },
+    lacunasPercentual: 0,
+  },
+  {
+    data: '2026-09-29',
+    horasMovimento: 1.1,
+    pico: { potenciaMw: 318 },
+    energia: { p1: 178, p2: 155, p3: 136, p4: 95 },
+    lacunasPercentual: 0,
+  },
+  {
+    data: '2026-09-30',
+    horasMovimento: 1.6,
+    pico: { potenciaMw: 389 },
+    energia: { p1: 306, p2: 267, p3: 236, p4: 165 },
+    lacunasPercentual: 0,
+  },
+  {
+    data: '2026-10-01',
+    horasMovimento: 1.9,
+    pico: { potenciaMw: 412, horario: '17:42' },
+    energia: { p1: 390, p2: 340, p3: 301, p4: 211 },
+    lacunasPercentual: 0,
+  },
+  {
+    data: '2026-10-02',
+    horasMovimento: 1.5,
+    pico: { potenciaMw: 356 },
+    energia: { p1: 267, p2: 233, p3: 204, p4: 142 },
+    lacunasPercentual: 4,
+  },
+  {
+    data: '2026-10-03',
+    horasMovimento: 1.8,
+    pico: { potenciaMw: 398 },
+    energia: { p1: 353, p2: 307, p3: 270, p4: 188 },
+    lacunasPercentual: 0,
+  },
+  {
+    data: '2026-10-04',
+    horasMovimento: 1.0,
+    pico: { potenciaMw: 334 },
+    energia: { p1: 168, p2: 146, p3: 127, p4: 88 },
+    lacunasPercentual: 0,
+  },
 ];
 
 /**
@@ -40,6 +83,9 @@ export const ENERGIA_SEMANA_ANTERIOR_MWH = 1771;
 /** Data e horário "atuais" do exemplo: segunda, 05/10/2026, 18:05 (Brasília). */
 export const AGORA_EXEMPLO = '2026-10-05T18:05:00-03:00';
 export const HOJE_EXEMPLO = '2026-10-05';
+
+/** Fuso do dispositivo nas datas ISO das amostras (Brasília). */
+export const FUSO_EXEMPLO = '-03:00';
 
 /**
  * Parâmetros da curva de hoje.
@@ -69,3 +115,22 @@ export const CURVA_HOJE: ParametrosCurva = {
  * da Visão geral (156,2 ÷ 292).
  */
 export const ENERGIA_HOJE_P2_A_P4 = { p2: 254.3, p3: 224.0, p4: 156.2 };
+
+/**
+ * Parâmetros das amostras de vibração × potência (dispersão da tela Energia).
+ *
+ * Quatro amostras por dia anterior, nos horários dos trajetos de ida e volta,
+ * e oito hoje, espalhadas pelos minutos em movimento da curva. Os dias e a
+ * curva entram no repositório, que é quem os conhece.
+ */
+export const AMOSTRAS_VIBRACAO: Pick<
+  ParametrosAmostrasVibracao,
+  'horariosDiasAnteriores' | 'amostrasHoje' | 'semente'
+> = {
+  horariosDiasAnteriores: ['07:55', '08:20', '17:35', '18:00'],
+  amostrasHoje: 8,
+  semente: 20261006,
+};
+
+/** Semente das amostras de telemetria de hoje (`fixtures/telemetria.ts`). */
+export const SEMENTE_TELEMETRIA = 20261007;

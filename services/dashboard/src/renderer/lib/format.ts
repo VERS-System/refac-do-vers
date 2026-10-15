@@ -4,8 +4,11 @@
  * Centralizam a regra de exibição de números (vírgula decimal, milhar com
  * ponto, zero sem sinal) e das unidades da coleta piezoelétrica (mW, mWh, Wh
  * e %). As telas nunca devem chamar `toFixed` ou `toLocaleString` direto, para
- * que todos os valores sigam o mesmo padrão.
+ * que todos os valores sigam o mesmo padrão. Potência, energia e aceleração
+ * saem na unidade escolhida nas Configurações (`lib/unidades.ts`).
  */
+
+import { JOULES_POR_MWH, MS2_POR_G, unidadesAtuais } from './unidades';
 
 /** Valor já formatado acompanhado da unidade, exibidos separadamente nos KPIs. */
 export interface Medida {
@@ -59,33 +62,60 @@ export function formatarNumero(valor: number | null | undefined, casas = 0): str
 }
 
 /**
- * Formata uma potência em mW (escala da coleta piezoelétrica).
+ * Formata uma potência recebida em mW, na unidade preferida.
  *
- * A potência é sempre exibida em mW, inteira por padrão, como nos KPIs e na
- * cadeia de conversão das telas.
+ * Em mW (padrão do laboratório) fica inteira, como nos KPIs e na cadeia de
+ * conversão; em W ganha três casas a mais ("0,212 W"), para não perder a
+ * precisão da coleta piezoelétrica.
  */
 export function formatarPotencia(mW: number | null | undefined, casas = 0): Medida {
+  if (unidadesAtuais().potencia === 'W') {
+    return { valor: formatarNumero(ehNumeroValido(mW) ? mW / 1000 : mW, casas + 3), unidade: 'W' };
+  }
   return { valor: formatarNumero(mW, casas), unidade: 'mW' };
 }
 
 /**
- * Formata uma energia recebida em mWh, escolhendo entre mWh e Wh.
+ * Formata uma energia recebida em mWh, na unidade preferida.
  *
- * Abaixo de 1 Wh mostra mWh inteiro ("292 mWh"); a partir daí mostra Wh com
- * duas casas ("1,92 Wh"). A comparação usa o valor já arredondado, para nunca
- * exibir "1.000 mWh". A opção `unidade` fixa a unidade, útil em colunas de
- * tabela que precisam de uma unidade só.
+ * Em mWh: abaixo de 1 Wh mostra mWh inteiro ("292 mWh"); a partir daí, Wh
+ * com duas casas ("1,92 Wh"). Em joules (1 mWh = 3,6 J): J inteiro abaixo de
+ * 1 kJ e kJ com duas casas a partir daí. A comparação usa o valor já
+ * arredondado, para nunca exibir "1.000 mWh". A opção `unidade` fixa a escala
+ * (a pequena, mWh/J, ou a grande, Wh/kJ), útil em eixos e colunas; `casas`
+ * define as decimais da escala pequena (padrão: inteiro).
  */
 export function formatarEnergia(
   mWh: number | null | undefined,
-  opcoes: { unidade?: 'mWh' | 'Wh' } = {},
+  opcoes: { unidade?: 'mWh' | 'Wh'; casas?: number } = {},
 ): Medida {
+  const emJoules = unidadesAtuais().energia === 'J';
+  const pequena = emJoules ? 'J' : 'mWh';
+  const grande = emJoules ? 'kJ' : 'Wh';
   if (!ehNumeroValido(mWh)) {
-    return { valor: VALOR_AUSENTE, unidade: opcoes.unidade ?? 'mWh' };
+    return { valor: VALOR_AUSENTE, unidade: opcoes.unidade === 'Wh' ? grande : pequena };
   }
-  const unidade = opcoes.unidade ?? (Math.abs(Math.round(mWh)) >= 1000 ? 'Wh' : 'mWh');
-  if (unidade === 'Wh') return { valor: formatarNumero(mWh / 1000, 2), unidade };
-  return { valor: formatarNumero(mWh), unidade };
+  const valorPequeno = emJoules ? mWh * JOULES_POR_MWH : mWh;
+  const escalaGrande = opcoes.unidade
+    ? opcoes.unidade === 'Wh'
+    : Math.abs(Math.round(valorPequeno)) >= 1000;
+  if (escalaGrande) return { valor: formatarNumero(valorPequeno / 1000, 2), unidade: grande };
+  return { valor: formatarNumero(valorPequeno, opcoes.casas ?? 0), unidade: pequena };
+}
+
+/**
+ * Formata uma aceleração (vibração RMS) recebida em m/s², na unidade
+ * preferida: m/s² com uma casa ("3,2 m/s²") ou g com uma casa a mais
+ * ("0,33 g").
+ */
+export function formatarAceleracao(ms2: number | null | undefined, casas = 1): Medida {
+  if (unidadesAtuais().aceleracao === 'g') {
+    return {
+      valor: formatarNumero(ehNumeroValido(ms2) ? ms2 / MS2_POR_G : ms2, casas + 1),
+      unidade: 'g',
+    };
+  }
+  return { valor: formatarNumero(ms2, casas), unidade: 'm/s²' };
 }
 
 /**
@@ -165,4 +195,56 @@ export function formatarDiaSemanaCurto(data: string): string {
   if (!partes) return VALOR_AUSENTE;
   const [, ano, mes, dia] = partes.map(Number);
   return DIAS_DA_SEMANA[new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay()];
+}
+
+/**
+ * Formata uma data ISO como "DD/MM/AAAA" (data completa, usada no CSV).
+ *
+ * Lê o texto direto, sem `Date`, pelo mesmo motivo de {@link formatarDataCurta}.
+ */
+export function formatarData(data: string): string {
+  const partes = DATA_ISO.exec(data);
+  return partes ? `${partes[3]}/${partes[2]}/${partes[1]}` : VALOR_AUSENTE;
+}
+
+/** Data e hora ISO com horário (e milissegundos opcionais) depois do "T". */
+const HORARIO_ISO = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?/;
+
+/**
+ * Horário de captura de uma data ISO ("18:05:00" ou "18:05:00.410").
+ *
+ * Lê o horário do próprio texto, que já vem no fuso do dispositivo
+ * (`-03:00`), em vez de converter para o fuso da máquina: assim a tabela
+ * mostra o mesmo horário que o ESP32 registrou.
+ */
+export function formatarHorarioCaptura(iso: string, milissegundos = false): string {
+  const partes = HORARIO_ISO.exec(iso);
+  if (!partes) return VALOR_AUSENTE;
+  const horario = `${partes[1]}:${partes[2]}:${partes[3]}`;
+  return milissegundos ? `${horario}.${(partes[4] ?? '0').padEnd(3, '0')}` : horario;
+}
+
+/** Formatadores de reais por número máximo de casas (criar um `Intl` custa caro). */
+const formatadoresMoeda = new Map<number, Intl.NumberFormat>();
+
+/**
+ * Formata um valor em reais ("R$ 0,0018", "R$ 12,50").
+ *
+ * Usa até `casas` decimais (mínimo de duas), porque a economia de energia
+ * do VERS é de frações de centavo por semana. Troca o espaço inseparável do
+ * `Intl` por um espaço comum, para o texto se comparar e copiar sem surpresa.
+ */
+export function formatarMoeda(valor: number | null | undefined, casas = 4): string {
+  if (!ehNumeroValido(valor)) return VALOR_AUSENTE;
+  let formatador = formatadoresMoeda.get(casas);
+  if (!formatador) {
+    formatador = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: Math.max(2, casas),
+    });
+    formatadoresMoeda.set(casas, formatador);
+  }
+  return formatador.format(valor).replace(/\s/g, ' ');
 }

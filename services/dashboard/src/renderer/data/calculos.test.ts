@@ -7,14 +7,22 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  classificarCorrelacao,
+  correlacaoPearson,
   descreverVeiculo,
   eficiencia,
+  emailValido,
   enriquecerCadeia,
+  estadoConexao,
+  formatarIsoComFuso,
   horarioParaMinutos,
   integrarTrapezios,
   minutosParaHorario,
+  normalizarPlaca,
   perdaPercentual,
   recortarUltimosMinutos,
+  regressaoLinear,
+  requisitosSenha,
   resumirCurva,
   resumirDia,
   resumirDias,
@@ -125,7 +133,11 @@ describe('resumirDias', () => {
 
   /** O pico é o maior dos dias, com a data e o horário dele. */
   it('escolhe o maior pico', () => {
-    expect(resumirDias('semana', dias).pico).toEqual({ potenciaMw: 450, data: '2026-09-29', horario: '12:00' });
+    expect(resumirDias('semana', dias).pico).toEqual({
+      potenciaMw: 450,
+      data: '2026-09-29',
+      horario: '12:00',
+    });
   });
 
   /** Eficiência e perdas por estágio a partir das energias totais. */
@@ -193,7 +205,12 @@ describe('enriquecerCadeia', () => {
       { ponto: 4, nome: 'D', descricao: '', tensaoV: 5, correnteMa: 20, potenciaMw: 100 },
     ]);
 
-    expect(cadeia.pontos.map((p) => p.eficienciaEstagioPercentual)).toEqual([null, 80, 75, expect.closeTo(83.33, 1)]);
+    expect(cadeia.pontos.map((p) => p.eficienciaEstagioPercentual)).toEqual([
+      null,
+      80,
+      75,
+      expect.closeTo(83.33, 1),
+    ]);
     expect(cadeia.eficienciaPontaAPontaPercentual).toBeCloseTo(50);
   });
 });
@@ -213,14 +230,45 @@ describe('resumirDispositivo e descreverVeiculo', () => {
       new Date('2026-10-05T18:05:00-03:00'),
     );
 
-    expect(resumo).toEqual({ nome: 'ESP32 · VERS-01', online: true, firmware: '0.4.2', vistoHa: 'há 3 s', protocolo: 'MQTT' });
+    expect(resumo).toEqual({
+      nome: 'ESP32 · VERS-01',
+      online: true,
+      firmware: '0.4.2',
+      vistoHa: 'há 3 s',
+      protocolo: 'MQTT',
+    });
   });
 
   /** Descrição curta usada no subtítulo das telas. */
   it('descreve o veículo', () => {
-    expect(descreverVeiculo({ id: 'v1', fabricante: 'Honda', modelo: 'Civic', ano: 2026, placa: 'ABC1D23' })).toBe(
-      'Honda Civic 2026 · ABC1D23',
+    expect(
+      descreverVeiculo({ fabricante: 'Honda', modelo: 'Civic', ano: 2026, placa: 'ABC1D23' }),
+    ).toBe('Honda Civic 2026 · ABC1D23');
+  });
+
+  /** Fabricante, modelo e ano são opcionais no contrato; a placa sempre aparece. */
+  it('descreve o veículo com dados faltando', () => {
+    expect(
+      descreverVeiculo({ fabricante: null, modelo: 'Strada', ano: null, placa: 'DEF4G56' }),
+    ).toBe('Strada · DEF4G56');
+    expect(descreverVeiculo({ fabricante: null, modelo: null, ano: null, placa: 'DEF4G56' })).toBe(
+      'DEF4G56',
     );
+  });
+});
+
+describe('normalizarPlaca', () => {
+  /** Mercosul (ABC1D23) ou antiga (ABC1234), em maiúsculas e sem hífen. */
+  it('aceita os dois formatos', () => {
+    expect(normalizarPlaca('abc1d23')).toBe('ABC1D23');
+    expect(normalizarPlaca(' ABC-1234 ')).toBe('ABC1234');
+  });
+
+  /** Qualquer outra coisa não é placa. */
+  it('recusa o que não é placa', () => {
+    expect(normalizarPlaca('AB12345')).toBeNull();
+    expect(normalizarPlaca('ABC12D3')).toBeNull();
+    expect(normalizarPlaca('')).toBeNull();
   });
 });
 
@@ -236,7 +284,14 @@ describe('recortarUltimosMinutos', () => {
   it('mantém os pontos da janela final', () => {
     const recorte = recortarUltimosMinutos(pontos, 5);
 
-    expect(recorte.map((p) => p.horario)).toEqual(['00:05', '00:06', '00:07', '00:08', '00:09', '00:10']);
+    expect(recorte.map((p) => p.horario)).toEqual([
+      '00:05',
+      '00:06',
+      '00:07',
+      '00:08',
+      '00:09',
+      '00:10',
+    ]);
   });
 
   /** Janela maior que a curva devolve a curva inteira. */
@@ -247,5 +302,163 @@ describe('recortarUltimosMinutos', () => {
   /** Curva vazia continua vazia. */
   it('aceita curva vazia', () => {
     expect(recortarUltimosMinutos([], 60)).toEqual([]);
+  });
+});
+
+describe('correlacaoPearson', () => {
+  /** Pontos sobre uma reta crescente: correlação 1. */
+  it('dá 1 numa relação linear crescente', () => {
+    expect(
+      correlacaoPearson([
+        { x: 1, y: 3 },
+        { x: 2, y: 5 },
+        { x: 4, y: 9 },
+      ]),
+    ).toBeCloseTo(1);
+  });
+
+  /** Reta decrescente: correlação -1. */
+  it('dá -1 numa relação linear decrescente', () => {
+    expect(
+      correlacaoPearson([
+        { x: 1, y: 9 },
+        { x: 2, y: 7 },
+        { x: 3, y: 5 },
+      ]),
+    ).toBeCloseTo(-1);
+  });
+
+  /** Valor conhecido: x = 1..5, y = 2, 4, 5, 4, 5 dá r = 0,7746. */
+  it('calcula um caso conhecido', () => {
+    const pares = [2, 4, 5, 4, 5].map((y, i) => ({ x: i + 1, y }));
+
+    expect(correlacaoPearson(pares)).toBeCloseTo(0.7746, 4);
+  });
+
+  /** Menos de dois pares ou um eixo constante não têm correlação definida. */
+  it('devolve null quando não há como calcular', () => {
+    expect(correlacaoPearson([])).toBeNull();
+    expect(correlacaoPearson([{ x: 1, y: 1 }])).toBeNull();
+    expect(
+      correlacaoPearson([
+        { x: 1, y: 1 },
+        { x: 1, y: 5 },
+      ]),
+    ).toBeNull();
+  });
+});
+
+describe('regressaoLinear', () => {
+  /** Reta exata y = 2x + 1. */
+  it('acha inclinação e intercepto', () => {
+    const reta = regressaoLinear([
+      { x: 0, y: 1 },
+      { x: 1, y: 3 },
+      { x: 3, y: 7 },
+    ]);
+
+    expect(reta?.inclinacao).toBeCloseTo(2);
+    expect(reta?.intercepto).toBeCloseTo(1);
+  });
+
+  /** Sem variação em x a reta não é definida. */
+  it('devolve null sem variação em x', () => {
+    expect(
+      regressaoLinear([
+        { x: 2, y: 1 },
+        { x: 2, y: 3 },
+      ]),
+    ).toBeNull();
+    expect(regressaoLinear([])).toBeNull();
+  });
+});
+
+describe('classificarCorrelacao', () => {
+  /** Faixas pelo valor absoluto: alta a partir de 0,7, moderada a partir de 0,4. */
+  it('classifica pela intensidade', () => {
+    expect(classificarCorrelacao(0.82)).toBe('alta');
+    expect(classificarCorrelacao(-0.9)).toBe('alta');
+    expect(classificarCorrelacao(0.7)).toBe('alta');
+    expect(classificarCorrelacao(0.5)).toBe('moderada');
+    expect(classificarCorrelacao(0.2)).toBe('baixa');
+  });
+
+  /** Sem correlação calculada, sem classificação. */
+  it('devolve null sem correlação', () => {
+    expect(classificarCorrelacao(null)).toBeNull();
+  });
+});
+
+describe('estadoConexao', () => {
+  const agora = 1_000_000;
+  const base = { aoVivo: true, erro: false, buscando: false, atualizadoEm: agora - 5_000, agora };
+
+  /** Recebendo dados em dia: conectado. */
+  it('fica conectado com dados recentes', () => {
+    expect(estadoConexao(base)).toBe('conectado');
+  });
+
+  /** O usuário pausou: pausado, mesmo com dados antigos ou erro. */
+  it('respeita a pausa', () => {
+    expect(estadoConexao({ ...base, aoVivo: false, erro: true })).toBe('pausado');
+  });
+
+  /** Falhou e está tentando de novo: reconectando; falhou e parou: offline. */
+  it('distingue reconectando de offline', () => {
+    expect(estadoConexao({ ...base, erro: true, buscando: true })).toBe('reconectando');
+    expect(estadoConexao({ ...base, erro: true })).toBe('offline');
+  });
+
+  /** Sem atualização há mais de 30 s (três intervalos de 10 s): desatualizado. */
+  it('marca dados antigos como desatualizados', () => {
+    expect(estadoConexao({ ...base, atualizadoEm: agora - 30_001 })).toBe('desatualizado');
+    expect(estadoConexao({ ...base, atualizadoEm: agora - 30_000 })).toBe('conectado');
+  });
+
+  /** Antes da primeira resposta não há o que estar desatualizado. */
+  it('trata a primeira consulta como conectando', () => {
+    expect(estadoConexao({ ...base, atualizadoEm: 0, buscando: true })).toBe('conectando');
+  });
+});
+
+describe('formatarIsoComFuso', () => {
+  /** Instante no formato ISO do dispositivo, com o fuso explícito. */
+  it('escreve o instante no fuso pedido', () => {
+    expect(formatarIsoComFuso(new Date('2026-10-05T21:05:00Z'), -180)).toBe(
+      '2026-10-05T18:05:00-03:00',
+    );
+    expect(formatarIsoComFuso(new Date('2026-10-06T01:30:09Z'), -180)).toBe(
+      '2026-10-05T22:30:09-03:00',
+    );
+  });
+});
+
+describe('requisitosSenha', () => {
+  /** As quatro regras do RegisterDto, avaliadas uma a uma. */
+  it('avalia cada regra do cadastro', () => {
+    expect(requisitosSenha('')).toEqual({
+      tamanho: false,
+      maiuscula: false,
+      especial: false,
+      semEspacos: true,
+    });
+    expect(requisitosSenha('abc def')).toMatchObject({ semEspacos: false });
+    expect(requisitosSenha('Segredo!1')).toEqual({
+      tamanho: true,
+      maiuscula: true,
+      especial: true,
+      semEspacos: true,
+    });
+    expect(requisitosSenha('segredo123')).toMatchObject({ maiuscula: false, especial: false });
+  });
+});
+
+describe('emailValido', () => {
+  /** Formato simples (algo@dominio.tld), com espaços nas pontas ignorados. */
+  it('aceita só e-mails no formato usual', () => {
+    expect(emailValido(' ana.silva@vers.com ')).toBe(true);
+    expect(emailValido('ana.silva@vers')).toBe(false);
+    expect(emailValido('ana silva@vers.com')).toBe(false);
+    expect(emailValido('')).toBe(false);
   });
 });

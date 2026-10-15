@@ -187,10 +187,13 @@ export function enriquecerCadeia(
     capturadaEm,
     pontos: pontos.map((ponto, indice) => ({
       ...ponto,
-      eficienciaEstagioPercentual: indice === 0 ? null : eficiencia(ponto.potenciaMw, pontos[indice - 1].potenciaMw),
+      eficienciaEstagioPercentual:
+        indice === 0 ? null : eficiencia(ponto.potenciaMw, pontos[indice - 1].potenciaMw),
     })),
     eficienciaPontaAPontaPercentual:
-      pontos.length > 1 ? eficiencia(pontos[pontos.length - 1].potenciaMw, pontos[0].potenciaMw) : null,
+      pontos.length > 1
+        ? eficiencia(pontos[pontos.length - 1].potenciaMw, pontos[0].potenciaMw)
+        : null,
   };
 }
 
@@ -206,9 +209,23 @@ export function resumirDispositivo(dispositivo: Dispositivo, agora: Date): Dispo
   };
 }
 
-/** Descrição curta do veículo usada no subtítulo das telas ("Honda Civic 2026 · ABC1D23"). */
-export function descreverVeiculo(veiculo: Veiculo): string {
-  return `${veiculo.fabricante} ${veiculo.modelo} ${veiculo.ano} · ${veiculo.placa}`;
+/** Nome do veículo sem a placa ("Honda Civic 2026"), pulando o que não foi informado. */
+export function nomearVeiculo(veiculo: Pick<Veiculo, 'fabricante' | 'modelo' | 'ano'>): string {
+  return [veiculo.fabricante, veiculo.modelo, veiculo.ano]
+    .filter((parte) => parte !== null && parte !== '')
+    .join(' ');
+}
+
+/**
+ * Descrição curta do veículo usada no subtítulo das telas ("Honda Civic 2026
+ * · ABC1D23"). Fabricante, modelo e ano são opcionais no contrato; sem
+ * nenhum deles, fica só a placa.
+ */
+export function descreverVeiculo(
+  veiculo: Pick<Veiculo, 'fabricante' | 'modelo' | 'ano' | 'placa'>,
+): string {
+  const nome = nomearVeiculo(veiculo);
+  return nome ? `${nome} · ${veiculo.placa}` : veiculo.placa;
 }
 
 /**
@@ -218,8 +235,192 @@ export function descreverVeiculo(veiculo: Veiculo): string {
  * último ponto e inclui o ponto exatamente `minutos` antes dele, então uma
  * curva por minuto rende `minutos + 1` pontos (17:05 a 18:05).
  */
-export function recortarUltimosMinutos(pontos: readonly PontoCurva[], minutos: number): PontoCurva[] {
+export function recortarUltimosMinutos(
+  pontos: readonly PontoCurva[],
+  minutos: number,
+): PontoCurva[] {
   if (pontos.length === 0) return [];
   const inicio = horarioParaMinutos(pontos[pontos.length - 1].horario) - minutos;
   return pontos.filter((ponto) => horarioParaMinutos(ponto.horario) >= inicio);
+}
+
+/** Par de valores de uma dispersão (ex.: vibração RMS × potência). */
+export interface ParXY {
+  x: number;
+  y: number;
+}
+
+/** Reta `y = inclinacao × x + intercepto`. */
+export interface Reta {
+  inclinacao: number;
+  intercepto: number;
+}
+
+/**
+ * Médias e somas de quadrados de uma lista de pares.
+ *
+ * Base comum da correlação e da regressão: `sxx` e `syy` medem a variação
+ * de cada eixo em torno da média e `sxy` a variação conjunta.
+ */
+function momentos(pares: readonly ParXY[]) {
+  const n = pares.length;
+  const mediaX = pares.reduce((soma, par) => soma + par.x, 0) / n;
+  const mediaY = pares.reduce((soma, par) => soma + par.y, 0) / n;
+  let sxx = 0;
+  let syy = 0;
+  let sxy = 0;
+  for (const { x, y } of pares) {
+    sxx += (x - mediaX) ** 2;
+    syy += (y - mediaY) ** 2;
+    sxy += (x - mediaX) * (y - mediaY);
+  }
+  return { mediaX, mediaY, sxx, syy, sxy };
+}
+
+/**
+ * Coeficiente de correlação de Pearson (r, de -1 a 1).
+ *
+ * Mede o quanto os pares se alinham numa reta: o "r = 0,82" da dispersão
+ * energia × vibração. Devolve `null` com menos de dois pares ou quando um
+ * dos eixos não varia, casos em que r não é definido.
+ */
+export function correlacaoPearson(pares: readonly ParXY[]): number | null {
+  if (pares.length < 2) return null;
+  const { sxx, syy, sxy } = momentos(pares);
+  if (sxx === 0 || syy === 0) return null;
+  return sxy / Math.sqrt(sxx * syy);
+}
+
+/**
+ * Reta de mínimos quadrados que melhor descreve os pares.
+ *
+ * Desenhada como tendência na dispersão. Devolve `null` sem pares ou sem
+ * variação em x (a reta seria vertical).
+ */
+export function regressaoLinear(pares: readonly ParXY[]): Reta | null {
+  if (pares.length < 2) return null;
+  const { mediaX, mediaY, sxx, sxy } = momentos(pares);
+  if (sxx === 0) return null;
+  const inclinacao = sxy / sxx;
+  return { inclinacao, intercepto: mediaY - inclinacao * mediaX };
+}
+
+/** Intensidade de uma correlação. */
+export type IntensidadeCorrelacao = 'alta' | 'moderada' | 'baixa';
+
+/**
+ * Classifica a correlação pelo valor absoluto de r.
+ *
+ * Faixas usuais: a partir de 0,7 é alta, a partir de 0,4 moderada, abaixo
+ * disso baixa. O sinal só indica o sentido, não a intensidade.
+ */
+export function classificarCorrelacao(r: number | null): IntensidadeCorrelacao | null {
+  if (r === null) return null;
+  const intensidade = Math.abs(r);
+  if (intensidade >= 0.7) return 'alta';
+  if (intensidade >= 0.4) return 'moderada';
+  return 'baixa';
+}
+
+/** Estados da conexão ao vivo da Telemetria (task D05 da equipe). */
+export type EstadoConexao =
+  'conectando' | 'conectado' | 'reconectando' | 'desatualizado' | 'offline' | 'pausado';
+
+/** Tempo sem resposta nova a partir do qual os dados ao vivo estão desatualizados (três intervalos de 10 s). */
+export const LIMITE_DESATUALIZADO_MS = 30_000;
+
+export interface SituacaoConsulta {
+  /** O usuário deixou "Ao vivo" ligado. */
+  aoVivo: boolean;
+  /** A última consulta falhou. */
+  erro: boolean;
+  /** Há uma consulta em andamento. */
+  buscando: boolean;
+  /** Momento da última resposta com sucesso (ms desde 1970), ou 0 se nunca houve. */
+  atualizadoEm: number;
+  agora: number;
+}
+
+/**
+ * Deduz o estado da conexão ao vivo a partir da situação da consulta.
+ *
+ * A pausa vence tudo (foi o usuário que parou). Com erro, é "reconectando"
+ * enquanto uma nova tentativa roda e "offline" quando ela termina. Sem
+ * resposta ainda, "conectando". Com dados mais velhos que 30 s,
+ * "desatualizado"; caso contrário, "conectado".
+ */
+export function estadoConexao(situacao: SituacaoConsulta): EstadoConexao {
+  if (!situacao.aoVivo) return 'pausado';
+  if (situacao.erro) return situacao.buscando ? 'reconectando' : 'offline';
+  if (situacao.atualizadoEm === 0) return 'conectando';
+  return situacao.agora - situacao.atualizadoEm > LIMITE_DESATUALIZADO_MS
+    ? 'desatualizado'
+    : 'conectado';
+}
+
+/**
+ * Escreve um instante como data ISO no fuso informado, em minutos em
+ * relação ao UTC (−180 = Brasília): "2026-10-05T18:05:00-03:00".
+ *
+ * É o formato em que o exemplo registra horários (o do dispositivo), para
+ * que os horários gravados pelas ações (iniciar, finalizar, planejar) se
+ * comparem e se exibam como os demais, sem depender do fuso da máquina.
+ */
+export function formatarIsoComFuso(instante: Date, desvioMinutos: number): string {
+  const local = new Date(instante.getTime() + desvioMinutos * 60_000).toISOString().slice(0, 19);
+  const sinal = desvioMinutos < 0 ? '-' : '+';
+  const absoluto = Math.abs(desvioMinutos);
+  const horas = String(Math.floor(absoluto / 60)).padStart(2, '0');
+  const minutos = String(absoluto % 60).padStart(2, '0');
+  return `${local}${sinal}${horas}:${minutos}`;
+}
+
+/** Placa Mercosul (ABC1D23) ou antiga (ABC1234), já em maiúsculas e sem hífen. */
+const FORMATO_PLACA = /^[A-Z]{3}\d[A-Z\d]\d{2}$/;
+
+/**
+ * Normaliza a placa digitada (maiúsculas, sem espaços nem hífen) e confere o
+ * formato. Devolve `null` se não for uma placa válida.
+ */
+export function normalizarPlaca(placa: string): string | null {
+  const limpa = placa.trim().toUpperCase().replace(/-/g, '');
+  return FORMATO_PLACA.test(limpa) ? limpa : null;
+}
+
+/** Regras da senha do cadastro, cada uma atendida ou não. */
+export interface RequisitosSenha {
+  tamanho: boolean;
+  maiuscula: boolean;
+  especial: boolean;
+  semEspacos: boolean;
+}
+
+/**
+ * Avalia a senha pelas regras do `RegisterDto` do backend (mínimo de 8
+ * caracteres, uma maiúscula, um caractere que não seja letra ou número e
+ * nenhum espaço), uma a uma, para a tela mostrar cada requisito ao vivo.
+ */
+export function requisitosSenha(senha: string): RequisitosSenha {
+  return {
+    tamanho: senha.length >= 8,
+    maiuscula: /[A-Z]/.test(senha),
+    especial: /[^A-Za-z0-9\s]/.test(senha),
+    semEspacos: !/\s/.test(senha),
+  };
+}
+
+/** Indica se todas as regras da senha foram atendidas. */
+export function senhaValida(senha: string): boolean {
+  return Object.values(requisitosSenha(senha)).every(Boolean);
+}
+
+/** Formato usual de e-mail: algo@dominio.tld, sem espaços. */
+const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Confere o formato do e-mail antes de enviar (o backend valida de novo com
+ * `IsEmail`). Ignora espaços nas pontas, como o `Transform` do DTO.
+ */
+export function emailValido(email: string): boolean {
+  return FORMATO_EMAIL.test(email.trim());
 }

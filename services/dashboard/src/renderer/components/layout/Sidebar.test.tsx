@@ -9,7 +9,13 @@ import { MemoryRouter } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import type { DispositivoResumo, Usuario } from '@/data/tipos';
 
-const USUARIO: Usuario = { id: 'u1', nome: 'Ana Silva', funcao: 'Administradora' };
+const USUARIO: Usuario = {
+  id: 'u1',
+  nome: 'Ana Silva',
+  email: 'ana.silva@vers.com',
+  emailVerificado: true,
+  funcao: 'Administradora',
+};
 const DISPOSITIVO: DispositivoResumo = {
   nome: 'ESP32 · VERS-01',
   online: true,
@@ -41,7 +47,11 @@ describe('Sidebar', () => {
     renderizar();
 
     const nav = screen.getByRole('navigation', { name: 'Navegação principal' });
-    expect(within(nav).getAllByRole('link').map((l) => l.textContent)).toEqual([
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((l) => l.textContent),
+    ).toEqual([
       'Visão geral',
       'Telemetria',
       'Energia',

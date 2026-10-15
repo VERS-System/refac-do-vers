@@ -9,19 +9,44 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { Periodo } from '@/stores/periodo';
 import type {
+  AmostraTelemetria,
+  AtualizacaoPerfil,
+  AtualizacaoVeiculo,
+  Credenciais,
+  NovaConta,
+  Configuracao,
+  Instalacao,
+  LinhaLog,
+  NovoVeiculo,
+  Revisao,
+  AmostraVibracao,
+  CancelamentoTeste,
+  ConsultaTelemetria,
+  ConsultaTestes,
+  ContextoViber,
+  ConversaViber,
+  EnvioViber,
+  MensagemViber,
+  FinalizacaoTeste,
+  ItemComparacao,
+  NovoTeste,
+  ResumoTeste,
+  PaginaDe,
+  TesteCampo,
   Bateria,
   CadeiaConversao,
   CurvaDoDia,
   Dispositivo,
   ResumoDia,
   ResumoEnergia,
+  SerieTensaoBateria,
   Usuario,
   Veiculo,
   Vibracao,
 } from './tipos';
 
-/** Períodos que se dividem em dias (Hora e Dia são uma curva só). */
-export type PeriodoComDias = Extract<Periodo, 'semana' | 'mes'>;
+/** Períodos com resumo por dia (a Hora é só um trecho da curva de hoje). */
+export type PeriodoComDias = Exclude<Periodo, 'hora'>;
 
 export interface RepositorioVers {
   /** Relógio do repositório (fixo no exemplo, real na API). */
@@ -33,24 +58,63 @@ export interface RepositorioVers {
   obterResumoEnergia(periodo: Periodo): Promise<ResumoEnergia>;
   /**
    * Dias do período, um por barra nos gráficos e por linha no "Resumo por
-   * dia": Semana (última semana completa) ou Mês (do dia 1 até hoje).
+   * dia": Dia (só hoje), Semana (última semana completa) ou Mês (do dia 1
+   * até hoje).
    */
   obterDias(periodo: PeriodoComDias): Promise<ResumoDia[]>;
   /** Curva de potência de hoje até agora. */
   obterCurvaDoDia(): Promise<CurvaDoDia>;
+  /** Amostras simultâneas de vibração e potência do período (dispersão da Energia). */
+  obterAmostrasVibracao(periodo: Periodo): Promise<AmostraVibracao[]>;
+  /** Tensão e carga da bateria ao longo de hoje, até agora. */
+  obterTensaoBateria(): Promise<SerieTensaoBateria>;
+  buscarTestes(consulta: ConsultaTestes): Promise<PaginaDe<TesteCampo>>;
+  obterResumoTeste(testeId: string): Promise<ResumoTeste | null>;
+  compararTestes(testeIds: string[]): Promise<ItemComparacao[]>;
+  criarTeste(novo: NovoTeste): Promise<TesteCampo>;
+  iniciarTeste(testeId: string): Promise<TesteCampo>;
+  finalizarTeste(testeId: string, finalizacao: FinalizacaoTeste): Promise<TesteCampo>;
+  cancelarTeste(testeId: string, cancelamento: CancelamentoTeste): Promise<TesteCampo>;
+  obterAmostrasTelemetria(consulta: ConsultaTelemetria): Promise<PaginaDe<AmostraTelemetria>>;
   obterCadeiaAoVivo(): Promise<CadeiaConversao>;
   obterBateria(): Promise<Bateria>;
   obterVibracao(): Promise<Vibracao>;
   obterVeiculoAtivo(): Promise<Veiculo>;
+  obterVeiculos(): Promise<Veiculo[]>;
+  criarVeiculo(novo: NovoVeiculo): Promise<Veiculo>;
+  atualizarVeiculo(veiculoId: string, atualizacao: AtualizacaoVeiculo): Promise<Veiculo>;
+  obterInstalacao(veiculoId: string): Promise<Instalacao | null>;
+  obterConfiguracoes(instalacaoId: string): Promise<Configuracao[]>;
+  obterRevisoes(): Promise<Revisao[]>;
+  obterLogsDispositivo(dispositivoId: string): Promise<LinhaLog[]>;
+  obterContextosViber(): Promise<ContextoViber[]>;
+  obterConversasViber(): Promise<ConversaViber[]>;
+  obterMensagensViber(conversaId: string): Promise<MensagemViber[]>;
+  criarConversaViber(): Promise<ConversaViber>;
+  enviarMensagemViber(envio: EnvioViber): Promise<MensagemViber[]>;
   obterDispositivo(): Promise<Dispositivo>;
   obterUsuarioAtual(): Promise<Usuario>;
+  atualizarPerfil(atualizacao: AtualizacaoPerfil): Promise<Usuario>;
+  encerrarSessoes(): Promise<void>;
+  /** Entra com e-mail e senha (`POST /auth/login`) e devolve o perfil. */
+  entrar(credenciais: Credenciais): Promise<Usuario>;
+  /** Cria a conta pendente de confirmação (`POST /auth/register`). */
+  registrar(conta: NovaConta): Promise<void>;
 }
 
 const ContextoRepositorio = createContext<RepositorioVers | null>(null);
 
 /** Disponibiliza o repositório para a árvore de componentes. */
-export function RepositorioProvider({ repositorio, children }: { repositorio: RepositorioVers; children: ReactNode }) {
-  return <ContextoRepositorio.Provider value={repositorio}>{children}</ContextoRepositorio.Provider>;
+export function RepositorioProvider({
+  repositorio,
+  children,
+}: {
+  repositorio: RepositorioVers;
+  children: ReactNode;
+}) {
+  return (
+    <ContextoRepositorio.Provider value={repositorio}>{children}</ContextoRepositorio.Provider>
+  );
 }
 
 /**

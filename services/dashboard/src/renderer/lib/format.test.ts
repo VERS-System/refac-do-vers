@@ -7,11 +7,17 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { usePreferencias } from '@/stores/preferencias';
+import { rotuloUnidade } from './unidades';
 import {
+  formatarAceleracao,
+  formatarData,
   formatarDataCurta,
   formatarDiaSemanaCurto,
   formatarEnergia,
+  formatarHorarioCaptura,
   formatarMedida,
+  formatarMoeda,
   formatarNumero,
   formatarPercentual,
   formatarPotencia,
@@ -179,5 +185,105 @@ describe('formatarDiaSemanaCurto', () => {
   /** Texto que não é data ISO vira o valor ausente. */
   it('trata data inválida', () => {
     expect(formatarDiaSemanaCurto('')).toBe('–');
+  });
+});
+
+describe('formatarData', () => {
+  /** Data completa "DD/MM/AAAA", usada no CSV. */
+  it('formata a data completa', () => {
+    expect(formatarData('2026-10-04')).toBe('04/10/2026');
+  });
+
+  /** Texto que não é data ISO vira o valor ausente. */
+  it('trata data inválida', () => {
+    expect(formatarData('04/10')).toBe('–');
+  });
+});
+
+describe('formatarHorarioCaptura', () => {
+  /** Horário de captura no fuso da própria data ISO, sem converter para o fuso da máquina. */
+  it('extrai o horário da data ISO', () => {
+    expect(formatarHorarioCaptura('2026-10-05T18:05:00.410-03:00')).toBe('18:05:00');
+  });
+
+  /** Com milissegundos, como na tabela de amostras ("14:32:08.410"). */
+  it('inclui os milissegundos quando pedido', () => {
+    expect(formatarHorarioCaptura('2026-10-05T18:05:00.410-03:00', true)).toBe('18:05:00.410');
+    expect(formatarHorarioCaptura('2026-10-05T18:05:00-03:00', true)).toBe('18:05:00.000');
+  });
+
+  /** Texto que não é data e hora ISO vira o valor ausente. */
+  it('trata valor inválido', () => {
+    expect(formatarHorarioCaptura('18:05')).toBe('–');
+  });
+});
+
+describe('formatadores com as unidades preferidas', () => {
+  /** Potência em W: mW ÷ 1000, três casas. */
+  it('converte potência para W', () => {
+    usePreferencias
+      .getState()
+      .salvar({ unidades: { potencia: 'W', energia: 'mWh', aceleracao: 'm/s²' } });
+
+    expect(formatarPotencia(212)).toEqual({ valor: '0,212', unidade: 'W' });
+    expect(rotuloUnidade('potencia')).toBe('W');
+  });
+
+  /** Energia em J (1 mWh = 3,6 J), kJ a partir de 1.000 J; unidade fixa vira J. */
+  it('converte energia para J', () => {
+    usePreferencias
+      .getState()
+      .salvar({ unidades: { potencia: 'mW', energia: 'J', aceleracao: 'm/s²' } });
+
+    expect(formatarEnergia(100)).toEqual({ valor: '360', unidade: 'J' });
+    expect(formatarEnergia(1920)).toEqual({ valor: '6,91', unidade: 'kJ' });
+    expect(formatarEnergia(1920, { unidade: 'mWh' })).toEqual({ valor: '6.912', unidade: 'J' });
+    expect(rotuloUnidade('energia')).toBe('J');
+  });
+
+  /** Aceleração em m/s² ou g (1 g = 9,80665 m/s²). */
+  it('formata a aceleração', () => {
+    expect(formatarAceleracao(3.2)).toEqual({ valor: '3,2', unidade: 'm/s²' });
+
+    usePreferencias
+      .getState()
+      .salvar({ unidades: { potencia: 'mW', energia: 'mWh', aceleracao: 'g' } });
+    expect(formatarAceleracao(3.2)).toEqual({ valor: '0,33', unidade: 'g' });
+    expect(formatarAceleracao(null)).toEqual({ valor: '–', unidade: 'g' });
+  });
+
+  /** Sem preferência, tudo como antes (mW, mWh, m/s²). */
+  it('mantém o padrão do laboratório', () => {
+    expect(formatarPotencia(212)).toEqual({ valor: '212', unidade: 'mW' });
+    expect(formatarEnergia(1920)).toEqual({ valor: '1,92', unidade: 'Wh' });
+    expect(rotuloUnidade('aceleracao')).toBe('m/s²');
+  });
+});
+
+describe('formatarMoeda', () => {
+  /** Reais com até 4 casas para valores pequenos (a economia por semana é de frações de centavo). */
+  it('formata reais', () => {
+    expect(formatarMoeda(0.001824)).toBe('R$ 0,0018');
+    expect(formatarMoeda(0.0951, 2)).toBe('R$ 0,10');
+    expect(formatarMoeda(12.5, 2)).toBe('R$ 12,50');
+    expect(formatarMoeda(null)).toBe('–');
+  });
+});
+
+describe('formatarEnergia com casas', () => {
+  /** Casas decimais na escala pequena (a energia acumulada da Telemetria usa 2). */
+  it('aceita casas na escala pequena', () => {
+    expect(formatarEnergia(147.963, { unidade: 'mWh', casas: 2 })).toEqual({
+      valor: '147,96',
+      unidade: 'mWh',
+    });
+
+    usePreferencias
+      .getState()
+      .salvar({ unidades: { potencia: 'mW', energia: 'J', aceleracao: 'm/s²' } });
+    expect(formatarEnergia(147.963, { unidade: 'mWh', casas: 1 })).toEqual({
+      valor: '532,7',
+      unidade: 'J',
+    });
   });
 });

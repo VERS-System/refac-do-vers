@@ -10,6 +10,7 @@
 
 import { horarioParaMinutos, integrarTrapezios, minutosParaHorario } from '../calculos';
 import type { Horario, PontoCurva } from '../tipos';
+import { mulberry32 } from './aleatorio';
 
 export interface ParametrosCurva {
   /** Último horário da curva (o "agora" do exemplo), inclusive. */
@@ -25,22 +26,6 @@ export interface ParametrosCurva {
 
 /** Duração das rampas de aceleração e frenagem no início e no fim de cada deslocamento. */
 const MINUTOS_RAMPA = 4;
-
-/**
- * Gerador pseudoaleatório Mulberry32: pequeno, rápido e reproduzível.
- *
- * A semente fixa garante que testes e prints mostrem sempre a mesma curva.
- */
-function mulberry32(semente: number): () => number {
-  let estado = semente >>> 0;
-  return () => {
-    estado = (estado + 0x6d2b79f5) >>> 0;
-    let t = estado;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 /**
  * Consumo do nó ESP32 ao longo do dia, em mW.
@@ -69,7 +54,11 @@ export function gerarCurvaDoDia(parametros: ParametrosCurva): PontoCurva[] {
   for (const deslocamento of parametros.deslocamentos) {
     const inicio = horarioParaMinutos(deslocamento.inicio);
     for (let i = 0; i < deslocamento.minutos; i++) {
-      const rampa = Math.min(1, (i + 1) / MINUTOS_RAMPA, (deslocamento.minutos - i) / MINUTOS_RAMPA);
+      const rampa = Math.min(
+        1,
+        (i + 1) / MINUTOS_RAMPA,
+        (deslocamento.minutos - i) / MINUTOS_RAMPA,
+      );
       const oscilacao = 1 + 0.22 * Math.sin((2 * Math.PI * i) / 11) + 0.3 * (aleatorio() - 0.5);
       forma[inicio + i] = Math.max(0.05, rampa * oscilacao);
     }

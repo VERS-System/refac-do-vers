@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
-import { RepositorioProvider } from '@/data/repositorio';
+import { RepositorioProvider, type RepositorioVers } from '@/data/repositorio';
 import { criarRepositorioMock } from '@/data/repositorioMock';
 import { ConfiguracoesPage } from '@/pages/ConfiguracoesPage';
 import { CriarContaPage } from '@/pages/CriarContaPage';
@@ -32,11 +32,13 @@ import { ROTAS } from '@/routes/navegacao';
  * Monta os provedores, o roteador e a tabela de rotas do app.
  *
  * O `QueryClient` e o repositório são criados uma vez por montagem
- * (via `useState`), para não perder o cache a cada renderização.
+ * (via `useState`), para não perder o cache a cada renderização. O
+ * repositório pode vir de fora: os testes usam isso para simular recusas do
+ * backend sem mexer no repositório de exemplo.
  */
-export default function App() {
+export default function App({ repositorio: externo }: { repositorio?: RepositorioVers } = {}) {
   const [clienteConsultas] = useState(() => new QueryClient());
-  const [repositorio] = useState(() => criarRepositorioMock());
+  const [repositorio] = useState(() => externo ?? criarRepositorioMock());
   return (
     <QueryClientProvider client={clienteConsultas}>
       <RepositorioProvider repositorio={repositorio}>

@@ -31,10 +31,16 @@ export interface TableProps<T> {
   getRowKey: (row: T) => string;
   /** Mensagem exibida quando não há linhas. */
   emptyMessage?: string;
+  /** Menos espaço lateral nas células, para tabelas com muitas colunas (ex.: amostras). */
+  densa?: boolean;
   className?: string;
 }
 
-const CLASSES_ALINHAMENTO = { left: 'text-left', center: 'text-center', right: 'text-right' } as const;
+const CLASSES_ALINHAMENTO = {
+  left: 'text-left',
+  center: 'text-center',
+  right: 'text-right',
+} as const;
 
 /**
  * Classes de alinhamento de uma coluna, compartilhadas por cabeçalho e células.
@@ -44,11 +50,18 @@ const CLASSES_ALINHAMENTO = { left: 'text-left', center: 'text-center', right: '
  */
 function classesDaColuna<T>(coluna: TableColumn<T>, celula: boolean): string {
   const alinhamento = coluna.align ?? (coluna.numeric ? 'right' : 'left');
-  return cn(CLASSES_ALINHAMENTO[alinhamento], celula && coluna.numeric && 'tabular font-mono', coluna.className);
+  return cn(
+    CLASSES_ALINHAMENTO[alinhamento],
+    celula && coluna.numeric && 'tabular font-mono',
+    coluna.className,
+  );
 }
 
 /**
  * Renderiza a tabela com cabeçalho, linhas e estado vazio.
+ *
+ * A variante densa reduz o espaço lateral das células de 16 para 10 px, o
+ * que permite caber as 10 colunas das amostras da Telemetria em 1280 px.
  *
  * A legenda (`caption`) nomeia a tabela para leitores de tela mesmo quando
  * fica oculta. Sem linhas, uma única célula com `colSpan` mostra a mensagem
@@ -61,8 +74,10 @@ export function Table<T>({
   rows,
   getRowKey,
   emptyMessage = 'Nenhum registro encontrado',
+  densa = false,
   className,
 }: TableProps<T>) {
+  const espacamento = densa ? 'px-2.5' : 'px-4';
   return (
     <div className={cn('overflow-x-auto', className)}>
       <table className="w-full border-collapse text-sm">
@@ -76,7 +91,8 @@ export function Table<T>({
                 key={coluna.key}
                 scope="col"
                 className={cn(
-                  'h-10 px-4 font-label text-xs font-medium whitespace-nowrap text-fg-muted',
+                  'h-10 font-label text-xs font-medium whitespace-nowrap text-fg-muted',
+                  espacamento,
                   classesDaColuna(coluna, false),
                 )}
               >
@@ -99,7 +115,10 @@ export function Table<T>({
                 className="h-12 border-b border-line-subtle transition-colors last:border-0 hover:bg-hover/40"
               >
                 {columns.map((coluna) => (
-                  <td key={coluna.key} className={cn('px-4 text-fg', classesDaColuna(coluna, true))}>
+                  <td
+                    key={coluna.key}
+                    className={cn('text-fg', espacamento, classesDaColuna(coluna, true))}
+                  >
                     {coluna.render(linha)}
                   </td>
                 ))}

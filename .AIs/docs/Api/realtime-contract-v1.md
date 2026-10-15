@@ -3,8 +3,8 @@
 
 Estado: evento interno 8.1 implementado; contrato externo 8.2 documentado após
 decisão do programador de buscar valores pelo REST em 14/10/2026. Namespace,
-comandos de rede e gateway descritos abaixo ainda não estão implementados;
-parser e autorização reutilizável disponíveis desde 8.4. Plano em
+gateway/comandos implementados localmente em 8.5, ainda sem início operacional
+automático ou ensaio real Redis/Socket.IO/DB. Autorização disponível desde 8.4. Plano em
 [F08](../plans/backend-phase-8-execution-roadmap.md).
 
 ## Evento interno telemetry.processed
@@ -69,7 +69,7 @@ Autenticação existente usa cookies HttpOnly e sessão validada no banco, sem
 token em query ou auth. Origin, revogação e limites aprovados em 15/10/2026
 estão registrados no lote 8.4 abaixo; aplicação no gateway segue pendente.
 
-## Contrato externo 8.2 — a implementar
+## Contrato externo 8.2 — implementado localmente em 8.5
 
 Namespace Socket.IO: `/realtime`, usando transporte do mesmo backend.
 Namespace não é rota REST `/api/v1`; caminho Engine.IO permanece `/socket.io`.
@@ -113,7 +113,7 @@ Erros usam `{ "ok": false, "version": 1, "code": "RESOURCE_UNAVAILABLE" }`.
 Recurso ausente e recurso sem acesso recebem esse mesmo código, sem detalhes.
 Outros códigos previstos: INVALID_REQUEST, UNAUTHENTICATED, LIMIT_EXCEEDED e
 REALTIME_UNAVAILABLE. Nenhum erro contém payload recebido, token ou causa interna.
-Valores dos limites serão fechados antes do código do gateway. Política Redis
+Limites aprovados em 8.4 e aplicados em 8.5. Política Redis
 aprovada em 8.3 está registrada abaixo.
 
 ### Aviso data.updated
@@ -187,8 +187,8 @@ teste sem receber notificações da instalação à qual não possui vínculo at
 ADMIN não ganha exceção global. Assinar uma instalação não libera seus testes.
 
 Não adicionar types/helpers sem consumidor apenas para representar este plano.
-Lotes 8.3–8.5 implementarão e testarão validação, lifecycle e autorização nas
-fronteiras de Redis/Socket.IO. Este documento não comprova transporte funcional.
+Lotes 8.3–8.5 implementam validação, lifecycle e autorização local nas fronteiras
+de Redis/Socket.IO. Este documento não comprova ensaio real do transporte.
 
 ## Transporte interno Redis — lote 8.3
 
@@ -339,3 +339,52 @@ atomicidade com a entrega de rede. Timer/contadores/encerramento serão aplicado
 no gateway; este recorte apenas fornece verificações reutilizáveis.
 
 Plano e evidências: [F08.4](../plans/backend-phase-8-session-authorization.md).
+
+## Gateway Socket.IO — lote 8.5
+
+RealtimeIoAdapter é instalado por configureApplication e reaproveita CORS com
+credenciais. Engine.IO limita payload a 1024 bytes e permite polling/websocket;
+allowRequest recusa Origin ausente/alheio e middleware do namespace repete a
+validação de Origin/cookie/sessão. Sem recuperação automática de salas.
+Transporte pode ser aberto no bootstrap; namespace /realtime recusa conexão
+com REALTIME_UNAVAILABLE até o início explícito e Redis confirmado disponível.
+
+RealtimeIngestionService.start inicia gateway antes de Redis e instala a ponte
+antes do pipeline. Nenhum bootstrap chama esse método. Gateway não inicia Redis
+ou MQTT por conta própria. Início instala listeners e um timer de 30 s.
+Falha no início do coordenador encerra o gateway; shutdown é definitivo e
+idempotente, remove listeners/timer e desconecta sockets antes de drenar ingestão.
+
+Middleware devolve connect_error com código seguro no message. A quota é de
+5 conexões por sessão por instância, incluindo reservas autorizadas anteriores
+ao connect; queda de transporte libera a reserva. Não limitar pelo papel ADMIN
+nem aceitar token de auth/query. Cookie original fica associado à conexão;
+após refresh, reconectar com o cookie novo. Checagem ociosa não sobrepõe consulta
+do mesmo socket e fecha sessão inválida ou falha operacional de autenticação.
+
+Cada comando aplica parser e autorização F08.4 novamente, inclusive comandos
+repetidos. Até 20 recursos por conexão; repetição não consome nova vaga. Apenas
+uma alteração de assinatura por socket por vez, sem fila: comando sobreposto
+recebe REALTIME_UNAVAILABLE, devendo ser repetido após o ACK anterior.
+ACK positivo aguarda join/leave; unsubscribe remove roteamento antes de aguardar
+leave. UUIDs equivalentes em maiúsculas/minúsculas usam a mesma sala interna.
+Erro de sessão encerra conexão; nesse caso não prometer recebimento do ACK.
+
+Aviso Pub/Sub é validado novamente. Cada destinatário inscrito passa por nova
+consulta de sessão e vínculo antes do emit individual. Não usar broadcast à
+sala inteira. Vínculo perdido remove assinatura; sessão inválida ou falha
+operacional fecha conexão. Checagem após await impede entrega a assinatura
+cancelada, socket encerrado ou Redis indisponível. Consultas de uma assinatura
+antiga não bloqueiam/removem uma nova assinatura do mesmo recurso.
+
+Avisos do mesmo recurso/assinatura durante uma autorização pendente são
+agrupados em uma invalidação emitida após essa consulta. Não há deltas, cursor,
+fila ou garantia de entrega. Cliente busca estado atual pelo REST após ACK/aviso.
+Na queda Redis, sockets são encerrados para exigir nova assinatura e snapshot;
+volta do Redis não restaura salas. Socket.IO pode indicar `io server disconnect`:
+cliente deve chamar connect novamente com backoff, sem polling REST automático.
+Rejeição de namespace também exige nova tentativa explícita do cliente.
+
+Testes usam sockets e Redis sintéticos; adaptador tem servidor simulado.
+Ensaios reais de protocolo/reconexão/DB continuam em F08.7. Frontend ainda não
+foi integrado. Plano: [F08.5](../plans/backend-phase-8-socket-gateway.md).

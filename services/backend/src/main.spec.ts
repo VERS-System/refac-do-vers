@@ -9,6 +9,8 @@ describe('configureApplication', () => {
     const app = {
       use: jest.fn(),
       enableCors: jest.fn(),
+      useWebSocketAdapter: jest.fn(),
+      getHttpServer: jest.fn(),
       useGlobalPipes: jest.fn(),
       useGlobalFilters: jest.fn(),
       useGlobalInterceptors: jest.fn(),
@@ -39,6 +41,7 @@ describe('configureApplication', () => {
       }),
     );
     expect(app.useGlobalPipes).toHaveBeenCalledTimes(1);
+    expect(app.useWebSocketAdapter).toHaveBeenCalledTimes(1);
     expect(app.useGlobalFilters).toHaveBeenCalledTimes(1);
     expect(app.useGlobalInterceptors).toHaveBeenCalledTimes(1);
     expect(app.setGlobalPrefix).toHaveBeenCalledWith('api/v1');

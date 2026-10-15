@@ -7,8 +7,9 @@ import { RealtimeIngestionService } from './realtime-ingestion.service';
 import { RealtimeNotificationService } from './realtime-notification.service';
 import { AuthModule } from '../auth/auth.module';
 import { RealtimeAuthorizationService } from './realtime-authorization.service';
+import { RealtimeGateway } from './realtime.gateway';
 
 @Module({ imports: [ConfigModule, MqttModule, AuthModule],
-  providers: [RealtimePubSubService, RealtimeNotificationService, RealtimeIngestionService, RealtimeAuthorizationService],
+  providers: [RealtimePubSubService, RealtimeNotificationService, RealtimeIngestionService, RealtimeAuthorizationService, RealtimeGateway],
   exports: [RealtimePubSubService, RealtimeIngestionService, RealtimeAuthorizationService] })
 export class RealtimeModule {}

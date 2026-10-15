@@ -82,6 +82,13 @@ Executar test:unit, lint/build e diff --check; conferir saúde do container.
   Origin CORS obrigatório e ResourceAccessService, 44 suítes/920 testes,
   lint/build e backend Docker atualizado com live/readiness ok. Evidências em
   [sessão e autorização](backend-phase-8-session-authorization.md).
+- Recorte 8.5 implementa gateway/adaptador e integra lifecycle ao coordenador;
+  namespace recusa conexões até início explícito/Redis ok. Timer, quotas e
+  autorização por aviso aplicados conforme decisão. Plano/evidências em
+  [gateway Socket.IO](backend-phase-8-socket-gateway.md).
+- Evidência 8.5: 46 suítes/940 testes, lint/build e diff aprovados; imagem
+  4ceb0bb4d8cf, live/readiness ok, probes Engine.IO sem Origin/alheio 403.
+  Sem início do coordenador ou ensaio autorizado completo do protocolo.
 - Integração com frontend e ativação real do pipeline permanecem fora de 8.1.
 
 ## Evidência local 8.1 — 14/10/2026

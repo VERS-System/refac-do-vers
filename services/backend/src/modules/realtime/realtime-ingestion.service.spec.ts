@@ -12,12 +12,13 @@ jest.mock('mqtt', () => ({ connect: jest.fn() }));
 /** Monta dependências com estado Redis e promessas MQTT controlados pelo teste. */
 function setup(): { service: RealtimeIngestionService; redis: { status: string; events: EventEmitter; start: jest.Mock;
   onModuleDestroy: jest.Mock }; pipeline: { start: jest.Mock; pause: jest.Mock; resume: jest.Mock; onModuleDestroy: jest.Mock };
-  notifications: { start: jest.Mock; onModuleDestroy: jest.Mock } } {
+  notifications: { start: jest.Mock; onModuleDestroy: jest.Mock }; gateway: { start: jest.Mock; onModuleDestroy: jest.Mock } } {
   const redis = { status: 'stopped', events: new EventEmitter(), start: jest.fn(), onModuleDestroy: jest.fn() };
   const pipeline = { start: jest.fn().mockResolvedValue(undefined), pause: jest.fn().mockResolvedValue(undefined),
     resume: jest.fn().mockResolvedValue(undefined), onModuleDestroy: jest.fn().mockResolvedValue(undefined) };
   const notifications = { start: jest.fn(), onModuleDestroy: jest.fn().mockResolvedValue(undefined) };
-  return { service: new RealtimeIngestionService(redis as never, pipeline as never, notifications as never), redis, pipeline, notifications };
+  const gateway = { start: jest.fn(), onModuleDestroy: jest.fn() };
+  return { service: new RealtimeIngestionService(redis as never, pipeline as never, notifications as never, gateway as never), redis, pipeline, notifications, gateway };
 }
 
 describe('coordenador Redis e ingestão', () => {
@@ -28,6 +29,12 @@ describe('coordenador Redis e ingestão', () => {
     await jest.advanceTimersByTimeAsync(0);
   }
   beforeEach(() => { jest.useFakeTimers(); h = setup(); jest.spyOn(Logger.prototype, 'warn').mockImplementation(); });
+  it('instala gateway antes de Redis e o encerra se início falhar', () => {
+    h.redis.start.mockImplementationOnce(() => { throw new Error('failed'); });
+    expect(() => h.service.start()).toThrow('REALTIME_INGESTION_START_FAILED');
+    expect(h.gateway.start.mock.invocationCallOrder[0]).toBeLessThan(h.redis.start.mock.invocationCallOrder[0]);
+    expect(h.gateway.onModuleDestroy).toHaveBeenCalledTimes(1);
+  });
   afterEach(async () => { await h.service.onModuleDestroy(); jest.restoreAllMocks(); jest.useRealTimers(); });
 
   it('constructor inerte e start aguarda Redis antes de iniciar pipeline', async () => {
@@ -105,7 +112,7 @@ describe('coordenador Redis e ingestão', () => {
     const reception = { receive: jest.fn().mockResolvedValue({ outcome: 'RECEIVED', id: 'message' }),
       process: jest.fn(() => new Promise((resolve) => { commit = (): void => { resolve({ outcome: 'PROCESSED', id: 'message' }); }; })) };
     const pipeline = new MqttPipelineService(prisma as never, reception as never, {} as never, transport);
-    h.service = new RealtimeIngestionService(h.redis as never, pipeline, h.notifications as never);
+    h.service = new RealtimeIngestionService(h.redis as never, pipeline, h.notifications as never, h.gateway as never);
     h.service.start(); await status('ok'); first.emit('connect');
     const ack = jest.fn(); first.handleMessage({ qos: 1 }, ack); await jest.advanceTimersByTimeAsync(0);
     await status('unavailable'); const rejected = jest.fn(); first.handleMessage({ qos: 1 }, rejected);

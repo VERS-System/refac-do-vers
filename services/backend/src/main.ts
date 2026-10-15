@@ -10,6 +10,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { ResponseEnvelopeInterceptor } from './common/interceptors/response-envelope.interceptor';
 import { createCorsConfig } from './config/cors.config';
 import { createHelmetConfig } from './config/security.config';
+import { RealtimeIoAdapter } from './modules/realtime/realtime-io.adapter';
 
 /**
  * Aplica os comportamentos globais e devolve a porta ja validada.
@@ -25,6 +26,7 @@ export function configureApplication(
   app.use(createRequestIdMiddleware());
   app.use(helmet(createHelmetConfig(nodeEnvironment)));
   app.enableCors(createCorsConfig(corsOrigins));
+  app.useWebSocketAdapter(new RealtimeIoAdapter(app, configService));
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

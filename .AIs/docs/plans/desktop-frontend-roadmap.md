@@ -144,7 +144,111 @@ Andamento:
   `components/charts/` (`Sparkline`, `BarraSegmentos`, `MedidorAnel`,
   `OndaVibracao`, `GraficoEnergia` com Recharts). O repositório passou a
   expor `obterDias('semana' | 'mes')` no lugar de `obterDiasDaSemana()`.
-- Próxima: Energia.
+- **Energia — implementada em 14/10/2026 (aguardando revisão e commit do
+  programador).** Plano e decisões abaixo.
+- **Telemetria — implementada em 14/10/2026 (aguardando revisão e commit do
+  programador).** Plano, decisões e execução em
+  [desktop-frontend-telemetria.md](desktop-frontend-telemetria.md).
+- **Testes — implementada em 14/10/2026, madrugada (aguardando revisão e
+  commit do programador).** Plano, decisões e execução em
+  [desktop-frontend-testes.md](desktop-frontend-testes.md).
+- **Veículo e instalação — implementada na madrugada de 14/10/2026
+  (aguardando revisão e commit do programador).** Plano em
+  [desktop-frontend-veiculo.md](desktop-frontend-veiculo.md).
+- **Viber — implementada na madrugada de 14/10/2026 (aguardando revisão e
+  commit do programador).** Plano em
+  [desktop-frontend-viber.md](desktop-frontend-viber.md).
+- **Configurações — implementada na madrugada de 14/10/2026 (aguardando
+  revisão e commit do programador).** Unidades, reduzir movimento e tarifa
+  valem no app todo. Plano em
+  [desktop-frontend-configuracoes.md](desktop-frontend-configuracoes.md).
+- **Login e Criar conta — implementadas na madrugada de 14/10/2026
+  (aguardando revisão e commit do programador).** Validação como os DTOs,
+  recusas do backend tratadas, cadastro em três etapas. Plano em
+  [desktop-frontend-autenticacao.md](desktop-frontend-autenticacao.md).
+- **Fase 4 concluída**: as 9 telas do Stitch estão implementadas sobre o
+  repositório de exemplo. Próximo passo: revisão do programador, commits e
+  a Fase 5.
+
+#### Decisões do usuário para as telas restantes (14/10/2026, noite)
+
+O usuário pediu que as telas restantes (Testes, Veículo e instalação, Viber,
+Configurações, Login e Criar conta) fossem terminadas de madrugada, sem
+interrupção. Decisões tomadas antes:
+
+- **Autonomia**: decisões menores não previstas são escolhidas pela IA (a
+  opção mais fiel aos contratos do backend e à honestidade dos dados) e
+  registradas como "a validar" no plano da tela.
+- **Testes**: ações funcionam no exemplo (planejar, iniciar, finalizar e
+  cancelar, com confirmações, transições em memória e conflito ao iniciar com
+  outro teste em andamento); filtros só os do contrato (abas por status e
+  paginação; busca e terreno viram pedido ao backend); painel ao vivo só com
+  o que é medido (sem velocidade, rotação, inclinação nem meta); histórico a
+  partir dos trajetos da base (#008 a #024).
+- **Veículo e instalação**: cadastro funciona em memória (editar, adicionar,
+  trocar o ativo, com confirmação); ações no hardware (reiniciar terminal,
+  mudar a associação dos piezos) e "Solicitar revisão" desativadas com
+  "disponível com a API"; "Ver logs" mostra um log de exemplo só de leitura.
+- **Viber**: sugestões respondem com textos montados dos dados calculados,
+  sempre com a fonte; perguntas livres recebem "disponível com o backend da
+  Viber"; conversas recentes derivadas da base.
+- **Configurações**: preferências valem no app todo (unidades, reduzir
+  movimento, tarifa que destrava a estimativa de economia), salvas
+  localmente; perfil, alertas e sessões em memória; "Encerrar todas as
+  sessões" com confirmação, levando ao Login.
+
+#### Plano da tela Energia (14/10/2026)
+
+Decisões do usuário:
+
+- **Períodos**: a tela inteira segue o período. Semana e Mês como a
+  referência (barras e tabela por dia); Dia com KPIs e perdas de hoje, a
+  curva do dia no gráfico e a linha de hoje na tabela; Hora com energia e
+  potência da última hora, e "Sem detalhe por ponto na última hora" em
+  bateria, celular e perdas (na Hora só existe a curva do P1). Bateria e
+  tarifa não mudam com o período.
+- **Minigráfico da bateria**: criar um dado de tensão ao longo de hoje e
+  mostrá-lo com legenda ("Tensão hoje (V)", mínimo e máximo).
+- **Exportar CSV**: gera o arquivo de verdade (separador `;`, vírgula
+  decimal, BOM UTF-8 para o Excel).
+
+O que foi construído:
+
+- KPIs: energia recuperada (o mesmo card da Visão geral, com o ícone no
+  canto), potência média com o pico ("qui 17:42", "hoje 17:42"), energia
+  entregue à bateria (% do recuperado) e carga entregue ao celular (≈ % de
+  uma recarga de 15,4 Wh, constante em `data/referencias.ts`).
+- Gráfico: barras recuperada (P1) × entregue à bateria (P3), média diária e
+  valores; rodapé com o método (trapézios de P = V × I) e o total. Em Hora e
+  Dia, a curva da Visão geral.
+- Perdas nos 4 pontos com barras proporcionais ao P1; estado da bateria;
+  economia bloqueada com "Configurar tarifa" (leva a Configurações);
+  dispersão energia × vibração com r de Pearson e reta de regressão; tabela
+  "Resumo por dia" com qualidade dos dados.
+- Repositório: `obterDias` aceita `'dia'`; novos `obterAmostrasVibracao` e
+  `obterTensaoBateria`.
+
+Divergências com o Stitch:
+
+| Onde | Stitch | Implementado | Motivo |
+|---|---|---|---|
+| Rodapé do gráfico | "amostragem 10 Hz" | "amostragem a cada 10 s" | as demais telas usam 10 s |
+| Energia × vibração | r = 0,82 | r calculado das amostras (0,89 na semana) | o valor é derivado, não copiado |
+| Minigráfico da bateria | linha sem rótulo | tensão de hoje com mín./máx. | decisão do usuário |
+
+Premissas dos dados de exemplo **a validar pelo programador**:
+
+- **Tensão da bateria**: a carga é reconstruída a partir dos 68% atuais; a
+  bateria só muda com o carro em movimento (entra P3, sai P4) e o nó ESP32 é
+  alimentado pelo veículo. Tensão de repouso linear de 3,45 V (vazia) a
+  4,05 V (cheia), mais 0,06 V carregando; às 18:05 isso dá os 3,92 V do card.
+  Se o nó for alimentado pela bateria, o consumo dele (~50 mW) a descarrega e
+  o estado "carregando" das 18:05 deixa de fechar.
+- **Amostras de vibração**: 4 por dia anterior (07:55, 08:20, 17:35, 18:00)
+  e 8 hoje; vibração = potência ÷ 66 (212 mW ↔ 3,2 m/s² ao vivo) + ruído.
+- **r com poucas amostras**: na Hora há 4 amostras e no Dia 8; o r é exibido
+  mesmo assim. Avaliar um mínimo de amostras para mostrar r e a classificação
+  (alta a partir de 0,7, moderada a partir de 0,4).
 
 ### Fase 5 — Movimento e acabamento
 

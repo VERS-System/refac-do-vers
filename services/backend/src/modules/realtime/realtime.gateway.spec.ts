@@ -148,6 +148,31 @@ describe('RealtimeGateway', () => {
     redis.status = 'ok'; redis.events.emit('status.changed'); const next = socket(); await admit(next);
     redis.events.emit('data.updated', event); await flush(); expect(next.emit).not.toHaveBeenCalled();
   });
+  it('entrega invalidações repetidas e com horário anterior sem tratar occurredAt como cursor', async () => {
+    gateway.start(); const client = socket(); await admit(client); await gateway.subscribe(client, command);
+    const delayed = { ...event, occurredAt: '2026-10-14T12:00:00.000Z' };
+    auth.authorize.mockClear();
+    for (const notice of [event, event, delayed]) {
+      redis.events.emit('data.updated', notice); await flush();
+    }
+    expect(jest.mocked(client.emit).mock.calls).toEqual([
+      ['data.updated', event], ['data.updated', event], ['data.updated', delayed],
+    ]);
+    expect(auth.authorize).toHaveBeenCalledTimes(3);
+  });
+  it('reconexão só recebe após novo ACK e não reproduz aviso perdido', async () => {
+    gateway.start(); const previous = socket(); await admit(previous); await gateway.subscribe(previous, command);
+    previous.disconnect();
+    redis.events.emit('data.updated', event); await flush();
+    const next = socket(); await admit(next); gateway.handleConnection(next);
+    redis.events.emit('data.updated', event); await flush();
+    expect(previous.emit).not.toHaveBeenCalled(); expect(next.emit).not.toHaveBeenCalled();
+    expect(await gateway.subscribe(next, command)).toEqual({ ok: true, version: 1, resource: command.resource });
+    await flush(); expect(next.emit).not.toHaveBeenCalled();
+    redis.events.emit('data.updated', event); await flush();
+    expect(next.emit).toHaveBeenCalledTimes(1); expect(next.emit).toHaveBeenCalledWith('data.updated', event);
+    expect(previous.emit).not.toHaveBeenCalled();
+  });
   it('nova assinatura não herda verificação pendente ou rejeição da assinatura anterior', async () => {
     gateway.start(); const client = socket(); await admit(client); await gateway.subscribe(client, command);
     let fail!: (error: Error) => void;

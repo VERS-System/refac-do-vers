@@ -38,6 +38,9 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 
 ## Organização
 
+- [Consistência F08.6](plans/backend-phase-8-consistency.md): contrato de
+  recuperação REST e limites da cobertura local, sem integração frontend.
+
 - `contexts/`: registros resumidos de cada sessão de trabalho com IA.
 - `plans/`: planos aprovados para evolução do projeto.
 - `problems/`: problemas identificados, causas, impactos e soluções.

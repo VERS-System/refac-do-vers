@@ -190,6 +190,37 @@ Não adicionar types/helpers sem consumidor apenas para representar este plano.
 Lotes 8.3–8.5 implementam validação, lifecycle e autorização local nas fronteiras
 de Redis/Socket.IO. Este documento não comprova ensaio real do transporte.
 
+## Matriz de consistência — lote 8.6
+
+Este recorte consolida o contrato para consumidores; não implementa a integração
+do dashboard/mobile. O servidor entrega invalidações, não snapshots ou deltas.
+
+| Cenário | Comportamento exigido do consumidor |
+| --- | --- |
+| Snapshot anterior ao ACK | Refazer a consulta após subscribe confirmado; o resultado anterior não fecha a janela de perda. |
+| Aviso durante consulta REST | Marcar pendência e consultar novamente depois que a consulta terminar; não limpar a pendência com a resposta antiga. |
+| Avisos repetidos durante consulta | Agrupar em uma busca seguinte, sem somar valores recebidos nem iniciar buscas ilimitadas. |
+| Aviso com occurredAt anterior | Invalidar normalmente; o horário não é cursor e dados tardios podem alterar filtros históricos. |
+| Desconexão, inclusive Redis indisponível | Mostrar desatualização; reconectar com backoff, assinar, aguardar ACK e obter novo snapshot. |
+| Perda de aviso sem desconexão observável | Sem detecção garantida nesta versão; nova consulta ao reabrir/reconectar reconcilia o estado. |
+| Troca de recurso/sessão durante consulta | Cancelar ou ignorar a resposta antiga e remover assinatura/listener anterior. |
+| Perda de acesso na consulta | Remover dados protegidos e seguir o tratamento REST de sessão/recurso; não continuar mostrando cache autorizado anteriormente. |
+| Encerramento/recálculo de TEST sem MQTT | Refazer REST após a mutação; outros observadores ainda não recebem aviso dessa origem. |
+
+Falha na busca REST mantém o estado desatualizado e o tratamento de erro atual;
+não acrescenta polling automático ou fila durável. Eventos agrupados enquanto
+o gateway autoriza um destinatário produzem uma invalidação posterior à consulta
+de autorização, suficiente para pedir o estado atual, sem preservar cada aviso.
+Não existe garantia de frescor contínuo, replay ou snapshot entre páginas.
+
+Testes F08.6 verificam no gateway sintético que repetição/horário anterior não
+são descartados e que reconexão não restaura assinatura nem reproduz aviso
+perdido. Não verificam o estado de tela, consultas REST em voo ou protocolo real.
+Esses cenários são critérios de aceite da integração futura dos clientes;
+o ensaio de transporte real permanece em F08.7, com autorização própria.
+
+Plano: [F08.6 — consistência](../plans/backend-phase-8-consistency.md).
+
 ## Transporte interno Redis — lote 8.3
 
 RealtimeModule registra/exporta RealtimePubSubService no backend. Constructor

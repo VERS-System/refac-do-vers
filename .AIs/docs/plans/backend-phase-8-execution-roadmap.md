@@ -40,6 +40,17 @@ continuam registradas, sem impedir preparação local do tempo real.
    reconexão/revogação/falha Redis. Preparar alvos concretos antes de solicitar
    autorização de execução. Não reutilizar autorização do ensaio MQTT anterior.
 
+## Escopo 8.6 — consistência e recuperação
+
+Próximo recorte autorizado pelo pedido de desenvolvimento em 15/10/2026.
+Consolidar matriz de cenários no contrato e cobertura do gateway para avisos
+repetidos/fora de ordem e reconexão sem replay ou assinatura herdada.
+Sem consumidor genérico, integração frontend ou alteração de runtime prevista.
+Snapshot e invalidação concorrente no cliente continuam critérios de aceite da
+integração futura, sem alegar implementação ou teste de UI neste lote.
+Plano e evidências: [consistência F08.6](backend-phase-8-consistency.md).
+Ensaio real F08.7 e aviso de TEST sem MQTT permanecem pendentes.
+
 ## Escopo 8.1
 
 Criar services/backend/src/modules/mqtt/mqtt-events.ts com nome constante e

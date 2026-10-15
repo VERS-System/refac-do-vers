@@ -17,8 +17,10 @@ import {
   BarChart,
   CartesianGrid,
   ComposedChart,
+  LabelList,
   Line,
   ReferenceDot,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -26,7 +28,13 @@ import {
 } from 'recharts';
 import { horarioParaMinutos, minutosParaHorario } from '@/data/calculos';
 import type { Horario, PontoCurva, ResumoDia } from '@/data/tipos';
-import { formatarDataCurta, formatarDiaSemanaCurto, formatarEnergia, formatarMedida, formatarPotencia } from '@/lib/format';
+import {
+  formatarDataCurta,
+  formatarDiaSemanaCurto,
+  formatarEnergia,
+  formatarMedida,
+  formatarPotencia,
+} from '@/lib/format';
 
 /** Pico exibido na curva. */
 export interface PicoCurva {
@@ -47,6 +55,12 @@ export type GraficoEnergiaProps =
       dias: readonly ResumoDia[];
       /** Rótulo de cada barra: dia da semana ("Seg") ou data ("01/10"). */
       rotulo: 'dia-da-semana' | 'data';
+      /** Segunda série: energia entregue à bateria (P3), ao lado da recuperada. */
+      serieBateria?: boolean;
+      /** Linha tracejada com a média diária da energia recuperada. */
+      media?: boolean;
+      /** Valor de cada barra escrito acima dela. */
+      valores?: boolean;
     };
 
 const MINUTOS_NO_DIA = 24 * 60;
@@ -57,6 +71,7 @@ const DIMENSAO_INICIAL = { width: 800, height: ALTURA };
 /** Cores das séries vindas dos tokens do tema (`global.css`). */
 const COR = {
   recuperada: 'var(--color-chart-1)',
+  bateria: 'var(--color-chart-2)',
   consumo: 'var(--color-chart-3)',
   grade: 'var(--color-chart-grid)',
   eixo: 'var(--color-fg-muted)',
@@ -67,7 +82,10 @@ const ESTILO_EIXO = { fill: COR.eixo, fontSize: 11, fontFamily: 'var(--font-mono
 const textoPotencia = (mW: number) => formatarMedida(formatarPotencia(mW));
 
 /** Resumo acessível da curva: intervalo e, se houver, o pico. */
-export function descreverCurva(pontos: readonly PontoCurva[], pico: PicoCurva | null | undefined): string {
+export function descreverCurva(
+  pontos: readonly PontoCurva[],
+  pico: PicoCurva | null | undefined,
+): string {
   const intervalo = `Potência recuperada de ${pontos[0].horario} a ${pontos[pontos.length - 1].horario}`;
   if (!pico) return `${intervalo}.`;
   const quando = pico.horario ? ` às ${pico.horario}` : '';
@@ -101,11 +119,19 @@ function marcasX(inicio: number, fim: number, passo: number): number[] {
 
 /** Rótulo do eixo X: "04h" no dia inteiro, "17:20" na janela. */
 function rotuloMinuto(minuto: number, escala: 'dia' | 'janela'): string {
-  return escala === 'dia' ? `${String(Math.floor(minuto / 60)).padStart(2, '0')}h` : minutosParaHorario(minuto);
+  return escala === 'dia'
+    ? `${String(Math.floor(minuto / 60)).padStart(2, '0')}h`
+    : minutosParaHorario(minuto);
 }
 
 /** Caixa do tooltip no estilo dos cards (superfície elevada, texto em Geist Mono). */
-function CaixaTooltip({ titulo, linhas }: { titulo: string; linhas: { rotulo: string; valor: string }[] }) {
+function CaixaTooltip({
+  titulo,
+  linhas,
+}: {
+  titulo: string;
+  linhas: { rotulo: string; valor: string }[];
+}) {
   return (
     <div className="rounded-control border border-line bg-surface-raised px-3 py-2 font-mono text-xs shadow-elevation-1">
       <p className="mb-1 text-fg-muted">{titulo}</p>
@@ -136,7 +162,13 @@ interface PontoGrafico {
  * nó e o pico com rótulo. No dia, o eixo vai de 00h a 24h mesmo com dados só
  * até agora, para mostrar quanto do dia já passou.
  */
-function Curva({ pontos, escala, pico, width, height }: Extract<GraficoEnergiaProps, { tipo: 'curva' }> & TamanhoInjetado) {
+function Curva({
+  pontos,
+  escala,
+  pico,
+  width,
+  height,
+}: Extract<GraficoEnergiaProps, { tipo: 'curva' }> & TamanhoInjetado) {
   const dados: PontoGrafico[] = pontos.map((p) => ({
     minuto: horarioParaMinutos(p.horario),
     recuperada: p.recuperadaMw,
@@ -147,7 +179,12 @@ function Curva({ pontos, escala, pico, width, height }: Extract<GraficoEnergiaPr
   const topo = topoDoEixo(Math.max(...dados.map((d) => Math.max(d.recuperada, d.consumo))));
 
   return (
-    <ComposedChart width={width} height={height} data={dados} margin={{ top: 24, right: 12, bottom: 0, left: 0 }}>
+    <ComposedChart
+      width={width}
+      height={height}
+      data={dados}
+      margin={{ top: 24, right: 12, bottom: 0, left: 0 }}
+    >
       <defs>
         <linearGradient id="vers-gradiente-recuperada" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={COR.recuperada} stopOpacity={0.35} />
@@ -165,7 +202,15 @@ function Curva({ pontos, escala, pico, width, height }: Extract<GraficoEnergiaPr
         axisLine={false}
         tickLine={false}
       />
-      <YAxis domain={[0, topo]} ticks={marcasY(topo)} tick={ESTILO_EIXO} axisLine={false} tickLine={false} width={36} />
+      <YAxis
+        domain={[0, topo]}
+        ticks={marcasY(topo)}
+        tickFormatter={(valor: number) => formatarPotencia(valor).valor}
+        tick={ESTILO_EIXO}
+        axisLine={false}
+        tickLine={false}
+        width={36}
+      />
       <Tooltip
         cursor={{ stroke: COR.grade }}
         content={({ active, payload }) => {
@@ -224,22 +269,70 @@ interface BarraGrafico {
   rotulo: string;
   data: string;
   energia: number;
+  bateria: number;
 }
 
-/** Desenha as barras de energia recuperada por dia, em mWh. */
-function Barras({ dias, rotulo, width, height }: Extract<GraficoEnergiaProps, { tipo: 'barras' }> & TamanhoInjetado) {
+/** Texto "274 mWh" de uma energia em mWh. */
+const textoMwh = (mWh: number) => formatarMedida(formatarEnergia(mWh, { unidade: 'mWh' }));
+
+/** Estilo dos valores escritos acima das barras. */
+const ESTILO_VALOR = {
+  fill: 'var(--color-fg-secondary)',
+  fontSize: 10,
+  fontFamily: 'var(--font-mono)',
+};
+
+/**
+ * Desenha as barras de energia por dia, em mWh.
+ *
+ * Na Visão geral é só a recuperada (P1); na Energia entram também a
+ * entregue à bateria (P3), a linha da média diária e os valores das barras.
+ */
+function Barras({
+  dias,
+  rotulo,
+  serieBateria = false,
+  media = false,
+  valores = false,
+  width,
+  height,
+}: Extract<GraficoEnergiaProps, { tipo: 'barras' }> & TamanhoInjetado) {
   const dados: BarraGrafico[] = dias.map((dia) => ({
     rotulo: rotulo === 'data' ? formatarDataCurta(dia.data) : formatarDiaSemanaCurto(dia.data),
     data: dia.data,
     energia: dia.energia.p1,
+    bateria: dia.energia.p3,
   }));
   const topo = topoDoEixo(Math.max(...dados.map((d) => d.energia)));
+  const mediaMwh = dados.reduce((soma, d) => soma + d.energia, 0) / dados.length;
+  const rotuloValor = valores ? (
+    <LabelList
+      position="top"
+      offset={6}
+      style={ESTILO_VALOR}
+      formatter={(valor: number) => formatarEnergia(valor, { unidade: 'mWh' }).valor}
+    />
+  ) : null;
 
   return (
-    <BarChart width={width} height={height} data={dados} margin={{ top: 12, right: 12, bottom: 0, left: 0 }}>
+    <BarChart
+      width={width}
+      height={height}
+      data={dados}
+      barGap={4}
+      margin={{ top: valores ? 20 : 12, right: 12, bottom: 0, left: 0 }}
+    >
       <CartesianGrid stroke={COR.grade} strokeDasharray="2 4" vertical={false} />
       <XAxis dataKey="rotulo" tick={ESTILO_EIXO} axisLine={false} tickLine={false} />
-      <YAxis domain={[0, topo]} ticks={marcasY(topo)} tick={ESTILO_EIXO} axisLine={false} tickLine={false} width={36} />
+      <YAxis
+        domain={[0, topo]}
+        ticks={marcasY(topo)}
+        tickFormatter={(valor: number) => formatarEnergia(valor, { unidade: 'mWh' }).valor}
+        tick={ESTILO_EIXO}
+        axisLine={false}
+        tickLine={false}
+        width={36}
+      />
       <Tooltip
         cursor={{ fill: 'var(--color-hover)', opacity: 0.4 }}
         content={({ active, payload }) => {
@@ -248,12 +341,50 @@ function Barras({ dias, rotulo, width, height }: Extract<GraficoEnergiaProps, { 
           return (
             <CaixaTooltip
               titulo={`${formatarDiaSemanaCurto(barra.data)} ${formatarDataCurta(barra.data)}`}
-              linhas={[{ rotulo: 'Recuperada', valor: formatarMedida(formatarEnergia(barra.energia, { unidade: 'mWh' })) }]}
+              linhas={[
+                { rotulo: 'Recuperada', valor: textoMwh(barra.energia) },
+                ...(serieBateria
+                  ? [{ rotulo: 'Entregue à bateria', valor: textoMwh(barra.bateria) }]
+                  : []),
+              ]}
             />
           );
         }}
       />
-      <Bar dataKey="energia" fill={COR.recuperada} radius={[6, 6, 0, 0]} maxBarSize={36} isAnimationActive={false} />
+      <Bar
+        dataKey="energia"
+        fill={COR.recuperada}
+        radius={[6, 6, 0, 0]}
+        maxBarSize={serieBateria ? 18 : 36}
+        isAnimationActive={false}
+      >
+        {rotuloValor}
+      </Bar>
+      {serieBateria && (
+        <Bar
+          dataKey="bateria"
+          fill={COR.bateria}
+          radius={[6, 6, 0, 0]}
+          maxBarSize={18}
+          isAnimationActive={false}
+        >
+          {rotuloValor}
+        </Bar>
+      )}
+      {media && (
+        <ReferenceLine
+          y={mediaMwh}
+          stroke={COR.eixo}
+          strokeDasharray="3 4"
+          label={{
+            value: `Média ${textoMwh(mediaMwh)}`,
+            position: 'insideTopRight',
+            fill: 'var(--color-fg-secondary)',
+            fontSize: 10,
+            fontFamily: 'var(--font-mono)',
+          }}
+        />
+      )}
     </BarChart>
   );
 }

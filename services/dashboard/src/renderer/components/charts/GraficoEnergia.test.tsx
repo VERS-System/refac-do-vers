@@ -36,7 +36,9 @@ const DIAS = [dia('2026-09-28', 258), dia('2026-09-29', 178), dia('2026-10-01', 
 describe('descreverCurva', () => {
   /** Intervalo da curva e pico, em pt-BR. */
   it('resume intervalo e pico', () => {
-    expect(descreverCurva(CURVA, PICO)).toBe('Potência recuperada de 17:40 a 17:43, pico de 386 mW às 17:42.');
+    expect(descreverCurva(CURVA, PICO)).toBe(
+      'Potência recuperada de 17:40 a 17:43, pico de 386 mW às 17:42.',
+    );
   });
 
   /** Sem pico conhecido, só o intervalo. */
@@ -48,14 +50,18 @@ describe('descreverCurva', () => {
 describe('descreverBarras', () => {
   /** Intervalo de datas e o dia de maior energia. */
   it('resume intervalo e maior valor', () => {
-    expect(descreverBarras(DIAS)).toBe('Energia recuperada por dia de 28/09 a 01/10, maior valor 390 mWh em 01/10.');
+    expect(descreverBarras(DIAS)).toBe(
+      'Energia recuperada por dia de 28/09 a 01/10, maior valor 390 mWh em 01/10.',
+    );
   });
 });
 
 describe('GraficoEnergia', () => {
   /** A curva é uma imagem nomeada pelo resumo e marca o pico. */
   it('desenha a curva com resumo acessível e rótulo do pico', () => {
-    const { container } = render(<GraficoEnergia tipo="curva" pontos={CURVA} escala="janela" pico={PICO} />);
+    const { container } = render(
+      <GraficoEnergia tipo="curva" pontos={CURVA} escala="janela" pico={PICO} />,
+    );
 
     expect(screen.getByRole('img', { name: descreverCurva(CURVA, PICO) })).toBeInTheDocument();
     expect(container.querySelector('.recharts-surface')).toBeInTheDocument();
@@ -64,7 +70,9 @@ describe('GraficoEnergia', () => {
 
   /** As barras da semana usam o dia da semana no eixo. */
   it('desenha as barras com resumo acessível', () => {
-    const { container } = render(<GraficoEnergia tipo="barras" dias={DIAS} rotulo="dia-da-semana" />);
+    const { container } = render(
+      <GraficoEnergia tipo="barras" dias={DIAS} rotulo="dia-da-semana" />,
+    );
 
     expect(screen.getByRole('img', { name: descreverBarras(DIAS) })).toBeInTheDocument();
     expect(container).toHaveTextContent('Seg');
@@ -76,6 +84,24 @@ describe('GraficoEnergia', () => {
     const { container } = render(<GraficoEnergia tipo="barras" dias={DIAS} rotulo="data" />);
 
     expect(container).toHaveTextContent('28/09');
+  });
+
+  /** Na Energia, as barras mostram também o entregue à bateria, a média e os valores. */
+  it('desenha a série da bateria, a média e os valores', () => {
+    const { container } = render(
+      <GraficoEnergia
+        tipo="barras"
+        dias={DIAS}
+        rotulo="dia-da-semana"
+        serieBateria
+        media
+        valores
+      />,
+    );
+
+    expect(container.querySelectorAll('.recharts-bar')).toHaveLength(2);
+    expect(container).toHaveTextContent('Média 275 mWh');
+    expect(container).toHaveTextContent('390');
   });
 
   /** Sem dados, mostra o estado vazio em vez do gráfico. */

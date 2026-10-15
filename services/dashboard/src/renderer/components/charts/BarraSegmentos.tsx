@@ -14,15 +14,18 @@ export interface BarraSegmentosProps {
   segmentos?: number;
   /** Nome acessível do medidor (ex.: "Nível de potência"). */
   rotulo: string;
+  /** Cor dos segmentos acesos: dourado (padrão, sinais ao vivo) ou verde (carga da bateria). */
+  tom?: TomSegmentos;
   className?: string;
 }
 
+export type TomSegmentos = 'accent' | 'success';
+
 type EstadoSegmento = 'cheio' | 'parcial' | 'vazio';
 
-const CLASSES_SEGMENTO: Record<EstadoSegmento, string> = {
-  cheio: 'bg-accent',
-  parcial: 'bg-accent/50',
-  vazio: 'bg-surface-raised',
+const CLASSES_SEGMENTO: Record<TomSegmentos, Record<EstadoSegmento, string>> = {
+  accent: { cheio: 'bg-accent', parcial: 'bg-accent/50', vazio: 'bg-surface-raised' },
+  success: { cheio: 'bg-success', parcial: 'bg-success/50', vazio: 'bg-surface-raised' },
 };
 
 /**
@@ -47,7 +50,14 @@ function calcularEstados(valor: number, maximo: number, segmentos: number): Esta
  * Renderiza a barra como um medidor (`role="meter"`) com valor, mínimo e
  * máximo, para que a informação não dependa só das cores dos segmentos.
  */
-export function BarraSegmentos({ valor, maximo, segmentos = 8, rotulo, className }: BarraSegmentosProps) {
+export function BarraSegmentos({
+  valor,
+  maximo,
+  segmentos = 8,
+  rotulo,
+  tom = 'accent',
+  className,
+}: BarraSegmentosProps) {
   return (
     <div
       role="meter"
@@ -62,7 +72,7 @@ export function BarraSegmentos({ valor, maximo, segmentos = 8, rotulo, className
           key={i}
           data-slot="segmento"
           data-estado={estado}
-          className={cn('h-2 flex-1 rounded-full', CLASSES_SEGMENTO[estado])}
+          className={cn('h-2 flex-1 rounded-full', CLASSES_SEGMENTO[tom][estado])}
         />
       ))}
     </div>

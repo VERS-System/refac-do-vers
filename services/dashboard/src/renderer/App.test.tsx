@@ -54,7 +54,9 @@ describe('App', () => {
     abrirEm(rota);
 
     expect(screen.getByRole('heading', { level: 1, name: titulo })).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Navegação principal' }),
+    ).not.toBeInTheDocument();
   });
 
   /** Rotas desconhecidas voltam para a Visão geral. */
@@ -71,7 +73,10 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('link', { name: 'Telemetria' }));
 
     expect(screen.getByRole('heading', { level: 1, name: 'Telemetria' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Telemetria' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Telemetria' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
     expect(screen.getByRole('link', { name: 'Visão geral' })).not.toHaveAttribute('aria-current');
     expect(window.location.hash).toBe('#/telemetria');
   });
@@ -81,10 +86,16 @@ describe('App', () => {
     render(<App />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
-    expect(screen.getByRole('heading', { level: 1, name: 'Bem-vindo de volta' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Bem-vindo de volta' }),
+    ).toBeInTheDocument();
 
+    await userEvent.type(screen.getByLabelText('E-mail'), 'ana.silva@vers.com');
+    await userEvent.type(screen.getByLabelText('Senha'), 'Segredo!1');
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
-    expect(screen.getByRole('heading', { level: 1, name: 'Visão geral' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Visão geral' }),
+    ).toBeInTheDocument();
   });
 
   /** Do Login dá para ir ao Criar conta e voltar. */
@@ -92,10 +103,14 @@ describe('App', () => {
     abrirEm('/login');
 
     await userEvent.click(screen.getByRole('link', { name: 'Criar conta' }));
-    expect(screen.getByRole('heading', { level: 1, name: 'Que bom ter você aqui' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Que bom ter você aqui' }),
+    ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('link', { name: 'Entrar' }));
-    expect(screen.getByRole('heading', { level: 1, name: 'Bem-vindo de volta' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Bem-vindo de volta' }),
+    ).toBeInTheDocument();
   });
 
   /** O shell e a Visão geral leem usuário, ESP32 e veículo do repositório de exemplo. */

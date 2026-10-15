@@ -72,7 +72,8 @@ Executar test:unit, lint/build e diff --check; conferir saúde do container.
   informa atualização; valores continuam nas consultas REST autorizadas.
 - Falha Redis: programador escolheu pausar novas recepções MQTT, concluindo
   transações em curso; retomar com sessão persistente quando Redis voltar.
-  REST continua disponível. Coordenador dessa política ainda não implementado.
+  REST continua disponível. Coordenador local implementado em 8.3.1, passivo
+  e testado sem serviços externos; integração real segue pendente.
 - Limites por sessão/conta/recurso e janela de revogação serão apresentados
   com sugestão concreta antes dos respectivos lotes.
 - Integração com frontend e ativação real do pipeline permanecem fora de 8.1.
@@ -161,6 +162,10 @@ não usar onModuleDestroy como pausa reversível; aguardar trabalhos em curso,
 impedir novas recepções/reconexões enquanto Redis indisponível e recuperar
 pendências ao retomar. Sessão persistente não garante retenção ilimitada no
 broker; limites reais continuam dependentes do ensaio autorizado.
+
+Coordenação local entregue no recorte [8.3.1](backend-phase-8-ingestion-coordination.md),
+incluindo pausa reversível e recuperação antes da retomada. Não ativa transporte
+no bootstrap nem substitui ponte de recursos/gateway/ensaio real.
 
 ### Evidência local 8.3
 

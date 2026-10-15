@@ -140,6 +140,40 @@ describe('MqttService', () => {
     await jest.advanceTimersByTimeAsync(60000); expect(client.reconnect).not.toHaveBeenCalled();
     expect(client.endAsync).toHaveBeenCalledTimes(1); expect(service.status).toBe('unavailable');
   });
+  it('pausa bloqueia novos pacotes e aguarda ACK do trabalho aceito antes de fechar', async () => {
+    let finish!: () => void;
+    const processor = jest.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+    service.start(processor); const ack = jest.fn(); client.handleMessage({ qos: 1 }, ack); await Promise.resolve();
+    const paused = service.pause(); const rejected = jest.fn(); client.handleMessage({ qos: 1 }, rejected);
+    expect(rejected).toHaveBeenCalledWith(new Error('MQTT_PAUSED')); expect(client.endAsync).not.toHaveBeenCalled();
+    finish(); await paused;
+    expect(ack).toHaveBeenCalledWith(); expect(processor).toHaveBeenCalledTimes(1);
+    expect(ack.mock.invocationCallOrder[0]).toBeLessThan(client.endAsync.mock.invocationCallOrder[0]);
+    client.emit('close'); await jest.advanceTimersByTimeAsync(60000); expect(client.reconnect).not.toHaveBeenCalled();
+  });
+  it('retoma com cliente novo e mesma sessão sem aceitar callbacks do anterior', async () => {
+    service.start(jest.fn()); await service.pause(); const next = transport();
+    jest.mocked(connect).mockReturnValueOnce(next as never); await service.resume(jest.fn()); next.emit('connect');
+    expect(service.status).toBe('ok'); client.emit('close'); client.emit('error', new Error('CANARY_SECRET'));
+    expect(service.status).toBe('ok'); expect(connect).toHaveBeenLastCalledWith(expect.objectContaining({ clean: false, clientId: 'vers-test-reader' }));
+  });
+  it('pausa cancela assinatura pendente e timer de reconexão', async () => {
+    client.subscribe.mockImplementation(); service.start(jest.fn()); client.emit('connect');
+    const callback = client.subscribe.mock.calls[0][2]; client.emit('close'); await service.pause();
+    callback(null, [{ topic, qos: 1 }]); await jest.advanceTimersByTimeAsync(60000);
+    expect(service.status).toBe('unavailable'); expect(client.reconnect).not.toHaveBeenCalled(); expect(jest.getTimerCount()).toBe(0);
+  });
+  it('nova pausa invalida retomada ainda esperando fechamento', async () => {
+    let finishClose!: () => void; client.endAsync.mockImplementation(() => new Promise<void>((resolve) => { finishClose = resolve; }));
+    service.start(jest.fn()); const paused = service.pause(); await Promise.resolve();
+    const resumed = service.resume(jest.fn()); const pausedAgain = service.pause(); finishClose();
+    await Promise.all([paused, resumed, pausedAgain]); expect(connect).toHaveBeenCalledTimes(1);
+  });
+  it('shutdown durante pausa não permite retomar nem fecha duas vezes', async () => {
+    service.start(jest.fn()); const paused = service.pause(); const stopped = service.onModuleDestroy();
+    await Promise.all([paused, stopped]); expect(client.endAsync).toHaveBeenCalledTimes(1);
+    await expect(service.resume(jest.fn())).rejects.toThrow('MQTT_STOPPED');
+  });
   it('não aceita novas mensagens depois de iniciado o shutdown', async () => {
     const processor = jest.fn(); service.start(processor); await service.onModuleDestroy();
     const ack = jest.fn(); client.handleMessage({ qos: 1 }, ack); await jest.advanceTimersByTimeAsync(0);

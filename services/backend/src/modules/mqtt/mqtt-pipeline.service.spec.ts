@@ -5,12 +5,13 @@ import { MqttPipelineService } from './mqtt-pipeline.service';
 /** Expõe somente dependências usadas pelo pipeline, com resultados controláveis por cenário. */
 function setup(): { service: MqttPipelineService; prisma: { mqttMessage: { findMany: jest.Mock }; test: { findMany: jest.Mock } };
   reception: { receive: jest.Mock; process: jest.Mock }; summaries: { recomputeMessage: jest.Mock; recomputeTest: jest.Mock };
-  transport: { status: string; start: jest.Mock; onModuleDestroy: jest.Mock } } {
+  transport: { status: string; start: jest.Mock; pause: jest.Mock; resume: jest.Mock; onModuleDestroy: jest.Mock } } {
   const prisma = { mqttMessage: { findMany: jest.fn().mockResolvedValue([]) }, test: { findMany: jest.fn().mockResolvedValue([]) } };
   const reception = { receive: jest.fn().mockResolvedValue({ outcome: 'RECEIVED', id: 'message' }),
     process: jest.fn().mockResolvedValue({ outcome: 'PROCESSED', id: 'message' }) };
   const summaries = { recomputeMessage: jest.fn().mockResolvedValue(undefined), recomputeTest: jest.fn().mockResolvedValue(null) };
-  const transport = { status: 'unavailable', start: jest.fn(), onModuleDestroy: jest.fn().mockResolvedValue(undefined) };
+  const transport = { status: 'unavailable', start: jest.fn(), pause: jest.fn().mockResolvedValue(undefined),
+    resume: jest.fn().mockResolvedValue(undefined), onModuleDestroy: jest.fn().mockResolvedValue(undefined) };
   return { service: new MqttPipelineService(prisma as never, reception as never, summaries as never, transport as never),
     prisma, reception, summaries, transport };
 }
@@ -120,6 +121,55 @@ describe('pipeline MQTT', () => {
     await jest.advanceTimersByTimeAsync(59999); expect(h.prisma.mqttMessage.findMany).toHaveBeenCalledTimes(1);
     await jest.advanceTimersByTimeAsync(1); expect(h.prisma.mqttMessage.findMany).toHaveBeenCalledTimes(2);
     await expect(h.service.start()).rejects.toThrow('MQTT_PIPELINE_ALREADY_STARTED');
+  });
+  it('pausa impede novos handles e timer, preservando commit em andamento', async () => {
+    await h.service.start(); let commit!: () => void;
+    h.reception.process.mockImplementationOnce(() => new Promise((resolve) => {
+      commit = (): void => { resolve({ outcome: 'PROCESSED', id: 'message' }); };
+    }));
+    const work = h.service.handle({} as never, new Date()); await Promise.resolve(); await Promise.resolve();
+    let finished = false; const paused = h.service.pause().then(() => { finished = true; });
+    await expect(h.service.handle({} as never, new Date())).rejects.toThrow('MQTT_PIPELINE_PAUSED');
+    await Promise.resolve(); expect(finished).toBe(false); expect(h.transport.pause).toHaveBeenCalled();
+    commit(); await Promise.all([work, paused]); await jest.advanceTimersByTimeAsync(60000);
+    expect(h.prisma.mqttMessage.findMany).toHaveBeenCalledTimes(1);
+    await expect(h.service.recover()).rejects.toThrow('MQTT_PIPELINE_PAUSED');
+  });
+  it('retoma recuperando antes do transporte, sem duplicar timer ou chamada', async () => {
+    await h.service.start(); await h.service.pause(); await Promise.all([h.service.resume(), h.service.resume()]);
+    expect(h.transport.resume).toHaveBeenCalledTimes(1);
+    expect(h.prisma.mqttMessage.findMany.mock.invocationCallOrder[1]).toBeLessThan(h.transport.resume.mock.invocationCallOrder[0]);
+    expect(jest.getTimerCount()).toBe(1);
+  });
+  it('pausa durante recuperação inicial impede start até retomada', async () => {
+    let release!: () => void;
+    h.prisma.mqttMessage.findMany.mockImplementationOnce(() => new Promise((resolve) => { release = (): void => { resolve([]); }; }));
+    const starting = h.service.start(); const paused = h.service.pause(); release(); await Promise.all([starting, paused]);
+    expect(h.transport.start).not.toHaveBeenCalled(); await h.service.resume(); expect(h.transport.resume).toHaveBeenCalledTimes(1);
+  });
+  it('pausa conclui item atual da recuperação e preserva itens seguintes sem processar', async () => {
+    h.prisma.mqttMessage.findMany.mockResolvedValueOnce([{ id: 'first' }, { id: 'second' }]);
+    let commit!: () => void;
+    h.reception.process.mockImplementationOnce(() => new Promise((resolve) => {
+      commit = (): void => { resolve({ outcome: 'PROCESSED', id: 'first' }); };
+    }));
+    const recovery = h.service.recover(); await Promise.resolve(); const paused = h.service.pause(); commit();
+    await Promise.all([recovery, paused]); expect(h.reception.process).toHaveBeenCalledTimes(1);
+    expect(h.reception.process).toHaveBeenCalledWith('first'); expect(h.prisma.test.findMany).not.toHaveBeenCalled();
+  });
+  it('nova pausa durante recuperação de retomada impede reabrir o transporte', async () => {
+    await h.service.start(); await h.service.pause(); let release!: () => void;
+    h.prisma.mqttMessage.findMany.mockImplementationOnce(() => new Promise((resolve) => { release = (): void => { resolve([]); }; }));
+    const resumed = h.service.resume(); await Promise.resolve(); await Promise.resolve();
+    const paused = h.service.pause(); release(); await Promise.all([resumed, paused]);
+    expect(h.transport.resume).not.toHaveBeenCalled(); expect(jest.getTimerCount()).toBe(0);
+  });
+  it('falha na recuperação mantém pausado e permite retentativa explícita', async () => {
+    await h.service.start(); await h.service.pause();
+    h.prisma.mqttMessage.findMany.mockRejectedValueOnce(new Error('CANARY_SECRET'));
+    await expect(h.service.resume()).rejects.toThrow('MQTT_PIPELINE_RESUME_FAILED');
+    await expect(h.service.handle({} as never, new Date())).rejects.toThrow('MQTT_PIPELINE_PAUSED');
+    await h.service.resume(); expect(h.transport.resume).toHaveBeenCalledTimes(1);
   });
   it('falha de consulta periódica gera código seguro e próxima janela tenta novamente', async () => {
     await h.service.start(); h.prisma.mqttMessage.findMany.mockRejectedValueOnce(new Error('CANARY_SECRET'));

@@ -235,12 +235,45 @@ Preservar sessão persistente e brutos pendentes; REST permanece disponível.
 Não descartar nem desfazer dados já confirmados. Retomada do canal exige nova
 consulta REST pelo cliente conforme fluxo de recuperação acima.
 
-O transporte 8.3 apenas fornece disponibilidade: ainda não há coordenador
-MQTT→Redis, resolução das amostras afetadas ou pausa/retomada aplicada ao
-pipeline. Implementar/testar essa coordenação antes de qualquer ativação, sem
-usar shutdown definitivo como pausa reversível. Retenção finita do broker
-precisa ser conferida no ambiente real, sem alegar garantia ilimitada offline.
+O transporte 8.3 fornece disponibilidade; coordenação reversível foi adicionada
+no lote 8.3.1 abaixo. Resolução das amostras afetadas/publicação de avisos ainda
+não implementadas. Retenção finita do broker precisa ser conferida no ambiente
+real, sem alegar garantia ilimitada offline.
 
 Evidência deste lote usa mocks: constructor inerte, duas conexões, validação,
 canal divergente, quedas, assinatura antiga, erros, listener e shutdown. Ensaio
 real Redis/MQTT/Socket.IO continua reservado ao lote isolado autorizado 8.7.
+
+## Coordenação de ingestão — lote 8.3.1
+
+RealtimeIngestionService, exportado por RealtimeModule, é o ponto de entrada
+explícito da operação conjunta. Constructor não observa eventos nem abre rede;
+nenhum bootstrap chama start. Ao iniciar, abre Redis e aguarda status ok antes
+de iniciar o pipeline. Métodos inferiores de transporte/pipeline continuam
+disponíveis para testes isolados; ativação conjunta deve usar o coordenador.
+
+Na queda, pipeline.pause bloqueia novos handles imediatamente, cancela timer
+e interrompe recuperação entre itens. Trabalho já iniciado pode confirmar seu
+commit. MqttService.pause cancela assinatura/reconexão, recusa novos pacotes
+sem ACK positivo e aguarda callbacks aceitos, incluindo ACK, antes de fechar o
+cliente. Pausa é reversível; onModuleDestroy continua definitivo.
+
+Na volta do Redis, transições serializadas aguardam a drenagem, tentam recuperar
+brutos pendentes e resumos conforme regras F07 e só então reabrem MQTT. Timer de
+recuperação permanece único. Novo cliente usa a configuração existente, mesmo
+clientId e clean=false; não redefine sequência nem apaga histórico. Recuperação
+mantém falhas individuais pendentes, conforme F07, sem prometer fila zerada.
+
+Nova queda durante início/retomada cancela a reabertura; callbacks de cliente ou
+assinatura antigos não restauram disponibilidade. Falha transitória na ativação
+mantém pausa e usa backoff de 1–30 s enquanto Redis estiver ok. Queda/shutdown ou
+retomada bem-sucedida cancelam retentativa pendente. Shutdown remove listener e
+timer, aguarda transição/trabalhos e fecha dependências, sem retomada posterior.
+
+Não há fila Redis, polling REST automático ou mudança em transações já
+confirmadas. Preservar sessão não garante retenção ilimitada do broker. Avisos
+perdidos continuam reconciliados pelo REST autorizado quando o cliente voltar.
+Ainda faltam ponte de recursos normalizados→data.updated, autorização/gateway
+Socket.IO e ensaio real da coordenação. Nada disso é ativado por este lote.
+
+Plano e evidências em [F08.3.1](../plans/backend-phase-8-ingestion-coordination.md).

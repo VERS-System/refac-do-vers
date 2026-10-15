@@ -53,7 +53,10 @@ export function SegmentedControl<T extends string>({
     <div
       role="radiogroup"
       aria-label={rotulo}
-      className={cn('inline-flex items-center gap-1 rounded-full border border-line p-1', className)}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border border-line p-1',
+        className,
+      )}
     >
       {options.map((opcao, indice) => {
         const marcada = opcao.value === value;

@@ -12,7 +12,10 @@ describe('Toggle', () => {
   it('é um switch nomeado com o estado atual', () => {
     render(<Toggle label="Notificações" checked onChange={() => {}} />);
 
-    expect(screen.getByRole('switch', { name: 'Notificações' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('switch', { name: 'Notificações' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
   });
 
   /** Clicar pede o estado oposto. */

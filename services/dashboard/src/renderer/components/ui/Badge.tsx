@@ -45,7 +45,11 @@ export function Badge({ tone = 'neutral', dot = true, className, children, ...pr
       {...props}
     >
       {dot && (
-        <span data-slot="dot" aria-hidden="true" className={cn('size-1.5 shrink-0 rounded-full', classes.ponto)} />
+        <span
+          data-slot="dot"
+          aria-hidden="true"
+          className={cn('size-1.5 shrink-0 rounded-full', classes.ponto)}
+        />
       )}
       {children}
     </span>

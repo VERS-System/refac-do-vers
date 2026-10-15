@@ -31,7 +31,14 @@ export interface ChartCardProps {
  * A legenda é uma lista nomeada "Legenda" com um marcador colorido por série;
  * o nome da série fica sempre em texto, para não depender só da cor.
  */
-export function ChartCard({ title, subtitle, legend, actions, className, children }: ChartCardProps) {
+export function ChartCard({
+  title,
+  subtitle,
+  legend,
+  actions,
+  className,
+  children,
+}: ChartCardProps) {
   const idTitulo = useId();
   return (
     <Card as="section" aria-labelledby={idTitulo} className={cn('flex flex-col', className)}>
@@ -47,7 +54,10 @@ export function ChartCard({ title, subtitle, legend, actions, className, childre
             {legend && legend.length > 0 && (
               <ul aria-label="Legenda" className="flex items-center gap-4">
                 {legend.map((serie) => (
-                  <li key={serie.label} className="flex items-center gap-2 font-label text-xs text-fg-secondary">
+                  <li
+                    key={serie.label}
+                    className="flex items-center gap-2 font-label text-xs text-fg-secondary"
+                  >
                     <span
                       aria-hidden="true"
                       className="size-2.5 shrink-0 rounded-full"

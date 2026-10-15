@@ -32,7 +32,10 @@ describe('NavItem', () => {
   it('marca o item da rota atual', () => {
     renderizarEm('/telemetria');
 
-    expect(screen.getByRole('link', { name: 'Telemetria' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Telemetria' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
     expect(screen.getByRole('link', { name: 'Visão geral' })).not.toHaveAttribute('aria-current');
   });
 

@@ -34,7 +34,12 @@ describe('gerarCurvaDoDia', () => {
   it('atinge a energia alvo', () => {
     const pontos = gerarCurvaDoDia(PARAMETROS);
 
-    expect(integrarTrapezios(pontos.map((p) => p.recuperadaMw), 1 / 60)).toBeCloseTo(292, 6);
+    expect(
+      integrarTrapezios(
+        pontos.map((p) => p.recuperadaMw),
+        1 / 60,
+      ),
+    ).toBeCloseTo(292, 6);
   });
 
   /** Só há potência dentro dos deslocamentos (90 minutos no total). */
@@ -53,7 +58,9 @@ describe('gerarCurvaDoDia', () => {
     const maximo = Math.max(...pontos.map((p) => p.recuperadaMw));
 
     expect(maximo).toBe(386);
-    expect(pontos.filter((p) => p.recuperadaMw === maximo).map((p) => p.horario)).toEqual(['17:42']);
+    expect(pontos.filter((p) => p.recuperadaMw === maximo).map((p) => p.horario)).toEqual([
+      '17:42',
+    ]);
     expect(pontos.at(-1)?.recuperadaMw).toBe(212);
   });
 

@@ -24,7 +24,14 @@ export interface ToggleProps {
  * O estado é controlado por quem usa o componente: o clique (ou a barra de
  * espaço, comportamento nativo do botão) só pede o estado oposto via `onChange`.
  */
-export function Toggle({ label, description, checked, onChange, disabled, className }: ToggleProps) {
+export function Toggle({
+  label,
+  description,
+  checked,
+  onChange,
+  disabled,
+  className,
+}: ToggleProps) {
   const idRotulo = useId();
   const idDescricao = useId();
   return (

@@ -19,5 +19,7 @@ const OPCOES: { value: Periodo; label: string }[] = [
 export function PeriodSelector() {
   const periodo = usePeriodoStore((estado) => estado.periodo);
   const setPeriodo = usePeriodoStore((estado) => estado.setPeriodo);
-  return <SegmentedControl aria-label="Período" options={OPCOES} value={periodo} onChange={setPeriodo} />;
+  return (
+    <SegmentedControl aria-label="Período" options={OPCOES} value={periodo} onChange={setPeriodo} />
+  );
 }

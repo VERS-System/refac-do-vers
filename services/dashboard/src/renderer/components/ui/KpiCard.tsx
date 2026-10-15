@@ -44,7 +44,9 @@ export function KpiCard({ label, value, unit, badge, className, children }: KpiC
       </div>
       {value !== undefined && (
         <p className="mt-4 flex items-baseline gap-1.5 font-mono">
-          <span className="tabular text-[32px] leading-[38px] font-medium tracking-[-0.5px] text-fg">{value}</span>
+          <span className="tabular text-[32px] leading-[38px] font-medium tracking-[-0.5px] text-fg">
+            {value}
+          </span>
           {unit && <span className="text-sm text-fg-muted">{unit}</span>}
         </p>
       )}

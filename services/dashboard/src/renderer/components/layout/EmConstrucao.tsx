@@ -18,7 +18,8 @@ export function EmConstrucao({ referencia }: EmConstrucaoProps) {
     <Card className="flex flex-col gap-1">
       <p className="text-sm font-medium text-fg">Conteúdo desta tela em construção</p>
       <p className="text-[13px] text-fg-muted">
-        Implementação prevista na Fase 4. Referência: <span className="font-mono">{referencia}</span>
+        Implementação prevista na Fase 4. Referência:{' '}
+        <span className="font-mono">{referencia}</span>
       </p>
     </Card>
   );

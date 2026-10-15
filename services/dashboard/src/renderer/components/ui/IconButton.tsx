@@ -23,7 +23,14 @@ export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
  * O ponto de novidade é decorativo; quem usa o componente deve refletir a
  * novidade no `label` (por exemplo "Notificações, há novas").
  */
-export function IconButton({ icon: Icon, label, indicator, type = 'button', className, ...props }: IconButtonProps) {
+export function IconButton({
+  icon: Icon,
+  label,
+  indicator,
+  type = 'button',
+  className,
+  ...props
+}: IconButtonProps) {
   return (
     <button
       type={type}

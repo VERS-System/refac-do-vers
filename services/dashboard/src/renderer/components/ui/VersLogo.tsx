@@ -19,7 +19,10 @@ export interface VersLogoProps {
 }
 
 /** Medidas de cada tamanho, conforme o DESIGN.md. */
-const MEDIDAS: Record<VersLogoSize, { largura: number; altura: number; fonte: string; espaco: string }> = {
+const MEDIDAS: Record<
+  VersLogoSize,
+  { largura: number; altura: number; fonte: string; espaco: string }
+> = {
   sidebar: { largura: 42, altura: 28, fonte: 'text-[22px]', espaco: 'gap-2.5' },
   auth: { largura: 72, altura: 48, fonte: 'text-[44px]', espaco: 'gap-4' },
 };
@@ -47,11 +50,16 @@ export function VersLogo({ size = 'sidebar', version, className }: VersLogoProps
           <polygon fill="#D5C462" points="79.9,0.1 103.6,0.6 81.6,47.9 50.1,92.9 38.1,92.9" />
           <polygon fill="#D9D9D9" points="115.9,0.1 139.9,0.6 117.6,47.9 86.1,92.9 74.1,92.9" />
         </svg>
-        <span aria-hidden="true" className={cn('font-display leading-none tracking-[1px] text-logo', medidas.fonte)}>
+        <span
+          aria-hidden="true"
+          className={cn('font-display leading-none tracking-[1px] text-logo', medidas.fonte)}
+        >
           VERS
         </span>
       </span>
-      {version && <span className="ml-2.5 self-end text-[11px] leading-4 text-fg-muted">{version}</span>}
+      {version && (
+        <span className="ml-2.5 self-end text-[11px] leading-4 text-fg-muted">{version}</span>
+      )}
     </div>
   );
 }

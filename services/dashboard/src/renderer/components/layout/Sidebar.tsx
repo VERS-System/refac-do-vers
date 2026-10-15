@@ -43,12 +43,19 @@ function CardDispositivo({ dispositivo }: { dispositivo: DispositivoResumo }) {
       <div className="flex items-center gap-2">
         <span
           aria-hidden="true"
-          className={cn('size-2 shrink-0 rounded-full', dispositivo.online ? 'bg-success' : 'bg-fg-muted')}
+          className={cn(
+            'size-2 shrink-0 rounded-full',
+            dispositivo.online ? 'bg-success' : 'bg-fg-muted',
+          )}
         />
         <h2 id={idNome} className="min-w-0 flex-1 truncate font-mono text-xs font-semibold text-fg">
           {dispositivo.nome}
         </h2>
-        <Badge tone={dispositivo.online ? 'success' : 'neutral'} dot={false} className="h-5 px-2 text-[11px]">
+        <Badge
+          tone={dispositivo.online ? 'success' : 'neutral'}
+          dot={false}
+          className="h-5 px-2 text-[11px]"
+        >
           {dispositivo.online ? 'Online' : 'Offline'}
         </Badge>
       </div>
@@ -91,7 +98,11 @@ export function Sidebar({ usuario, dispositivo, onSair }: SidebarProps) {
         ))}
       </nav>
       <div className="mt-auto flex flex-col gap-4">
-        {dispositivo ? <CardDispositivo dispositivo={dispositivo} /> : <CardDispositivoCarregando />}
+        {dispositivo ? (
+          <CardDispositivo dispositivo={dispositivo} />
+        ) : (
+          <CardDispositivoCarregando />
+        )}
         <div className="flex items-center gap-3 border-t border-line-subtle px-1 pt-4">
           {usuario ? (
             <>

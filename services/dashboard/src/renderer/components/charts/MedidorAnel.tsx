@@ -31,7 +31,11 @@ export function MedidorAnel({ percentual, simbolo, className }: MedidorAnelProps
   const tamanho = 2 * (RAIO + ESPESSURA);
   return (
     <div className={cn('relative grid size-14 shrink-0 place-items-center', className)}>
-      <svg aria-hidden="true" viewBox={`0 0 ${tamanho} ${tamanho}`} className="absolute inset-0 size-full -rotate-90">
+      <svg
+        aria-hidden="true"
+        viewBox={`0 0 ${tamanho} ${tamanho}`}
+        className="absolute inset-0 size-full -rotate-90"
+      >
         <circle
           cx={tamanho / 2}
           cy={tamanho / 2}

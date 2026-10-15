@@ -62,10 +62,18 @@ export interface EstadoConsultaProps<T> {
  * sobre dados antigos do cache, para não exibir números desatualizados como
  * se fossem atuais.
  */
-export function EstadoConsulta<T>({ consulta, nome, carregando, children }: EstadoConsultaProps<T>) {
+export function EstadoConsulta<T>({
+  consulta,
+  nome,
+  carregando,
+  children,
+}: EstadoConsultaProps<T>) {
   if (consulta.isError) {
     return (
-      <EstadoErro mensagem={`Não foi possível carregar ${nome}.`} onTentarNovamente={() => void consulta.refetch()} />
+      <EstadoErro
+        mensagem={`Não foi possível carregar ${nome}.`}
+        onTentarNovamente={() => void consulta.refetch()}
+      />
     );
   }
   if (consulta.isPending || consulta.data === undefined) {

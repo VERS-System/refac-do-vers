@@ -22,7 +22,10 @@ describe('IconButton', () => {
   it('mostra o rótulo como dica', () => {
     render(<IconButton icon={Search} label="Buscar registros" />);
 
-    expect(screen.getByRole('button', { name: 'Buscar registros' })).toHaveAttribute('title', 'Buscar registros');
+    expect(screen.getByRole('button', { name: 'Buscar registros' })).toHaveAttribute(
+      'title',
+      'Buscar registros',
+    );
   });
 
   /** O clique chama o callback. */
@@ -41,6 +44,9 @@ describe('IconButton', () => {
     expect(container.querySelector('[data-slot="indicator"]')).toBeNull();
 
     rerender(<IconButton icon={Bell} label="Notificações, há novas" indicator />);
-    expect(container.querySelector('[data-slot="indicator"]')).toHaveAttribute('aria-hidden', 'true');
+    expect(container.querySelector('[data-slot="indicator"]')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
   });
 });

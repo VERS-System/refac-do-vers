@@ -22,7 +22,10 @@ describe('Button', () => {
   it('aplica a variante informada', () => {
     render(<Button variant="danger">Excluir</Button>);
 
-    expect(screen.getByRole('button', { name: 'Excluir' })).toHaveAttribute('data-variant', 'danger');
+    expect(screen.getByRole('button', { name: 'Excluir' })).toHaveAttribute(
+      'data-variant',
+      'danger',
+    );
   });
 
   /** O clique chama o callback. */

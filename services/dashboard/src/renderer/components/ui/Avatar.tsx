@@ -38,7 +38,15 @@ export function iniciais(nome: string): string {
 export function Avatar({ name, src, size = 36, className }: AvatarProps) {
   const classes = cn('shrink-0 rounded-full border border-line', className);
   if (src) {
-    return <img src={src} alt={name} width={size} height={size} className={cn(classes, 'object-cover')} />;
+    return (
+      <img
+        src={src}
+        alt={name}
+        width={size}
+        height={size}
+        className={cn(classes, 'object-cover')}
+      />
+    );
   }
   return (
     <div

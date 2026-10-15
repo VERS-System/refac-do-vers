@@ -16,7 +16,9 @@ describe('ChartCard', () => {
     );
 
     const regiao = screen.getByRole('region', { name: 'Energia recuperada x consumo' });
-    expect(within(regiao).getByRole('heading', { name: 'Energia recuperada x consumo' })).toBeInTheDocument();
+    expect(
+      within(regiao).getByRole('heading', { name: 'Energia recuperada x consumo' }),
+    ).toBeInTheDocument();
     expect(within(regiao).getByText('Ciclo diário 00h às 24h')).toBeInTheDocument();
     expect(within(regiao).getByText('gráfico')).toBeInTheDocument();
   });

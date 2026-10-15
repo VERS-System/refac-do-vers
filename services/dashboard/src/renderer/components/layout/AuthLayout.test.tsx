@@ -16,7 +16,9 @@ describe('AuthLayout', () => {
     );
 
     expect(screen.getByRole('img', { name: 'VERS' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Bem-vindo de volta' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Bem-vindo de volta' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Entre com suas credenciais')).toBeInTheDocument();
   });
 

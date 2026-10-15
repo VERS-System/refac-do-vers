@@ -17,7 +17,15 @@ import { useCadeiaAoVivo } from '@/hooks/useDados';
 import { formatarMedida, formatarNumero, formatarPercentual, formatarPotencia } from '@/lib/format';
 
 /** Linha "Tensão (V1) … 4,82 V" de um ponto. */
-function Medida({ rotulo, valor, destaque = false }: { rotulo: string; valor: string; destaque?: boolean }) {
+function Medida({
+  rotulo,
+  valor,
+  destaque = false,
+}: {
+  rotulo: string;
+  valor: string;
+  destaque?: boolean;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 font-mono text-[13px]">
       <dt className="text-fg-secondary">{rotulo}</dt>
@@ -59,9 +67,19 @@ function CartaoPonto({ ponto }: { ponto: PontoConversao }) {
       </h3>
       <p className="text-xs text-fg-muted">{ponto.descricao}</p>
       <dl className="mt-4 flex flex-col gap-1.5">
-        <Medida rotulo={`Tensão (V${n})`} valor={formatarMedida({ valor: formatarNumero(ponto.tensaoV, 2), unidade: 'V' })} />
-        <Medida rotulo={`Corrente (I${n})`} valor={formatarMedida({ valor: formatarNumero(ponto.correnteMa), unidade: 'mA' })} />
-        <Medida rotulo={`Potência (P${n})`} valor={formatarMedida(formatarPotencia(ponto.potenciaMw))} destaque />
+        <Medida
+          rotulo={`Tensão (V${n})`}
+          valor={formatarMedida({ valor: formatarNumero(ponto.tensaoV, 2), unidade: 'V' })}
+        />
+        <Medida
+          rotulo={`Corrente (I${n})`}
+          valor={formatarMedida({ valor: formatarNumero(ponto.correnteMa), unidade: 'mA' })}
+        />
+        <Medida
+          rotulo={`Potência (P${n})`}
+          valor={formatarMedida(formatarPotencia(ponto.potenciaMw))}
+          destaque
+        />
       </dl>
     </article>
   );

@@ -16,7 +16,9 @@ describe('EstadoErro', () => {
   /** A mensagem é anunciada e o botão tenta de novo. */
   it('anuncia o erro e oferece tentar de novo', async () => {
     const tentar = vi.fn();
-    render(<EstadoErro mensagem="Não foi possível carregar a vibração." onTentarNovamente={tentar} />);
+    render(
+      <EstadoErro mensagem="Não foi possível carregar a vibração." onTentarNovamente={tentar} />,
+    );
 
     expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível carregar a vibração.');
     await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));

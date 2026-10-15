@@ -27,7 +27,8 @@ const CLASSES_VARIANTE: Record<ButtonVariant, string> = {
     'bg-accent text-fg-on-accent hover:bg-accent-hover hover:shadow-glow active:bg-accent-pressed',
   secondary: 'border border-line bg-surface-raised text-fg hover:bg-hover',
   ghost: 'text-fg-secondary hover:bg-hover hover:text-fg',
-  danger: 'border border-danger/40 bg-danger-subtle text-danger hover:bg-danger hover:text-fg-on-accent',
+  danger:
+    'border border-danger/40 bg-danger-subtle text-danger hover:bg-danger hover:text-fg-on-accent',
 };
 
 const CLASSES_TAMANHO: Record<ButtonSize, string> = {

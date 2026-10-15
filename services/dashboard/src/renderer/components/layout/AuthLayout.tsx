@@ -68,7 +68,9 @@ export function AuthLayout({ title, description, brandSide = 'left', children }:
             every <span className="font-semibold text-accent">vibration</span> can be{' '}
             <span className="font-semibold text-accent">VERS</span>
           </p>
-          <h1 className="mt-14 font-display text-[44px] leading-[52px] tracking-[1px] text-accent">{title}</h1>
+          <h1 className="mt-14 font-display text-[44px] leading-[52px] tracking-[1px] text-accent">
+            {title}
+          </h1>
           {description && <p className="mt-5 text-lg leading-7 text-fg-secondary">{description}</p>}
         </div>
         <p className="absolute bottom-10 left-16 font-mono text-xs text-fg-muted">
@@ -77,7 +79,9 @@ export function AuthLayout({ title, description, brandSide = 'left', children }:
       </aside>
       <main className="relative flex flex-1 flex-col items-center justify-center px-12 py-12">
         {children}
-        <p className="absolute bottom-10 font-mono text-xs text-fg-muted">VERS · Protótipo acadêmico · v0.4</p>
+        <p className="absolute bottom-10 font-mono text-xs text-fg-muted">
+          VERS · Protótipo acadêmico · v0.4
+        </p>
       </main>
     </div>
   );

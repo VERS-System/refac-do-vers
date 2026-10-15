@@ -29,7 +29,16 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
  * associado via `aria-describedby`, para que leitores de tela leiam a ajuda
  * ou o erro junto com o campo.
  */
-export function Input({ label, icon: Icon, helper, error, trailing, id, className, ...props }: InputProps) {
+export function Input({
+  label,
+  icon: Icon,
+  helper,
+  error,
+  trailing,
+  id,
+  className,
+  ...props
+}: InputProps) {
   const idGerado = useId();
   const idCampo = id ?? idGerado;
   const idApoio = `${idCampo}-apoio`;
@@ -37,7 +46,10 @@ export function Input({ label, icon: Icon, helper, error, trailing, id, classNam
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <label htmlFor={idCampo} className="font-label text-xs leading-4 font-medium text-fg-secondary">
+      <label
+        htmlFor={idCampo}
+        className="font-label text-xs leading-4 font-medium text-fg-secondary"
+      >
         {label}
       </label>
       <div className="relative flex items-center">
@@ -64,7 +76,10 @@ export function Input({ label, icon: Icon, helper, error, trailing, id, classNam
         {trailing && <div className="absolute right-2 flex items-center">{trailing}</div>}
       </div>
       {apoio && (
-        <p id={idApoio} className={cn('text-xs leading-4', error ? 'text-danger' : 'text-fg-muted')}>
+        <p
+          id={idApoio}
+          className={cn('text-xs leading-4', error ? 'text-danger' : 'text-fg-muted')}
+        >
           {apoio}
         </p>
       )}

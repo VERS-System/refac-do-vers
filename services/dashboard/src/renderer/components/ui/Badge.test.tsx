@@ -21,7 +21,10 @@ describe('Badge', () => {
   it('aplica o tom informado', () => {
     render(<Badge tone="success">Online</Badge>);
 
-    expect(screen.getByText('Online').closest('[data-tone]')).toHaveAttribute('data-tone', 'success');
+    expect(screen.getByText('Online').closest('[data-tone]')).toHaveAttribute(
+      'data-tone',
+      'success',
+    );
   });
 
   /** O ponto é decorativo e aparece por padrão. */

@@ -34,10 +34,19 @@ export interface KpiConsultaProps<T> {
  * valor e coloca o `EstadoConsulta` no rodapé, que mostra o esqueleto ou o
  * erro.
  */
-export function KpiConsulta<T>({ label, consulta, nome, badge, className, children }: KpiConsultaProps<T>) {
+export function KpiConsulta<T>({
+  label,
+  consulta,
+  nome,
+  badge,
+  className,
+  children,
+}: KpiConsultaProps<T>) {
   if (consulta.data !== undefined && !consulta.isError) {
     const conteudo = children(consulta.data);
-    return <KpiCard label={label} className={className} {...conteudo} badge={conteudo.badge ?? badge} />;
+    return (
+      <KpiCard label={label} className={className} {...conteudo} badge={conteudo.badge ?? badge} />
+    );
   }
   return (
     <KpiCard label={label} badge={badge} className={className}>

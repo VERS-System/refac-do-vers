@@ -35,7 +35,10 @@ export function ViberMark({ size = 20, decorative, className, ...props }: ViberM
       {...props}
       {...(oculta ? { 'aria-hidden': true } : { role: 'img', 'aria-label': 'Viber' })}
     >
-      <polygon fill="currentColor" points="0.1,0.1 15.9,0.1 39.1,67.4 33.4,82.9 29.1,82.9 28.4,82.1" />
+      <polygon
+        fill="currentColor"
+        points="0.1,0.1 15.9,0.1 39.1,67.4 33.4,82.9 29.1,82.9 28.4,82.1"
+      />
       <polygon
         fill="currentColor"
         points="64.4,1.4 80.1,1.4 79.9,3.6 63.9,46.6 44.6,81.9 42.9,83.9 36.4,83.9 36.1,81.6"

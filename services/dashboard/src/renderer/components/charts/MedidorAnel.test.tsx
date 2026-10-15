@@ -9,7 +9,9 @@ import { MedidorAnel } from './MedidorAnel';
 /** Fração do anel preenchida, lida do `stroke-dasharray` do arco de progresso. */
 function fracao(container: HTMLElement) {
   const arco = container.querySelector('[data-slot="progresso"]');
-  const [preenchido, total] = (arco?.getAttribute('stroke-dasharray') ?? '0 1').split(' ').map(Number);
+  const [preenchido, total] = (arco?.getAttribute('stroke-dasharray') ?? '0 1')
+    .split(' ')
+    .map(Number);
   return preenchido / total;
 }
 

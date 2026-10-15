@@ -56,7 +56,10 @@ describe('VisaoGeralPage — Dia (padrão)', () => {
 
     const card = await regiaoCom('Potência instantânea', '212');
     expect(within(card).getByText('Ao vivo')).toBeInTheDocument();
-    expect(within(card).getByRole('meter', { name: 'Nível de potência' })).toHaveAttribute('aria-valuenow', '212');
+    expect(within(card).getByRole('meter', { name: 'Nível de potência' })).toHaveAttribute(
+      'aria-valuenow',
+      '212',
+    );
   });
 
   /** Eficiência ponta a ponta do dia. */
@@ -135,7 +138,9 @@ describe('VisaoGeralPage — troca de período', () => {
 
     const grafico = await regiaoCom('Energia recuperada por dia', /10,3 h em movimento/);
     expect(
-      await within(grafico).findByRole('img', { name: /de 28\/09 a 04\/10, maior valor 390 mWh em 01\/10/ }),
+      await within(grafico).findByRole('img', {
+        name: /de 28\/09 a 04\/10, maior valor 390 mWh em 01\/10/,
+      }),
     ).toBeInTheDocument();
   });
 
@@ -148,7 +153,9 @@ describe('VisaoGeralPage — troca de período', () => {
     expect(within(card).queryByText(/vs /)).not.toBeInTheDocument();
 
     const grafico = await screen.findByRole('region', { name: 'Energia recuperada por dia' });
-    expect(await within(grafico).findByRole('img', { name: /de 01\/10 a 05\/10/ })).toBeInTheDocument();
+    expect(
+      await within(grafico).findByRole('img', { name: /de 01\/10 a 05\/10/ }),
+    ).toBeInTheDocument();
   });
 
   /** Hora: energia da última hora e curva de 17:05 a 18:05. */
@@ -157,9 +164,14 @@ describe('VisaoGeralPage — troca de período', () => {
     const hora = await repositorio.obterResumoEnergia('hora');
     await userEvent.click(screen.getByRole('radio', { name: 'Hora' }));
 
-    await regiaoCom('Energia recuperada na última hora', formatarEnergia(hora.energiaRecuperadaMwh).valor);
+    await regiaoCom(
+      'Energia recuperada na última hora',
+      formatarEnergia(hora.energiaRecuperadaMwh).valor,
+    );
     const grafico = await screen.findByRole('region', { name: 'Energia recuperada x consumo' });
-    expect(await within(grafico).findByRole('img', { name: /de 17:05 a 18:05/ })).toBeInTheDocument();
+    expect(
+      await within(grafico).findByRole('img', { name: /de 17:05 a 18:05/ }),
+    ).toBeInTheDocument();
   });
 
   /** Os cards ao vivo não mudam com o período. */
@@ -192,11 +204,15 @@ describe('VisaoGeralPage — estados', () => {
   it('mostra o erro e tenta de novo', async () => {
     const repositorio = criarRepositorioMock();
     const original = repositorio.obterVibracao.bind(repositorio);
-    vi.spyOn(repositorio, 'obterVibracao').mockRejectedValueOnce(new Error('sem conexão')).mockImplementation(original);
+    vi.spyOn(repositorio, 'obterVibracao')
+      .mockRejectedValueOnce(new Error('sem conexão'))
+      .mockImplementation(original);
     renderizar(repositorio);
 
     const card = screen.getByRole('region', { name: 'Vibração RMS' });
-    expect(await within(card).findByRole('alert')).toHaveTextContent('Não foi possível carregar a vibração.');
+    expect(await within(card).findByRole('alert')).toHaveTextContent(
+      'Não foi possível carregar a vibração.',
+    );
 
     await userEvent.click(within(card).getByRole('button', { name: 'Tentar de novo' }));
     expect(await within(card).findByText('3,2')).toBeInTheDocument();

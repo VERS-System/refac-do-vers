@@ -62,6 +62,7 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Sessão e autorização F08.4](../backend-phase-8-session-authorization.md)
 - [Gateway Socket.IO F08.5](../backend-phase-8-socket-gateway.md)
 - [Consistência e recuperação F08.6](../backend-phase-8-consistency.md)
+- [Ensaio isolado F08.7 — preparação](../backend-phase-8-rehearsal.md)
 - [Contrato incremental de tempo real v1](../../Api/realtime-contract-v1.md)
 - [Contrato MQTT v1 local do simulador](../../Api/mqtt-contract-v1.md)
 - [Schema v2 proposto](../schema-mobile-mqtt.md)

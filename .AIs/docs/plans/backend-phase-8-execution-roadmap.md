@@ -42,6 +42,11 @@ continuam registradas, sem impedir preparação local do tempo real.
 
 ## Escopo 8.6 — consistência e recuperação
 
+Preparação do próximo recorte: [ensaio F08.7](backend-phase-8-rehearsal.md).
+Compose e suíte local preparados para Redis/Socket.IO/PostgreSQL; execução
+real exige autorização própria. Coordenação MQTT sob falha Redis não coberta
+por esse primeiro recorte de transporte; não declarar a fase inteira concluída.
+
 Próximo recorte autorizado pelo pedido de desenvolvimento em 15/10/2026.
 Consolidar matriz de cenários no contrato e cobertura do gateway para avisos
 repetidos/fora de ordem e reconexão sem replay ou assinatura herdada.

@@ -43,6 +43,8 @@ type ViberScreenProps = {
   status?: ViberScreenStatus;
   /** Repete a conversa no erro; ausente mantém o botão sem efeito. */
   onRetry?: () => void;
+  /** Quando falso, omite o selo de amostra (dados reais do backend). */
+  isSampleData?: boolean;
 };
 
 /** Estados visuais do chat; a origem das respostas é o backend (ai-service futuro). */
@@ -94,6 +96,7 @@ export function ViberScreen({
   onSend,
   status,
   userInitial,
+  isSampleData = true,
 }: ViberScreenProps) {
   const visibleMessages = (messages ?? []).filter((message) => message.text != null);
   const [innerDraft, setInnerDraft] = useState('');
@@ -144,6 +147,12 @@ export function ViberScreen({
         testID="viber-header"
         title="Viber"
       />
+
+      {isSampleData && (
+        <Text style={styles.sampleSeal} testID="viber-sample-seal">
+          DADOS DE AMOSTRA
+        </Text>
+      )}
 
       {visibleMessages.length > 0 ? (
         <View testID="viber-history">
@@ -564,5 +573,17 @@ const styles = StyleSheet.create({
   viberText: {
     color: theme.colors.gold,
     fontSize: 14,
+  },
+  /** Selo de amostra; omitido com dados reais do backend. */
+  sampleSeal: {
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    color: theme.colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
 });

@@ -423,3 +423,16 @@ describe('HistoryScreen acessibilidade (06g)', () => {
     ).toEqual(expect.objectContaining({ selected: false }));
   });
 });
+
+describe('HistoryScreen selo de amostra (13c)', () => {
+  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
+  it('exibe selo de amostra e omite com dados reais', () => {
+    const { getByTestId, queryByTestId, rerender } = render(<HistoryScreen />);
+
+    expect(getByTestId('history-sample-seal')).toBeTruthy();
+
+    rerender(<HistoryScreen isSampleData={false} />);
+
+    expect(queryByTestId('history-sample-seal')).toBeNull();
+  });
+});

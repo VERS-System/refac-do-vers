@@ -97,6 +97,8 @@ type HistoryScreenProps = {
   timeZone?: string | null;
   onSelectDay?: (isoDate: string) => void;
   onMonthChange?: (month: number, year: number) => void;
+  /** Quando falso, omite o selo de amostra (dados reais do backend). */
+  isSampleData?: boolean;
 };
 
 /**
@@ -126,6 +128,7 @@ export function HistoryScreen({
   timeZone = null,
   onSelectDay,
   onMonthChange,
+  isSampleData = true,
 }: HistoryScreenProps) {
   const total = totalItems ?? items.length;
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
@@ -197,6 +200,12 @@ export function HistoryScreen({
         testID="history-header"
         title="Histórico"
       />
+
+      {isSampleData && (
+        <Text style={styles.sampleSeal} testID="history-sample-seal">
+          DADOS DE AMOSTRA
+        </Text>
+      )}
 
       {timeZone ? (
         <Text style={styles.timeZoneCaption} testID="history-timezone">
@@ -427,5 +436,17 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 14,
     textAlign: 'center',
+  },
+  /** Selo de amostra; omitido com dados reais do backend. */
+  sampleSeal: {
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    color: theme.colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
 });

@@ -336,3 +336,16 @@ describe('TestsScreen acessibilidade (08g)', () => {
     ).toEqual(expect.objectContaining({ selected: false }));
   });
 });
+
+describe('TestsScreen selo de amostra (13c)', () => {
+  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
+  it('exibe selo de amostra e omite com dados reais', () => {
+    const { getByTestId, queryByTestId, rerender } = render(<TestsScreen />);
+
+    expect(getByTestId('tests-sample-seal')).toBeTruthy();
+
+    rerender(<TestsScreen isSampleData={false} />);
+
+    expect(queryByTestId('tests-sample-seal')).toBeNull();
+  });
+});

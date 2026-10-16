@@ -356,3 +356,16 @@ describe('ViberScreen acessibilidade e layout (11g)', () => {
     expect(getByText('Saiba mais em https://vers.com/vers')).toBeTruthy();
   });
 });
+
+describe('ViberScreen selo de amostra (13c)', () => {
+  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
+  it('exibe selo de amostra e omite com dados reais', () => {
+    const { getByTestId, queryByTestId, rerender } = render(<ViberScreen />);
+
+    expect(getByTestId('viber-sample-seal')).toBeTruthy();
+
+    rerender(<ViberScreen isSampleData={false} />);
+
+    expect(queryByTestId('viber-sample-seal')).toBeNull();
+  });
+});

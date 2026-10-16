@@ -40,7 +40,10 @@ Telas de referência (IDs do Stitch):
    `#2A2A29` com borda `#323231`, dourado `#D5C462`), não o render escuro
    (`#131313`) que o Stitch gerou nas telas.
 2. **Electron**: migrar para **electron-vite**, com `src/main`, `src/preload`
-   e `src/renderer` compilados juntos.
+   e `src/renderer` compilados juntos. **Confirmado pelo usuário em
+   16/10/2026: o app continua no Electron** (programa instalado), o que
+   substitui a retirada do Electron do plano
+   `dashboard-vite-sem-electron-26-09-2026.md`.
 3. **Componentes**: ficam em `services/dashboard/src/renderer`; só migram para
    `packages/ui` se outro cliente precisar deles.
 4. **Ícones**: `lucide-react`. **Fontes**: Geist, Geist Mono e Zen Dots
@@ -168,9 +171,14 @@ Andamento:
   [desktop-frontend-autenticacao.md](desktop-frontend-autenticacao.md).
 - **Veículos (cadastro de carros) — implementada em 15/10/2026, a pedido do
   usuário (aguardando revisão).** Lista, cadastro, detalhes, edição, troca do
-  principal e remoção; ID gerado pelo sistema e chassi opcional (ainda sem
-  coluna no backend). Plano em
+  principal e remoção; o carro é identificado pelo ID gerado pelo sistema
+  (o chassi saiu em 16/10/2026, por decisão do usuário). Plano em
   [desktop-frontend-veiculos.md](desktop-frontend-veiculos.md).
+- **Veículo do Criar conta no primeiro acesso — implementado em 16/10/2026
+  (aguardando revisão).** O Criar conta guarda o carro no computador e o
+  Login leva à tela Primeiro veículo, que grava pelo `POST /vehicles`. Plano
+  em [desktop-frontend-veiculo-no-cadastro.md](desktop-frontend-veiculo-no-cadastro.md).
+  Pendência do backend: não existe ativação da conta nova.
 - **Fase 4 concluída**: as 9 telas do Stitch estão implementadas sobre o
   repositório de exemplo. Próximo passo: revisão do programador, commits e
   a Fase 5.

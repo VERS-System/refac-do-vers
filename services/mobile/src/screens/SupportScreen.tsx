@@ -13,6 +13,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
+import { AppSkeleton } from '../components/AppSkeleton';
 import { AuthTextField } from '../components/AuthTextField';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
@@ -47,7 +48,14 @@ type SupportScreenProps = {
   onCancelCreate?: () => void;
   /** Confirmação de envio; ausente usa estado visual interno. */
   confirmingCreate?: boolean | null;
+  /** Estado visual atual; `success` exibe lista, detalhe e form. */
+  status?: SupportScreenStatus;
+  /** Repete a carga no erro; ausente mantém o botão sem efeito. */
+  onRetry?: () => void;
 };
+
+/** Estados visuais do suporte; a origem dos dados é do backend (F05 futuro). */
+export type SupportScreenStatus = 'loading' | 'empty' | 'error' | 'sending' | 'success';
 
 /** Estados do contrato de suporte; só exibidos, sem transição no cliente. */
 export type SupportStatus = 'OPEN' | 'IN_REVIEW' | 'SCHEDULED' | 'RESOLVED' | 'CANCELLED';
@@ -114,13 +122,53 @@ const EMPTY_DRAFT: SupportDraft = { vehicleId: '', installationId: '', reason: '
  * Renderiza o scaffold do suporte com lista, detalhes e formulário; a
  * confirmação e os estados chegam nos próximos lotes por props.
  */
-export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreate, selectedRequest = null, onBackToList, isCreating, vehicles, installations, supportDraft, onSupportChange, onSubmitCreate, onCancelCreate, confirmingCreate = null }: SupportScreenProps) {
+export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreate, selectedRequest = null, onBackToList, isCreating, vehicles, installations, supportDraft, onSupportChange, onSubmitCreate, onCancelCreate, confirmingCreate = null, status = 'success', onRetry }: SupportScreenProps) {
   const [innerDraft, setInnerDraft] = useState<SupportDraft>(EMPTY_DRAFT);
   const [innerConfirming, setInnerConfirming] = useState(false);
   const [innerSent, setInnerSent] = useState(false);
   const isControlled = supportDraft != null;
   const draft = isControlled ? (supportDraft as SupportDraft) : innerDraft;
   const isConfirmingCreate = confirmingCreate ?? innerConfirming;
+
+  if (status === 'loading') {
+    return (
+      <ScreenShell testID="support-screen">
+        <View
+          accessibilityLabel="Carregando"
+          accessibilityRole="progressbar"
+          style={styles.emptyBlock}
+          testID="support-loading"
+        >
+          <AppSkeleton height={120} />
+          <AppSkeleton height={140} />
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <ScreenShell testID="support-screen">
+        <View style={styles.emptyBlock}>
+          <Text
+            accessibilityLabel="Não foi possível carregar as solicitações. Tente novamente."
+            accessibilityRole="alert"
+            style={styles.emptyText}
+            testID="support-error"
+          >
+            Não foi possível carregar as solicitações.
+          </Text>
+          <View style={styles.createButton}>
+            <PrimaryButton
+              accessibilityLabel="Tentar novamente"
+              label="TENTAR NOVAMENTE"
+              onPress={() => onRetry?.()}
+            />
+          </View>
+        </View>
+      </ScreenShell>
+    );
+  }
 
   /** Atualiza o rascunho; no modo interno edita o campo direto. */
   const changeDraft = (next: SupportDraft) => {
@@ -243,6 +291,15 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
           <Text style={styles.noticeText}>
             Documentos e anexos não fazem parte desta solicitação.
           </Text>
+          {status === 'sending' ? (
+            <Text
+              accessibilityRole="alert"
+              style={styles.noticeText}
+              testID="support-sending"
+            >
+              Enviando solicitação…
+            </Text>
+          ) : null}
           {innerSent ? (
             <View style={styles.confirmBlock} testID="support-create-success">
               <Text

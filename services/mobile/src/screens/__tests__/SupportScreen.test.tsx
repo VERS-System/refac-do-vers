@@ -276,3 +276,55 @@ describe('SupportScreen confirmação e envio (12e)', () => {
     expect(onSubmitCreate).not.toHaveBeenCalled();
   });
 });
+
+describe('SupportScreen estados e erros (12f)', () => {
+  const ITEMS = [{ id: 'r1', status: 'OPEN' as const, createdAt: '2026-10-01T10:00:00.000Z' }];
+
+  /** Exibe skeleton no carregamento, sem lista nem formulário. */
+  it('exibe carregamento com skeleton', () => {
+    const { getByTestId, queryByTestId } = render(
+      <SupportScreen items={ITEMS} status="loading" />,
+    );
+
+    expect(getByTestId('support-loading')).toBeTruthy();
+    expect(queryByTestId('support-list')).toBeNull();
+    expect(queryByTestId('support-form')).toBeNull();
+  });
+
+  /** Exibe erro genérico com repetição, sem expor conteúdo. */
+  it('exibe erro com repetição', () => {
+    const onRetry = jest.fn();
+    const { getByRole, getByTestId, getByText, queryByTestId } = render(
+      <SupportScreen items={ITEMS} onRetry={onRetry} status="error" />,
+    );
+
+    expect(getByTestId('support-error')).toBeTruthy();
+    expect(getByText('Não foi possível carregar as solicitações.')).toBeTruthy();
+    expect(queryByTestId('support-list')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Tentar novamente' }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  /** Sinaliza o envio em andamento sem apagar o rascunho. */
+  it('sinaliza envio sem apagar o rascunho', () => {
+    const { getByDisplayValue, getByTestId } = render(
+      <SupportScreen
+        isCreating
+        status="sending"
+        supportDraft={{ vehicleId: 'v1', installationId: '', reason: 'Barulho estranho.' }}
+      />,
+    );
+
+    expect(getByTestId('support-sending')).toBeTruthy();
+    expect(getByDisplayValue('Barulho estranho.')).toBeTruthy();
+  });
+
+  /** Mantém o conteúdo no sucesso. */
+  it('mantém o conteúdo no sucesso', () => {
+    const { getByTestId } = render(<SupportScreen items={ITEMS} status="success" />);
+
+    expect(getByTestId('support-list')).toBeTruthy();
+  });
+});

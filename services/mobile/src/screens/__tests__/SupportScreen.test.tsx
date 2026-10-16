@@ -328,3 +328,78 @@ describe('SupportScreen estados e erros (12f)', () => {
     expect(getByTestId('support-list')).toBeTruthy();
   });
 });
+
+describe('SupportScreen acessibilidade e layout (12g)', () => {
+  /** Nome e papel em todos os botões do formulário. */
+  it('expõe nome e papel nos botões', () => {
+    const { getAllByRole } = render(
+      <SupportScreen
+        installations={[{ id: 'i1', label: 'VERS Modelo A' }]}
+        isCreating
+        onOpenCreate={jest.fn()}
+        vehicles={[{ id: 'v1', label: 'ABC1D23' }]}
+      />,
+    );
+
+    const buttons = getAllByRole('button');
+
+    expect(buttons.length).toBeGreaterThan(0);
+
+    for (const button of buttons) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+  });
+
+  /** Marca o chip escolhido como selecionado. */
+  it('marca o chip escolhido como selecionado', () => {
+    const { getByLabelText } = render(
+      <SupportScreen
+        isCreating
+        supportDraft={{ vehicleId: 'v1', installationId: '', reason: '' }}
+        vehicles={[{ id: 'v1', label: 'ABC1D23' }]}
+      />,
+    );
+
+    expect(getByLabelText('Veículo: ABC1D23').props.accessibilityState.selected).toBe(true);
+  });
+
+  /** Garante alvo de toque nas linhas e nas opções. */
+  it('garante alvo de toque nas linhas e opções', () => {
+    const list = render(
+      <SupportScreen
+        items={[{ id: 'r1', status: 'OPEN', createdAt: '2026-10-01T10:00:00.000Z' }]}
+      />,
+    );
+    const form = render(
+      <SupportScreen isCreating vehicles={[{ id: 'v1', label: 'ABC1D23' }]} />,
+    );
+
+    expect(
+      list.getByLabelText('Aberta 2026-10-01T10:00:00.000Z').props.hitSlop,
+    ).toBeTruthy();
+    expect(
+      form.getByLabelText('Veículo: ABC1D23').props.hitSlop,
+    ).toBeTruthy();
+  });
+
+  /** Mantém motivo longo com link como texto permitido. */
+  it('mantém motivo longo com link como texto', () => {
+    const longReason = `Veja em https://vers.com/suporte ${'x'.repeat(500)}`;
+    const { getByText } = render(
+      <SupportScreen
+        selectedRequest={{
+          id: 'r1',
+          vehicleId: null,
+          installationId: null,
+          reason: longReason,
+          status: 'OPEN',
+          createdAt: '2026-10-01T10:00:00.000Z',
+          updatedAt: '2026-10-02T10:00:00.000Z',
+        }}
+      />,
+    );
+
+    expect(getByText(longReason)).toBeTruthy();
+  });
+});

@@ -22,7 +22,7 @@ negócio, segurança, persistência, cálculos e autorização pertencem ao back
 | 09 | [Perfil](09-tela-perfil.md) | Concluída | Task 04 |
 | 10 | [Veículos](10-telas-veiculos.md) | Concluída | Task 09 |
 | 11 | [Viber](11-tela-viber.md) | Concluída | Task 04 |
-| 12 | [Suporte e revisão](12-telas-suporte-revisao.md) | Planejada | Tasks 07 e 09 |
+| 12 | [Suporte e revisão](12-telas-suporte-revisao.md) | Concluída | Tasks 07 e 09 |
 | 13 | [Estados globais e entrega visual](13-estados-globais-entrega.md) | Planejada | Tasks 01–12 |
 
 ```text

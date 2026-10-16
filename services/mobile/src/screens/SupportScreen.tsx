@@ -228,6 +228,7 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
                     accessibilityLabel={`Veículo: ${option.label}`}
                     accessibilityRole="button"
                     accessibilityState={{ selected: draft.vehicleId === option.id }}
+                    hitSlop={8}
                     key={option.id}
                     onPress={() => changeDraft({ ...draft, vehicleId: option.id })}
                     style={[
@@ -258,6 +259,7 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
                     accessibilityLabel={`Instalação: ${option.label}`}
                     accessibilityRole="button"
                     accessibilityState={{ selected: draft.installationId === option.id }}
+                    hitSlop={8}
                     key={option.id}
                     onPress={() => changeDraft({ ...draft, installationId: option.id })}
                     style={[
@@ -394,10 +396,11 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
           {items.length > 0 ? (
             <View style={styles.listCard} testID="support-list">
               {items.map((item) => (
-                <Pressable
-                  accessibilityLabel={`${SUPPORT_STATUS_LABELS[item.status]} ${item.createdAt}`.trim()}
-                  accessibilityRole="button"
-                  key={item.id}
+              <Pressable
+                accessibilityLabel={`${SUPPORT_STATUS_LABELS[item.status]} ${item.createdAt}`.trim()}
+                accessibilityRole="button"
+                hitSlop={8}
+                key={item.id}
                   onPress={() => onSelectRequest?.(item.id)}
                   style={styles.listRow}
                 >

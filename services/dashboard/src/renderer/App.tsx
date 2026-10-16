@@ -4,7 +4,7 @@
  * Define as rotas da interface. Usa HashRouter porque, empacotado no
  * Electron, o app é aberto via `file://`, onde rotas baseadas em caminho não
  * funcionam. As 8 telas internas ficam dentro do `AppShell` (sidebar + tela);
- * Login e Criar conta ficam fora dele. A rota raiz e rotas desconhecidas
+ * Login, Criar conta e Primeiro veículo ficam fora dele. A rota raiz e rotas desconhecidas
  * levam à Visão geral, a tela inicial.
  *
  * Também monta os provedores de dados: o cache do TanStack Query e o
@@ -21,6 +21,7 @@ import { ConfiguracoesPage } from '@/pages/ConfiguracoesPage';
 import { CriarContaPage } from '@/pages/CriarContaPage';
 import { EnergiaPage } from '@/pages/EnergiaPage';
 import { LoginPage } from '@/pages/LoginPage';
+import { PrimeiroVeiculoPage } from '@/pages/PrimeiroVeiculoPage';
 import { TelemetriaPage } from '@/pages/TelemetriaPage';
 import { TestesPage } from '@/pages/TestesPage';
 import { VeiculosPage } from '@/pages/VeiculosPage';
@@ -57,6 +58,7 @@ export default function App({ repositorio: externo }: { repositorio?: Repositori
             </Route>
             <Route path={ROTAS.login} element={<LoginPage />} />
             <Route path={ROTAS.criarConta} element={<CriarContaPage />} />
+            <Route path={ROTAS.primeiroVeiculo} element={<PrimeiroVeiculoPage />} />
             <Route path="*" element={<Navigate to={ROTAS.visaoGeral} replace />} />
           </Routes>
         </HashRouter>

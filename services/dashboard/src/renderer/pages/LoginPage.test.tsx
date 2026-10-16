@@ -3,7 +3,9 @@
  *
  * Seguem o plano `.AIs/docs/plans/desktop-frontend-autenticacao.md`:
  * validação no envio, mostrar senha, estado de envio e as recusas do backend
- * (simuladas trocando o `entrar` do repositório de exemplo).
+ * (simuladas trocando o `entrar` do repositório de exemplo). Depois de
+ * entrar, o veículo guardado pelo Criar conta leva ao Primeiro veículo
+ * (`desktop-frontend-veiculo-no-cadastro.md`).
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -13,6 +15,7 @@ import App from '@/App';
 import { ErroRepositorio, type CodigoErro } from '@/data/erros';
 import type { RepositorioVers } from '@/data/repositorio';
 import { criarRepositorioMock } from '@/data/repositorioMock';
+import { guardarVeiculoDoCadastro } from '@/data/veiculoDoCadastro';
 
 /** Abre o app no Login, com o repositório de exemplo ou um alterado. */
 function abrirLogin(repositorio?: RepositorioVers) {
@@ -90,6 +93,40 @@ describe('LoginPage — envio', () => {
     abrirLogin();
 
     await entrar();
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Visão geral' }),
+    ).toBeInTheDocument();
+  });
+
+  /** Com veículo guardado pelo Criar conta para o e-mail, o primeiro acesso pede o carro. */
+  it('leva ao cadastro do veículo guardado', async () => {
+    guardarVeiculoDoCadastro('Ana.Silva@vers.com', {
+      placa: 'GHI2J34',
+      fabricante: '',
+      modelo: '',
+      ano: '',
+    });
+    abrirLogin();
+
+    await entrar('ana.silva@vers.com');
+
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Cadastre seu veículo' }),
+    ).toBeInTheDocument();
+  });
+
+  /** Veículo guardado para outro e-mail não muda o caminho. */
+  it('ignora o veículo guardado de outra conta', async () => {
+    guardarVeiculoDoCadastro('outro@vers.com', {
+      placa: 'GHI2J34',
+      fabricante: '',
+      modelo: '',
+      ano: '',
+    });
+    abrirLogin();
+
+    await entrar('ana.silva@vers.com');
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Visão geral' }),

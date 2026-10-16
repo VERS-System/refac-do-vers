@@ -4,20 +4,29 @@
  * Cadastro em três etapas, como o Stitch: Conta (`RegisterRequest`, com os
  * requisitos da senha ao vivo), Veículo (`CreateVehicleRequest`) e
  * Instalação (resumo e próximos passos). Só a conta é enviada: na API o
- * veículo só pode ser criado depois da confirmação do e-mail e do login, e a
- * tela final diz isso. A confirmação não revela se o e-mail já tinha conta.
- * Plano em `.AIs/docs/plans/desktop-frontend-autenticacao.md`.
+ * veículo só pode ser criado por uma conta logada. Por isso o veículo fica
+ * guardado neste computador e é gravado no primeiro acesso (tela Primeiro
+ * veículo). A confirmação não revela se o e-mail já tinha conta. Planos em
+ * `.AIs/docs/plans/desktop-frontend-autenticacao.md` e
+ * `.AIs/docs/plans/desktop-frontend-veiculo-no-cadastro.md`.
  */
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Car, Cpu, MailCheck, Mail, Lock, UserRound } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Cpu, MailCheck, Mail, Lock, UserRound } from 'lucide-react';
 import { AvisoErro, CampoSenha, Etapas, ListaRequisitos } from '@/components/autenticacao/Campos';
+import {
+  CamposDoVeiculo,
+  VEICULO_VAZIO,
+  validarVeiculo,
+  type CamposVeiculo,
+} from '@/components/autenticacao/CamposVeiculo';
 import { AuthCard, AuthLayout } from '@/components/layout/AuthLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { emailValido, nomearVeiculo, normalizarPlaca, senhaValida } from '@/data/calculos';
 import { ErroRepositorio } from '@/data/erros';
+import { guardarVeiculoDoCadastro } from '@/data/veiculoDoCadastro';
 import { useAcoesAutenticacao } from '@/hooks/useDados';
 import { ROTAS } from '@/routes/navegacao';
 
@@ -26,13 +35,6 @@ interface Conta {
   email: string;
   senha: string;
   confirmacao: string;
-}
-
-interface CamposVeiculo {
-  placa: string;
-  fabricante: string;
-  modelo: string;
-  ano: string;
 }
 
 type Erros = Partial<Record<keyof Conta | keyof CamposVeiculo, string>>;
@@ -47,15 +49,6 @@ function validarConta(conta: Conta): Erros {
     senha: senhaValida(conta.senha) ? undefined : 'A senha não atende a todos os requisitos.',
     confirmacao:
       conta.confirmacao === conta.senha && conta.senha ? undefined : 'As senhas não coincidem.',
-  };
-}
-
-/** Erros da etapa Veículo: placa obrigatória e válida; ano com 4 dígitos, se informado. */
-function validarVeiculo(veiculo: CamposVeiculo): Erros {
-  const ano = veiculo.ano.trim();
-  return {
-    placa: normalizarPlaca(veiculo.placa) ? undefined : 'Informe uma placa válida, como ABC1D23.',
-    ano: !ano || /^\d{4}$/.test(ano) ? undefined : 'Informe o ano com 4 dígitos.',
   };
 }
 
@@ -97,16 +90,14 @@ export function CriarContaPage() {
   const { registrar } = useAcoesAutenticacao();
   const [etapa, setEtapa] = useState(0);
   const [conta, setConta] = useState<Conta>({ nome: '', email: '', senha: '', confirmacao: '' });
-  const [veiculo, setVeiculo] = useState<CamposVeiculo>({
-    placa: '',
-    fabricante: '',
-    modelo: '',
-    ano: '',
-  });
+  const [veiculo, setVeiculo] = useState<CamposVeiculo>(VEICULO_VAZIO);
   const [erros, setErros] = useState<Erros>({});
   const [recusa, setRecusa] = useState<string | null>(null);
 
-  /** Valida a etapa atual e, se tudo certo, avança (na última, envia a conta). */
+  /**
+   * Valida a etapa atual e, se tudo certo, avança. Na última, envia a conta e
+   * guarda o veículo (com a placa já normalizada) para o primeiro acesso.
+   */
   async function avancar(evento: FormEvent) {
     evento.preventDefault();
     const novos = etapa === 0 ? validarConta(conta) : etapa === 1 ? validarVeiculo(veiculo) : {};
@@ -122,6 +113,10 @@ export function CriarContaPage() {
         email: conta.email.trim(),
         senha: conta.senha,
         ...(conta.nome.trim() ? { nome: conta.nome.trim() } : {}),
+      });
+      guardarVeiculoDoCadastro(conta.email, {
+        ...veiculo,
+        placa: normalizarPlaca(veiculo.placa) ?? veiculo.placa,
       });
       setEtapa(CONCLUIDO);
     } catch (erro) {
@@ -198,33 +193,8 @@ export function CriarContaPage() {
                   <TituloEtapa descricao="O veículo onde o VERS está instalado. Só a placa é obrigatória.">
                     Seu veículo
                   </TituloEtapa>
-                  <div className="mt-5 grid grid-cols-2 gap-4">
-                    <Input
-                      label="Placa"
-                      icon={Car}
-                      placeholder="ABC1D23"
-                      value={veiculo.placa}
-                      onChange={(e) => setVeiculo({ ...veiculo, placa: e.target.value })}
-                      error={erros.placa}
-                      className="col-span-2"
-                    />
-                    <Input
-                      label="Fabricante"
-                      value={veiculo.fabricante}
-                      onChange={(e) => setVeiculo({ ...veiculo, fabricante: e.target.value })}
-                    />
-                    <Input
-                      label="Modelo"
-                      value={veiculo.modelo}
-                      onChange={(e) => setVeiculo({ ...veiculo, modelo: e.target.value })}
-                    />
-                    <Input
-                      label="Ano"
-                      inputMode="numeric"
-                      value={veiculo.ano}
-                      onChange={(e) => setVeiculo({ ...veiculo, ano: e.target.value })}
-                      error={erros.ano}
-                    />
+                  <div className="mt-5">
+                    <CamposDoVeiculo veiculo={veiculo} erros={erros} onVeiculo={setVeiculo} />
                   </div>
                 </>
               )}
@@ -299,7 +269,7 @@ export function CriarContaPage() {
   );
 }
 
-/** Tela final: confirmação do e-mail, sem revelar se ele já tinha conta, e o veículo pendente. */
+/** Tela final: confirmação do e-mail, sem revelar se ele já tinha conta, e o veículo guardado. */
 function Concluido({ email, veiculo }: { email: string; veiculo: string }) {
   return (
     <div className="flex flex-col">
@@ -313,7 +283,7 @@ function Concluido({ email, veiculo }: { email: string; veiculo: string }) {
         {`Se o e-mail ${email} puder ser usado, você receberá um link de confirmação. Depois de confirmar, entre com seu e-mail e senha.`}
       </p>
       <p className="mt-3 text-[13px] leading-5 text-fg-muted">
-        {`O veículo ${veiculo} é cadastrado depois do primeiro acesso, em Veículo e instalação; nesta versão os dados dele não são enviados.`}
+        {`O veículo ${veiculo} fica guardado neste computador e é cadastrado no seu primeiro acesso.`}
       </p>
       <Link
         to={ROTAS.login}

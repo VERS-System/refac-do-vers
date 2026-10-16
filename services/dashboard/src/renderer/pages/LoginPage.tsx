@@ -5,7 +5,10 @@
  * backend (credenciais inválidas, limite de tentativas, serviço fora) têm
  * mensagens próprias, sem revelar se a conta existe. Login social e "Manter
  * conectado" ficam fora (task D02, sem contrato); "Esqueci a senha" avisa
- * que depende da API. Plano em `.AIs/docs/plans/desktop-frontend-autenticacao.md`.
+ * que depende da API. Depois de entrar, quem criou a conta neste computador
+ * vai ao Primeiro veículo para gravar o carro digitado no cadastro. Planos em
+ * `.AIs/docs/plans/desktop-frontend-autenticacao.md` e
+ * `.AIs/docs/plans/desktop-frontend-veiculo-no-cadastro.md`.
  */
 
 import { useId, useState, type FormEvent } from 'react';
@@ -17,6 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { emailValido } from '@/data/calculos';
 import { ErroRepositorio } from '@/data/erros';
+import { lerVeiculoDoCadastro } from '@/data/veiculoDoCadastro';
 import { useAcoesAutenticacao } from '@/hooks/useDados';
 import { ROTAS } from '@/routes/navegacao';
 
@@ -69,7 +73,8 @@ export function LoginPage() {
     }
     try {
       await entrar.mutateAsync({ email: email.trim(), senha });
-      navegar(ROTAS.visaoGeral);
+      // Primeiro acesso de quem criou a conta neste computador: grava o carro digitado.
+      navegar(lerVeiculoDoCadastro(email) ? ROTAS.primeiroVeiculo : ROTAS.visaoGeral);
     } catch (erro) {
       setRecusa(mensagemDeRecusa(erro));
     }

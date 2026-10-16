@@ -34,6 +34,7 @@ export const ROTAS = {
   configuracoes: '/configuracoes',
   login: '/login',
   criarConta: '/criar-conta',
+  primeiroVeiculo: '/primeiro-veiculo',
 } as const;
 
 export const NAVEGACAO_PRINCIPAL: ItemNavegacao[] = [

@@ -35,6 +35,8 @@ O usuário autorizou a IA a escolher as decisões menores e registrá-las como
 - **Envio**: só a conta vai ao repositório (`registrar`). Na API, o veículo
   só pode ser criado depois da confirmação do e-mail e do login, então a
   tela final diz isso com a placa informada, sem fingir que foi salvo.
+  **Atualizado em 16/10/2026**: o veículo fica guardado no computador e é
+  gravado no primeiro acesso (`desktop-frontend-veiculo-no-cadastro.md`).
 - **Sem enumeração de contas**: como o backend responde igual para e-mail
   novo ou já cadastrado, a tela final diz "Se o e-mail puder ser usado,
   você receberá um link de confirmação".
@@ -99,8 +101,10 @@ commit (regra 7).
 ## 6. A validar pelo programador
 
 - Login social e "Manter conectado" fora; "Esqueci a senha" só avisa.
-- Etapa Veículo antes da confirmação do e-mail: os dados não são enviados.
-  Alternativa: mover a etapa para o primeiro acesso.
+- ~~Etapa Veículo antes da confirmação do e-mail: os dados não são
+  enviados.~~ **Resolvido em 16/10/2026** (decisão do usuário, opção B): o
+  veículo fica guardado no computador e é gravado no primeiro acesso, pela
+  tela Primeiro veículo. Plano em `desktop-frontend-veiculo-no-cadastro.md`.
 - Nome opcional (o contrato aceita conta sem `displayName`).
 - "Sem espaços" aparece atendido com a senha vazia (é verdade para o texto
   vazio; a referência também o mostra verde).

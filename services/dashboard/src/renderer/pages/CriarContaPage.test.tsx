@@ -3,7 +3,8 @@
  *
  * Seguem o plano `.AIs/docs/plans/desktop-frontend-autenticacao.md`: três
  * etapas (Conta, Veículo, Instalação), requisitos da senha ao vivo, dados
- * preservados ao voltar, envio só da conta e a tela final sem enumeração.
+ * preservados ao voltar, envio só da conta, veículo guardado para o primeiro
+ * acesso e a tela final sem enumeração.
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -13,6 +14,7 @@ import App from '@/App';
 import { ErroRepositorio } from '@/data/erros';
 import type { RepositorioVers } from '@/data/repositorio';
 import { criarRepositorioMock } from '@/data/repositorioMock';
+import { lerVeiculoDoCadastro } from '@/data/veiculoDoCadastro';
 
 /** Abre o app no Criar conta. */
 function abrirCriarConta(repositorio?: RepositorioVers) {
@@ -123,7 +125,16 @@ describe('CriarContaPage — fluxo completo', () => {
       nome: 'Novo Pesquisador',
     });
     expect(screen.getByText(/Se o e-mail novo@vers.com puder ser usado/)).toBeInTheDocument();
-    expect(screen.getByText(/ABC1D23/)).toBeInTheDocument();
+    expect(screen.getByText(/ABC1D23/)).toHaveTextContent(
+      'fica guardado neste computador e é cadastrado no seu primeiro acesso',
+    );
+    // O veículo fica guardado (sem a senha) até o primeiro login.
+    expect(lerVeiculoDoCadastro('novo@vers.com')).toEqual({
+      placa: 'ABC1D23',
+      fabricante: '',
+      modelo: 'CG 160',
+      ano: '',
+    });
 
     await userEvent.click(screen.getByRole('link', { name: 'Ir para o Login' }));
     expect(
@@ -148,5 +159,6 @@ describe('CriarContaPage — fluxo completo', () => {
       'Não foi possível criar a conta agora. Tente de novo em instantes.',
     );
     expect(screen.getByRole('button', { name: 'Criar conta' })).toBeEnabled();
+    expect(lerVeiculoDoCadastro('novo@vers.com')).toBeNull();
   });
 });

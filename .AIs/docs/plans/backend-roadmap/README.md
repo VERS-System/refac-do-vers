@@ -18,7 +18,7 @@ arquitetura; estes documentos definem como executar cada fase.
 | 05 | [Recursos de domínio](05-recursos-dominio.md) | Recorte executável concluído — avanço aprovado em 13/10/2026; pendências reais preservadas | Fase 04 |
 | 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Recorte local pronto para revisão — lotes 6.1–6.8 entregues; aceite e ensaio PostgreSQL pendentes | Fase 05 |
 | 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Recortes 7.1–7.7 entregues para revisão; PostgreSQL e broker TLS locais ensaiados, HiveMQ/ESP32 pendentes | Fase 06 + hardware/simulador |
-| 08 | [Tempo real](08-tempo-real.md) | Até 8.5 local para revisão; contrato e cobertura de consistência 8.6 validados, integração cliente/ensaio real pendentes | Fase 07 |
+| 08 | [Tempo real](08-tempo-real.md) | Até 8.6 local e primeiro ensaio real 8.7 para revisão; coordenação MQTT real/integração cliente pendentes | Fase 07 |
 | 09 | [Operação e entrega](09-operacao-entrega.md) | Planejada | Fases 00–08 |
 
 ```text
@@ -62,7 +62,7 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Sessão e autorização F08.4](../backend-phase-8-session-authorization.md)
 - [Gateway Socket.IO F08.5](../backend-phase-8-socket-gateway.md)
 - [Consistência e recuperação F08.6](../backend-phase-8-consistency.md)
-- [Ensaio isolado F08.7 — preparação](../backend-phase-8-rehearsal.md)
+- [Ensaio isolado F08.7 — seis cenários reais aprovados](../backend-phase-8-rehearsal.md)
 - [Contrato incremental de tempo real v1](../../Api/realtime-contract-v1.md)
 - [Contrato MQTT v1 local do simulador](../../Api/mqtt-contract-v1.md)
 - [Schema v2 proposto](../schema-mobile-mqtt.md)

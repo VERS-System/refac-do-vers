@@ -1,8 +1,12 @@
 <!-- Prepara um ensaio real restrito a dados e serviços sintéticos locais. -->
 # F08.7 — Ensaio isolado de tempo real
 
-Estado: preparação autorizada por `nxt`; execução real aguarda autorização
-específica, conforme roadmap F08. Não reutilizar autorização da F07.7.
+Estado: primeiro recorte real aprovado em 16/10/2026, seis cenários; pendências
+MQTT/cliente preservadas. Execução isolada autorizada pelo programador via `nxt`
+em resposta ao pedido explícito para iniciar Docker Desktop, criar/remover
+somente dados sintéticos e parar os serviços deste projeto ao terminar.
+Não reutilizar autorização da F07.7. O `y` em main.spec.ts já foi corrigido
+pelo programador antes desta execução; árvore Git inicialmente limpa.
 
 ## Alvos e alterações
 
@@ -49,7 +53,13 @@ No backend, preparar schema e constraints apenas no vers_test com o setup
 existente e executar suíte dedicada:
 
 ```powershell
-node test/db/prepare.cjs
+$realtimeBackend = (Get-Location).Path
+$realtimeSchema = Join-Path ([IO.Path]::GetTempPath()) ('vers-realtime-schema-' + [guid]::NewGuid())
+New-Item -ItemType Directory -Path (Join-Path $realtimeSchema 'prisma/manual-constraints') -Force | Out-Null
+Copy-Item -LiteralPath 'prisma/schema.prisma' -Destination (Join-Path $realtimeSchema 'prisma/schema.prisma')
+Copy-Item -Path 'prisma/manual-constraints/*.sql' -Destination (Join-Path $realtimeSchema 'prisma/manual-constraints')
+Push-Location $realtimeSchema
+try { node (Join-Path $realtimeBackend 'test/db/prepare.cjs') } finally { Pop-Location }
 $env:VERS_REALTIME_REHEARSAL = 'authorized-local-only'
 node node_modules/jest/bin/jest.js --config test/jest.realtime.config.cjs --runInBand
 ```
@@ -94,3 +104,37 @@ No inventário final apareceu edição concorrente em src/main.spec.ts (`y`
 antes de useWebSocketAdapter), preservada por estar fora do lote. Checks
 aprovados antecedem essa edição; corrigir antes de nova validação/execução.
 git diff --check e inspeção de espaços dos novos arquivos aprovados.
+
+## Execução real — 16/10/2026
+
+Docker Desktop iniciado, portas 55432/56379 livres. Criado somente projeto
+vers-realtime-rehearsal; PostgreSQL e Redis confirmados saudáveis. Schema e
+constraints aplicados pelo prepare.cjs existente, com cwd em cópia temporária
+contendo somente schema e SQL, evitando carregamento de .env do repositório.
+Cópia removida após verificar caminho exato dentro do temporário do sistema.
+
+Seis cenários passaram com serviços reais: polling/websocket e ACK→PUBLISH→
+aviso, negação de recurso alheio/ausente, Origin alheio, vínculo removido,
+sessão revogada e restart somente Redis com nova assinatura obrigatória.
+Não foi necessário alterar código de produção.
+
+Primeira execução passou mas exibiu aviso de saída tardia do Jest. Diagnóstico
+detectOpenHandles também passou e encerrou com código zero. Instrumentação
+temporária identificou timers schedulePing/Polling.doClose do Engine.IO durante
+fechamento gracioso de 30 s. Um diagnóstico inicialmente falhou por tipagem
+do recurso async_hooks; corrigido somente para diagnóstico e removido depois.
+Limpeza final da suíte fecha engine do servidor de teste antes dos hooks Nest;
+spy apenas captura servidor real criado pelo adaptador, sem substituir seu
+comportamento. Nova execução final: seis testes, código zero, sem aviso residual.
+Sem forceExit ou mudança nos limites/lifecycle de produção.
+
+Validação final: 46 suítes/942 testes unitários, TypeScript noEmit, lint e build
+aprovados. Contagens SQL antes de parar serviços: users, refresh_sessions,
+user_vehicles, vehicles, tests e devices iguais a zero. Testes removeram somente
+seus IDs. Compose stop concluído, ambos containers Exited (0), sem remover volumes.
+
+Primeiro recorte real entregue para revisão. Não cobre pausa/retomada MQTT sob
+queda Redis, snapshot/estado da UI ou HiveMQ/ESP32. Redis foi reiniciado de forma
+real, sem simular disponibilidade; evento deste recorte é publicado diretamente
+no transporte, sem alegar pipeline MQTT→ponte→cliente completo. Sem ativação do
+coordenador habitual, .env, Neon, commit/push ou rebuild por mudança de runtime.

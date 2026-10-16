@@ -221,6 +221,13 @@ o ensaio de transporte real permanece em F08.7, com autorização própria.
 
 Plano: [F08.6 — consistência](../plans/backend-phase-8-consistency.md).
 
+Ensaio [F08.7](../plans/backend-phase-8-rehearsal.md), 16/10/2026: seis cenários
+reais locais aprovados com Redis, PostgreSQL e Socket.IO polling/websocket.
+Cobertura de ACK/aviso, negação de acesso, Origin, revogação de vínculo/sessão e
+restart Redis exigindo nova assinatura. Publicação direta no transporte não
+comprova pipeline MQTT/ponte, pausa/retomada da ingestão ou estado de UI.
+Nenhuma evidência de HiveMQ/ESP32/produção ou garantia durável acrescentada.
+
 ## Transporte interno Redis — lote 8.3
 
 RealtimeModule registra/exporta RealtimePubSubService no backend. Constructor

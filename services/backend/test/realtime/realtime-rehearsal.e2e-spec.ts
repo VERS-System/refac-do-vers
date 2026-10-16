@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { io, Socket } from 'socket.io-client';
+import { Server } from 'socket.io';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { AuthService } from '../../src/modules/auth/auth.service';
 import { LoginAttemptsService } from '../../src/modules/auth/login-attempts.service';
@@ -37,6 +38,7 @@ describe('F08.7 — Redis/Socket.IO/PostgreSQL locais', () => {
   const config = new ConfigService({ CORS_ORIGINS: origin, auth: { accessSecret: secret },
     REDIS_HOST: '127.0.0.1', REDIS_PORT: 56379 });
   let app: INestApplication;
+  let server: Server;
   let redis: RealtimePubSubService;
   let f: RehearsalFixture;
   let userId: string;
@@ -86,12 +88,17 @@ describe('F08.7 — Redis/Socket.IO/PostgreSQL locais', () => {
       { provide: RealtimeAuthorizationService, useValue: new RealtimeAuthorizationService(config, jwt,
         new AuthService(prisma, {} as LoginAttemptsService, jwt, config), new ResourceAccessService(prisma)) },
     ] }).compile();
-    app = module.createNestApplication(); app.useWebSocketAdapter(new RealtimeIoAdapter(app, config));
+    app = module.createNestApplication();
+    const adapter = new RealtimeIoAdapter(app, config);
+    const created = jest.spyOn(adapter, 'createIOServer'); app.useWebSocketAdapter(adapter);
     await app.listen(0, '127.0.0.1'); url = await app.getUrl();
+    server = created.mock.results[0].value as Server;
     redis = app.get(RealtimePubSubService); app.get(RealtimeGateway).start(); redis.start();
     await until(() => redis.status === 'ok');
   });
   afterEach(async () => {
+    // Fecha os transportes de ensaio antes dos hooks para evitar espera graciosa de 30 s no polling.
+    server?.engine.close();
     for (const socket of sockets.splice(0)) socket.disconnect();
     if (app) await app.close();
     if (userId) {

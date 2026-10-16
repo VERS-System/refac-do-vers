@@ -140,3 +140,76 @@ describe('SupportScreen detalhes (12c)', () => {
     expect(onBackToList).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('SupportScreen formulário (12d)', () => {
+  const VEHICLES = [
+    { id: 'v1', label: 'ABC1D23' },
+    { id: 'v2', label: 'XYZ9K99' },
+  ];
+  const INSTALLATIONS = [{ id: 'i1', label: 'VERS Modelo A' }];
+
+  /** Exibe campos, aviso sem documentos e envio no modo criação. */
+  it('exibe o formulário no modo criação', () => {
+    const { getByLabelText, getByTestId, getByText } = render(
+      <SupportScreen installations={INSTALLATIONS} isCreating vehicles={VEHICLES} />,
+    );
+
+    expect(getByTestId('support-form')).toBeTruthy();
+    expect(getByLabelText('Motivo')).toBeTruthy();
+    expect(getByText('Documentos e anexos não fazem parte desta solicitação.')).toBeTruthy();
+  });
+
+  /** Preenche seleção e motivo e envia só os campos do contrato. */
+  it('preenche e envia só os campos do contrato', () => {
+    const onSubmitCreate = jest.fn();
+    const { getByLabelText, getByRole } = render(
+      <SupportScreen
+        installations={INSTALLATIONS}
+        isCreating
+        onSubmitCreate={onSubmitCreate}
+        vehicles={VEHICLES}
+      />,
+    );
+
+    fireEvent.press(getByLabelText('Veículo: ABC1D23'));
+    fireEvent.press(getByLabelText('Instalação: VERS Modelo A'));
+    fireEvent.changeText(getByLabelText('Motivo'), 'Barulho estranho no suporte.');
+    fireEvent.press(getByRole('button', { name: 'Enviar solicitação' }));
+
+    expect(onSubmitCreate).toHaveBeenCalledTimes(1);
+    expect(onSubmitCreate).toHaveBeenCalledWith({
+      vehicleId: 'v1',
+      installationId: 'i1',
+      reason: 'Barulho estranho no suporte.',
+    });
+  });
+
+  /** Repassa a edição no modo controlado, sem estado interno. */
+  it('repassa a edição no modo controlado', () => {
+    const onSupportChange = jest.fn();
+    const { getByLabelText } = render(
+      <SupportScreen
+        isCreating
+        onSupportChange={onSupportChange}
+        supportDraft={{ vehicleId: '', installationId: '', reason: '' }}
+        vehicles={VEHICLES}
+      />,
+    );
+
+    fireEvent.press(getByLabelText('Veículo: ABC1D23'));
+
+    expect(onSupportChange).toHaveBeenCalledTimes(1);
+    expect(onSupportChange).toHaveBeenCalledWith({
+      vehicleId: 'v1',
+      installationId: '',
+      reason: '',
+    });
+  });
+
+  /** Omite o formulário fora do modo criação. */
+  it('omite o formulário fora do modo criação', () => {
+    const { queryByTestId } = render(<SupportScreen />);
+
+    expect(queryByTestId('support-form')).toBeNull();
+  });
+});

@@ -10,8 +10,10 @@
  * de estado pertencem ao backend.
  */
 
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../components/AppHeader';
+import { AuthTextField } from '../components/AuthTextField';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenShell } from '../components/ScreenShell';
 import { theme } from '../constants/theme';
@@ -29,6 +31,20 @@ type SupportScreenProps = {
   selectedRequest?: SupportDetail | null;
   /** Volta à lista; ausente mantém o botão sem efeito. */
   onBackToList?: () => void;
+  /** Liga o modo de formulário; ausente omite o form. */
+  isCreating?: boolean | null;
+  /** Veículos elegíveis; só exibe entre os informados. */
+  vehicles?: SupportOption[];
+  /** Instalações elegíveis; só exibe entre as informadas. */
+  installations?: SupportOption[];
+  /** Rascunho da solicitação; ausente usa estado visual interno. */
+  supportDraft?: SupportDraft | null;
+  /** Edição do rascunho; ausente só atualiza o modo interno. */
+  onSupportChange?: (draft: SupportDraft) => void;
+  /** Envio só com os campos do contrato. */
+  onSubmitCreate?: (draft: SupportDraft) => void;
+  /** Cancela o formulário. */
+  onCancelCreate?: () => void;
 };
 
 /** Estados do contrato de suporte; só exibidos, sem transição no cliente. */
@@ -71,11 +87,44 @@ export const SUPPORT_STATUS_LABELS: Record<SupportStatus, string> = {
   CANCELLED: 'Cancelada',
 };
 
+/** Opção de veículo ou instalação; vem pronta, sem buscar nada. */
+export type SupportOption = {
+  /** Identificador estável do recurso. */
+  id: string;
+  /** Rótulo cru do recurso. */
+  label: string;
+};
+
+/** Rascunho da solicitação; só os campos do contrato. */
+export type SupportDraft = {
+  /** Veículo escolhido; vazio é nenhuma escolha. */
+  vehicleId: string;
+  /** Instalação escolhida; vazio é nenhuma escolha. */
+  installationId: string;
+  /** Motivo textual; cru, sem validação no cliente. */
+  reason: string;
+};
+
+/** Rascunho vazio; nenhuma escolha e nenhum texto. */
+const EMPTY_DRAFT: SupportDraft = { vehicleId: '', installationId: '', reason: '' };
+
 /**
- * Renderiza o scaffold do suporte com lista e detalhes; o formulário chega
- * no próximo lote por props.
+ * Renderiza o scaffold do suporte com lista, detalhes e formulário; a
+ * confirmação e os estados chegam nos próximos lotes por props.
  */
-export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreate, selectedRequest = null, onBackToList }: SupportScreenProps) {
+export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreate, selectedRequest = null, onBackToList, isCreating, vehicles, installations, supportDraft, onSupportChange, onSubmitCreate, onCancelCreate }: SupportScreenProps) {
+  const [innerDraft, setInnerDraft] = useState<SupportDraft>(EMPTY_DRAFT);
+  const isControlled = supportDraft != null;
+  const draft = isControlled ? (supportDraft as SupportDraft) : innerDraft;
+
+  /** Atualiza o rascunho; no modo interno edita o campo direto. */
+  const changeDraft = (next: SupportDraft) => {
+    if (!isControlled) {
+      setInnerDraft(next);
+    }
+    onSupportChange?.(next);
+  };
+
   return (
     <ScreenShell testID="support-screen">
       <AppHeader
@@ -84,7 +133,96 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
         testID="support-header"
         title="Suporte"
       />
-      {selectedRequest ? (
+      {isCreating ? (
+        <View style={styles.emptyBlock} testID="support-form">
+          {vehicles && vehicles.length > 0 ? (
+            <View testID="support-vehicle-options">
+              <Text style={styles.fieldLabel}>Veículo</Text>
+              <View style={styles.optionRow}>
+                {vehicles.map((option) => (
+                  <Pressable
+                    accessibilityLabel={`Veículo: ${option.label}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: draft.vehicleId === option.id }}
+                    key={option.id}
+                    onPress={() => changeDraft({ ...draft, vehicleId: option.id })}
+                    style={[
+                      styles.optionChip,
+                      draft.vehicleId === option.id && styles.optionChipSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        draft.vehicleId === option.id && styles.optionChipTextSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {installations && installations.length > 0 ? (
+            <View testID="support-installation-options">
+              <Text style={styles.fieldLabel}>Instalação</Text>
+              <View style={styles.optionRow}>
+                {installations.map((option) => (
+                  <Pressable
+                    accessibilityLabel={`Instalação: ${option.label}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: draft.installationId === option.id }}
+                    key={option.id}
+                    onPress={() => changeDraft({ ...draft, installationId: option.id })}
+                    style={[
+                      styles.optionChip,
+                      draft.installationId === option.id && styles.optionChipSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        draft.installationId === option.id && styles.optionChipTextSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.fieldGap}>
+            <AuthTextField
+              label="Motivo:"
+              multiline
+              onChangeText={(value) => changeDraft({ ...draft, reason: value })}
+              placeholder="Descreva o motivo da revisão"
+              value={draft.reason}
+            />
+          </View>
+          <Text style={styles.noticeText}>
+            Documentos e anexos não fazem parte desta solicitação.
+          </Text>
+          <View style={styles.createButton}>
+            <PrimaryButton
+              accessibilityLabel="Enviar solicitação"
+              label="ENVIAR SOLICITAÇÃO"
+              onPress={() => onSubmitCreate?.(draft)}
+            />
+          </View>
+          <View style={styles.createButton}>
+            <PrimaryButton
+              accessibilityLabel="Cancelar solicitação"
+              label="CANCELAR"
+              onPress={() => onCancelCreate?.()}
+            />
+          </View>
+        </View>
+      ) : selectedRequest ? (
         <View style={styles.emptyBlock} testID="support-detail">
           <Text style={styles.statusSeal}>{SUPPORT_STATUS_LABELS[selectedRequest.status]}</Text>
           <Text style={styles.reasonText}>{selectedRequest.reason}</Text>
@@ -209,5 +347,44 @@ const styles = StyleSheet.create({
   fieldText: {
     color: theme.colors.gold,
     fontSize: 13,
+  },
+  /** Espaço entre os campos do formulário. */
+  fieldGap: {
+    marginTop: theme.spacing.md,
+  },
+  /** Aviso de escopo; documentos fora do fluxo inicial. */
+  noticeText: {
+    color: theme.colors.gray,
+    fontSize: 12,
+    marginTop: theme.spacing.sm,
+    textAlign: 'center',
+  },
+  /** Linha das opções; só exibe entre as informadas. */
+  optionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: theme.spacing.xs,
+  },
+  /** Chip da opção; sem regra de elegibilidade no cliente. */
+  optionChip: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.lg,
+    marginBottom: theme.spacing.xs,
+    marginRight: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+  },
+  /** Chip da opção escolhida; só marca visual. */
+  optionChipSelected: {
+    backgroundColor: theme.colors.gold,
+  },
+  /** Texto do chip; cru, sem conversão. */
+  optionChipText: {
+    color: theme.colors.gold,
+    fontSize: 12,
+  },
+  /** Texto do chip escolhido; só contraste. */
+  optionChipTextSelected: {
+    color: theme.colors.dark,
   },
 });

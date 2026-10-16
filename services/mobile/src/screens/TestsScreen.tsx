@@ -339,6 +339,7 @@ export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items =
               <Pressable
                 accessibilityLabel={item.name}
                 accessibilityRole="button"
+                hitSlop={8}
                 key={item.id}
                 onPress={() => onSelectTest?.(item.id)}
                 style={styles.listRow}

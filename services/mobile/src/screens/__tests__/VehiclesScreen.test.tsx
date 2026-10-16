@@ -445,3 +445,16 @@ describe('VehiclesScreen sessão expirada (13b)', () => {
     expect(onOpenLogin).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('VehiclesScreen alvos de toque (13f)', () => {
+  /** Garante alvo de toque nas linhas. */
+  it('garante alvo de toque nas linhas', () => {
+    const { getByLabelText } = render(
+      <VehiclesScreen
+        items={[{ id: 'v1', isPrimary: false, licensePlate: 'ABC1D23', model: 'Modelo X' }]}
+      />,
+    );
+
+    expect(getByLabelText('ABC1D23 Modelo X').props.hitSlop).toBeTruthy();
+  });
+});

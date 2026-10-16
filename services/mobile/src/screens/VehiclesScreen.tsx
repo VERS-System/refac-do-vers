@@ -363,6 +363,7 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
               <Pressable
                 accessibilityLabel={`${item.licensePlate} ${item.model ?? ''}`.trim()}
                 accessibilityRole="button"
+                hitSlop={8}
                 key={item.id}
                 onPress={() => onSelectVehicle?.(item.id)}
                 style={styles.listRow}

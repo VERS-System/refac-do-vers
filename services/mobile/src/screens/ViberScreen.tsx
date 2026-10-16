@@ -238,6 +238,7 @@ function ViberSuggestions({ onSuggest }: { onSuggest: (text: string) => void }) 
         <Pressable
           accessibilityLabel={suggestion}
           accessibilityRole="button"
+          hitSlop={8}
           key={suggestion}
           onPress={() => onSuggest(suggestion)}
           style={styles.suggestionChip}
@@ -271,6 +272,7 @@ function ViberContextBar({
             accessibilityLabel={context.label}
             accessibilityRole="button"
             accessibilityState={{ selected }}
+            hitSlop={8}
             key={context.id}
             onPress={() => onContextChange?.(context.id)}
             style={[styles.contextChip, selected ? styles.contextChipSelected : null]}
@@ -318,6 +320,7 @@ function ViberComposer({
         accessibilityRole="button"
         accessibilityState={{ disabled }}
         disabled={disabled}
+        hitSlop={8}
         onPress={() => onSend?.(draft)}
         style={styles.sendButton}
       >

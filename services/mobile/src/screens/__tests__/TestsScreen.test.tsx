@@ -349,3 +349,23 @@ describe('TestsScreen selo de amostra (13c)', () => {
     expect(queryByTestId('tests-sample-seal')).toBeNull();
   });
 });
+
+describe('TestsScreen alvos de toque (13f)', () => {
+  /** Garante alvo de toque nas linhas. */
+  it('garante alvo de toque nas linhas', () => {
+    const { getByLabelText } = render(
+      <TestsScreen
+        items={[
+          {
+            id: 't1',
+            name: 'Asfalto seco',
+            periodLabel: '14/03/2026 12:00 UTC',
+            status: 'COMPLETED',
+          },
+        ]}
+      />,
+    );
+
+    expect(getByLabelText('Asfalto seco').props.hitSlop).toBeTruthy();
+  });
+});

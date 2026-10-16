@@ -390,3 +390,16 @@ describe('ViberScreen selo de amostra (13c)', () => {
     expect(queryByTestId('viber-sample-seal')).toBeNull();
   });
 });
+
+describe('ViberScreen alvos de toque (13f)', () => {
+  /** Garante alvo de toque nos atalhos, no contexto e no envio. */
+  it('garante alvo de toque nos atalhos e no envio', () => {
+    const { getByLabelText } = render(
+      <ViberScreen contexts={[{ id: 'c1', label: 'Garagem' }]} draft="" />,
+    );
+
+    expect(getByLabelText('Battery usage').props.hitSlop).toBeTruthy();
+    expect(getByLabelText('Garagem').props.hitSlop).toBeTruthy();
+    expect(getByLabelText('Enviar mensagem').props.hitSlop).toBeTruthy();
+  });
+});

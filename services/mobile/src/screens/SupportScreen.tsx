@@ -41,10 +41,12 @@ type SupportScreenProps = {
   supportDraft?: SupportDraft | null;
   /** Edição do rascunho; ausente só atualiza o modo interno. */
   onSupportChange?: (draft: SupportDraft) => void;
-  /** Envio só com os campos do contrato. */
+  /** Envio só com os campos do contrato, após a confirmação. */
   onSubmitCreate?: (draft: SupportDraft) => void;
   /** Cancela o formulário. */
   onCancelCreate?: () => void;
+  /** Confirmação de envio; ausente usa estado visual interno. */
+  confirmingCreate?: boolean | null;
 };
 
 /** Estados do contrato de suporte; só exibidos, sem transição no cliente. */
@@ -112,10 +114,13 @@ const EMPTY_DRAFT: SupportDraft = { vehicleId: '', installationId: '', reason: '
  * Renderiza o scaffold do suporte com lista, detalhes e formulário; a
  * confirmação e os estados chegam nos próximos lotes por props.
  */
-export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreate, selectedRequest = null, onBackToList, isCreating, vehicles, installations, supportDraft, onSupportChange, onSubmitCreate, onCancelCreate }: SupportScreenProps) {
+export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreate, selectedRequest = null, onBackToList, isCreating, vehicles, installations, supportDraft, onSupportChange, onSubmitCreate, onCancelCreate, confirmingCreate = null }: SupportScreenProps) {
   const [innerDraft, setInnerDraft] = useState<SupportDraft>(EMPTY_DRAFT);
+  const [innerConfirming, setInnerConfirming] = useState(false);
+  const [innerSent, setInnerSent] = useState(false);
   const isControlled = supportDraft != null;
   const draft = isControlled ? (supportDraft as SupportDraft) : innerDraft;
+  const isConfirmingCreate = confirmingCreate ?? innerConfirming;
 
   /** Atualiza o rascunho; no modo interno edita o campo direto. */
   const changeDraft = (next: SupportDraft) => {
@@ -124,6 +129,37 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
     }
     onSupportChange?.(next);
   };
+
+  /** Abre a confirmação inline; o rascunho segue intacto. */
+  function requestCreate() {
+    if (confirmingCreate == null) {
+      setInnerConfirming(true);
+    }
+  }
+
+  /** Confirma o envio com o rascunho atual e marca como concluído. */
+  function confirmCreate() {
+    if (confirmingCreate == null) {
+      setInnerConfirming(false);
+      setInnerSent(true);
+    }
+
+    onSubmitCreate?.(draft);
+  }
+
+  /** Cancela a confirmação e volta à edição sem apagar o digitado. */
+  function cancelCreateConfirm() {
+    if (confirmingCreate == null) {
+      setInnerConfirming(false);
+    }
+  }
+
+  /** Sai do envio concluído e volta à lista. */
+  function dismissSent() {
+    setInnerSent(false);
+
+    onBackToList?.();
+  }
 
   return (
     <ScreenShell testID="support-screen">
@@ -207,11 +243,47 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
           <Text style={styles.noticeText}>
             Documentos e anexos não fazem parte desta solicitação.
           </Text>
+          {innerSent ? (
+            <View style={styles.confirmBlock} testID="support-create-success">
+              <Text
+                accessibilityRole="alert"
+                style={styles.confirmText}
+              >
+                Solicitação enviada.
+              </Text>
+              <View style={styles.createButton}>
+                <PrimaryButton
+                  accessibilityLabel="Voltar para a lista"
+                  label="VOLTAR PARA A LISTA"
+                  onPress={dismissSent}
+                />
+              </View>
+            </View>
+          ) : null}
+          {isConfirmingCreate ? (
+            <View style={styles.confirmBlock} testID="support-create-confirm">
+              <Text style={styles.confirmText}>Enviar esta solicitação?</Text>
+              <View style={styles.createButton}>
+                <PrimaryButton
+                  accessibilityLabel="Confirmar envio"
+                  label="CONFIRMAR ENVIO"
+                  onPress={confirmCreate}
+                />
+              </View>
+              <View style={styles.createButton}>
+                <PrimaryButton
+                  accessibilityLabel="Cancelar confirmação"
+                  label="CANCELAR"
+                  onPress={cancelCreateConfirm}
+                />
+              </View>
+            </View>
+          ) : null}
           <View style={styles.createButton}>
             <PrimaryButton
               accessibilityLabel="Enviar solicitação"
               label="ENVIAR SOLICITAÇÃO"
-              onPress={() => onSubmitCreate?.(draft)}
+              onPress={requestCreate}
             />
           </View>
           <View style={styles.createButton}>
@@ -386,5 +458,17 @@ const styles = StyleSheet.create({
   /** Texto do chip escolhido; só contraste. */
   optionChipTextSelected: {
     color: theme.colors.dark,
+  },
+  /** Bloco da confirmação e do envio concluído; só pede decisão. */
+  confirmBlock: {
+    marginTop: theme.spacing.md,
+  },
+  /** Texto da confirmação; sem dado sensível. */
+  confirmText: {
+    color: theme.colors.gold,
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
   },
 });

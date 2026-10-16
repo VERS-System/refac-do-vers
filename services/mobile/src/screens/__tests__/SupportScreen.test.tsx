@@ -159,10 +159,10 @@ describe('SupportScreen formulário (12d)', () => {
     expect(getByText('Documentos e anexos não fazem parte desta solicitação.')).toBeTruthy();
   });
 
-  /** Preenche seleção e motivo e envia só os campos do contrato. */
-  it('preenche e envia só os campos do contrato', () => {
+  /** Preenche seleção e motivo e abre a confirmação antes de enviar (12e). */
+  it('preenche e abre a confirmação antes de enviar', () => {
     const onSubmitCreate = jest.fn();
-    const { getByLabelText, getByRole } = render(
+    const { getByLabelText, getByRole, getByTestId, queryByTestId } = render(
       <SupportScreen
         installations={INSTALLATIONS}
         isCreating
@@ -176,12 +176,9 @@ describe('SupportScreen formulário (12d)', () => {
     fireEvent.changeText(getByLabelText('Motivo'), 'Barulho estranho no suporte.');
     fireEvent.press(getByRole('button', { name: 'Enviar solicitação' }));
 
-    expect(onSubmitCreate).toHaveBeenCalledTimes(1);
-    expect(onSubmitCreate).toHaveBeenCalledWith({
-      vehicleId: 'v1',
-      installationId: 'i1',
-      reason: 'Barulho estranho no suporte.',
-    });
+    expect(getByTestId('support-create-confirm')).toBeTruthy();
+    expect(onSubmitCreate).not.toHaveBeenCalled();
+    expect(queryByTestId('support-create-success')).toBeNull();
   });
 
   /** Repassa a edição no modo controlado, sem estado interno. */
@@ -211,5 +208,71 @@ describe('SupportScreen formulário (12d)', () => {
     const { queryByTestId } = render(<SupportScreen />);
 
     expect(queryByTestId('support-form')).toBeNull();
+  });
+});
+
+describe('SupportScreen confirmação e envio (12e)', () => {
+  const VEHICLES = [{ id: 'v1', label: 'ABC1D23' }];
+  const INSTALLATIONS = [{ id: 'i1', label: 'VERS Modelo A' }];
+
+  /** Abre a confirmação inline ao enviar, sem submeter direto. */
+  it('abre a confirmação ao enviar', () => {
+    const onSubmitCreate = jest.fn();
+    const { getByRole, getByTestId } = render(
+      <SupportScreen
+        installations={INSTALLATIONS}
+        isCreating
+        onSubmitCreate={onSubmitCreate}
+        vehicles={VEHICLES}
+      />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Enviar solicitação' }));
+
+    expect(getByTestId('support-create-confirm')).toBeTruthy();
+    expect(onSubmitCreate).not.toHaveBeenCalled();
+  });
+
+  /** Confirma e envia só os campos do contrato, com envio concluído. */
+  it('confirma e envia com o rascunho', () => {
+    const onSubmitCreate = jest.fn();
+    const { getByLabelText, getByRole, getByTestId, queryByTestId } = render(
+      <SupportScreen
+        installations={INSTALLATIONS}
+        isCreating
+        onSubmitCreate={onSubmitCreate}
+        vehicles={VEHICLES}
+      />,
+    );
+
+    fireEvent.press(getByLabelText('Veículo: ABC1D23'));
+    fireEvent.changeText(getByLabelText('Motivo'), 'Barulho estranho no suporte.');
+    fireEvent.press(getByRole('button', { name: 'Enviar solicitação' }));
+    fireEvent.press(getByRole('button', { name: 'Confirmar envio' }));
+
+    expect(onSubmitCreate).toHaveBeenCalledTimes(1);
+    expect(onSubmitCreate).toHaveBeenCalledWith({
+      vehicleId: 'v1',
+      installationId: '',
+      reason: 'Barulho estranho no suporte.',
+    });
+    expect(getByTestId('support-create-success')).toBeTruthy();
+    expect(queryByTestId('support-create-confirm')).toBeNull();
+  });
+
+  /** Cancela a confirmação sem apagar o digitado e sem enviar. */
+  it('cancela a confirmação sem apagar o digitado', () => {
+    const onSubmitCreate = jest.fn();
+    const { getByDisplayValue, getByLabelText, getByRole, queryByTestId } = render(
+      <SupportScreen isCreating onSubmitCreate={onSubmitCreate} vehicles={VEHICLES} />,
+    );
+
+    fireEvent.changeText(getByLabelText('Motivo'), 'Barulho estranho no suporte.');
+    fireEvent.press(getByRole('button', { name: 'Enviar solicitação' }));
+    fireEvent.press(getByRole('button', { name: 'Cancelar confirmação' }));
+
+    expect(queryByTestId('support-create-confirm')).toBeNull();
+    expect(getByDisplayValue('Barulho estranho no suporte.')).toBeTruthy();
+    expect(onSubmitCreate).not.toHaveBeenCalled();
   });
 });

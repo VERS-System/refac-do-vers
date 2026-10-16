@@ -428,3 +428,23 @@ describe('SupportScreen indisponibilidade (13a)', () => {
     expect(queryByTestId('support-unavailable')).toBeNull();
   });
 });
+
+describe('SupportScreen sessão expirada (13b)', () => {
+  const ITEMS = [{ id: 'r1', status: 'OPEN' as const, createdAt: '2026-10-01T10:00:00.000Z' }];
+
+  /** Exibe expirada com volta ao login, sem conteúdo. */
+  it('exibe expirada com volta ao login', () => {
+    const onOpenLogin = jest.fn();
+    const { getByRole, getByTestId, getByText, queryByTestId } = render(
+      <SupportScreen items={ITEMS} onOpenLogin={onOpenLogin} status="sessionExpired" />,
+    );
+
+    expect(getByTestId('support-session-expired')).toBeTruthy();
+    expect(getByText('Sessão expirada. Entre novamente para continuar.')).toBeTruthy();
+    expect(queryByTestId('support-list')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Ir para o Login' }));
+
+    expect(onOpenLogin).toHaveBeenCalledTimes(1);
+  });
+});

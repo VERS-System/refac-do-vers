@@ -70,10 +70,12 @@ type VehiclesScreenProps = {
   status?: VehicleScreenStatus;
   /** Repete a carga no erro; ausente mantém o botão sem efeito. */
   onRetry?: () => void;
+  /** Volta ao login na expirada; ausente mantém o botão sem efeito. */
+  onOpenLogin?: () => void;
 };
 
 /** Estados visuais dos veículos; a origem dos dados é do backend (F05 futuro). */
-export type VehicleScreenStatus = 'loading' | 'success' | 'empty' | 'error' | 'unavailable';
+export type VehicleScreenStatus = 'loading' | 'success' | 'empty' | 'error' | 'unavailable' | 'sessionExpired';
 
 /** Mutáveis do veículo; placa e id nunca entram. */
 export type VehicleUpdate = {
@@ -145,7 +147,7 @@ const EMPTY_VEHICLE: VehicleDraft = {
  * veículos, delegando voltar, seleção, cadastro, edição, remoção, principal
  * e troca de aba por callbacks.
  */
-export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary, vehicleDraft = null, onVehicleChange, onSubmitCreate, editingVehicle = null, onSubmitUpdate, onCancelEditVehicle, confirmingRemove = null, onRequestRemove, onConfirmRemove, onCancelRemove, replacementRequired = null, conflictMessage = null, actionsDisabled = null, status = 'success', onRetry }: VehiclesScreenProps) {
+export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle, onOpenCreate, selectedVehicle = null, onEditVehicle, onRemoveVehicle, onMakePrimary, vehicleDraft = null, onVehicleChange, onSubmitCreate, editingVehicle = null, onSubmitUpdate, onCancelEditVehicle, confirmingRemove = null, onRequestRemove, onConfirmRemove, onCancelRemove, replacementRequired = null, conflictMessage = null, actionsDisabled = null, status = 'success', onRetry, onOpenLogin }: VehiclesScreenProps) {
   const [internalDraft, setInternalDraft] = useState<VehicleDraft>(EMPTY_VEHICLE);
   const [internalConfirming, setInternalConfirming] = useState(false);
   const [internalReplacement, setInternalReplacement] = useState<string | null>(null);
@@ -278,6 +280,33 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
               accessibilityLabel="Tentar novamente"
               label="TENTAR NOVAMENTE"
               onPress={() => onRetry?.()}
+            />
+          </View>
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'sessionExpired') {
+    return (
+      <ScreenShell
+        footer={<BottomNavigation activeTab="profile" onTabPress={onTabPress} />}
+        testID="vehicles-screen"
+      >
+        <View style={styles.stateBlock}>
+          <Text
+            accessibilityLabel="Sessão expirada. Entre novamente para continuar."
+            accessibilityRole="alert"
+            style={styles.emptyText}
+            testID="vehicles-session-expired"
+          >
+            Sessão expirada. Entre novamente para continuar.
+          </Text>
+          <View style={styles.createButton}>
+            <PrimaryButton
+              accessibilityLabel="Ir para o Login"
+              label="IR PARA O LOGIN"
+              onPress={() => onOpenLogin?.()}
             />
           </View>
         </View>

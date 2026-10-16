@@ -425,3 +425,23 @@ describe('VehiclesScreen indisponibilidade (13a)', () => {
     expect(queryByTestId('vehicles-empty')).toBeNull();
   });
 });
+
+describe('VehiclesScreen sessão expirada (13b)', () => {
+  const ITEM = { id: 'v1', isPrimary: true, licensePlate: 'ABC1D23', model: 'Modelo X' };
+
+  /** Exibe expirada com volta ao login, sem conteúdo. */
+  it('exibe expirada com volta ao login', () => {
+    const onOpenLogin = jest.fn();
+    const { getByRole, getByTestId, getByText, queryByTestId } = render(
+      <VehiclesScreen items={[ITEM]} onOpenLogin={onOpenLogin} status="sessionExpired" />,
+    );
+
+    expect(getByTestId('vehicles-session-expired')).toBeTruthy();
+    expect(getByText('Sessão expirada. Entre novamente para continuar.')).toBeTruthy();
+    expect(queryByTestId('vehicles-list')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Ir para o Login' }));
+
+    expect(onOpenLogin).toHaveBeenCalledTimes(1);
+  });
+});

@@ -81,3 +81,62 @@ describe('SupportScreen listagem (12b)', () => {
     expect(onOpenCreate).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('SupportScreen detalhes (12c)', () => {
+  const DETAIL = {
+    id: 'r1',
+    vehicleId: 'v1',
+    installationId: 'i1',
+    reason: 'Barulho estranho no suporte do piezo.',
+    status: 'IN_REVIEW' as const,
+    createdAt: '2026-10-01T10:00:00.000Z',
+    updatedAt: '2026-10-02T10:00:00.000Z',
+  };
+
+  /** Exibe todos os campos crus do detalhe selecionado. */
+  it('exibe os detalhes quando selecionada', () => {
+    const { getByTestId, getByText } = render(
+      <SupportScreen items={[{ id: 'r1', status: 'IN_REVIEW', createdAt: '2026-10-01T10:00:00.000Z' }]} selectedRequest={DETAIL} />,
+    );
+
+    expect(getByTestId('support-detail')).toBeTruthy();
+    expect(getByText('Em revisão')).toBeTruthy();
+    expect(getByText('Barulho estranho no suporte do piezo.')).toBeTruthy();
+    expect(getByText('v1')).toBeTruthy();
+    expect(getByText('i1')).toBeTruthy();
+  });
+
+  /** Representa referências nulas como histórico, sem identificadores. */
+  it('representa nulos como histórico sem identificadores', () => {
+    const { getByTestId, getAllByText, queryByText } = render(
+      <SupportScreen selectedRequest={{ ...DETAIL, vehicleId: null, installationId: null }} />,
+    );
+
+    expect(getByTestId('support-detail')).toBeTruthy();
+    expect(getAllByText('Não disponível').length).toBe(2);
+    expect(queryByText('v1')).toBeNull();
+    expect(queryByText('i1')).toBeNull();
+  });
+
+  /** Mantém só a lista quando nada está selecionado. */
+  it('mantém só a lista sem seleção', () => {
+    const { getByTestId, queryByTestId } = render(
+      <SupportScreen items={[{ id: 'r1', status: 'OPEN', createdAt: '2026-10-01T10:00:00.000Z' }]} selectedRequest={null} />,
+    );
+
+    expect(getByTestId('support-list')).toBeTruthy();
+    expect(queryByTestId('support-detail')).toBeNull();
+  });
+
+  /** Volta à lista por callback puro, sem regra de navegação interna. */
+  it('volta à lista ao acionar o botão voltar da lista', () => {
+    const onBackToList = jest.fn();
+    const { getByRole } = render(
+      <SupportScreen onBackToList={onBackToList} selectedRequest={DETAIL} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Voltar para a lista' }));
+
+    expect(onBackToList).toHaveBeenCalledTimes(1);
+  });
+});

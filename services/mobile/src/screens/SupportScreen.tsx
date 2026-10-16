@@ -55,7 +55,7 @@ type SupportScreenProps = {
 };
 
 /** Estados visuais do suporte; a origem dos dados é do backend (F05 futuro). */
-export type SupportScreenStatus = 'loading' | 'empty' | 'error' | 'sending' | 'success';
+export type SupportScreenStatus = 'loading' | 'empty' | 'error' | 'sending' | 'success' | 'unavailable';
 
 /** Estados do contrato de suporte; só exibidos, sem transição no cliente. */
 export type SupportStatus = 'OPEN' | 'IN_REVIEW' | 'SCHEDULED' | 'RESOLVED' | 'CANCELLED';
@@ -393,7 +393,16 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
             </View>
           ) : null}
 
-          {items.length > 0 ? (
+          {status === 'unavailable' ? (
+            <Text
+              accessibilityLabel="Solicitações indisponíveis no momento."
+              accessibilityRole="alert"
+              style={styles.emptyText}
+              testID="support-unavailable"
+            >
+              Solicitações indisponíveis no momento.
+            </Text>
+          ) : items.length > 0 ? (
             <View style={styles.listCard} testID="support-list">
               {items.map((item) => (
               <Pressable

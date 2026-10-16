@@ -400,3 +400,28 @@ describe('VehiclesScreen acessibilidade (10g)', () => {
     ).toEqual(expect.objectContaining({ selected: true }));
   });
 });
+
+describe('VehiclesScreen indisponibilidade (13a)', () => {
+  const ITEM = { id: 'v1', isPrimary: true, licensePlate: 'ABC1D23', model: 'Modelo X' };
+
+  /** Exibe aviso neutro no lugar da lista quando indisponível. */
+  it('exibe aviso neutro quando indisponível', () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <VehiclesScreen items={[ITEM]} status="unavailable" />,
+    );
+
+    expect(getByTestId('vehicles-unavailable')).toBeTruthy();
+    expect(getByText('Veículos indisponíveis no momento.')).toBeTruthy();
+    expect(queryByTestId('vehicles-list')).toBeNull();
+  });
+
+  /** Exibe o aviso mesmo sem itens, sem o vazio. */
+  it('exibe o aviso sem itens', () => {
+    const { getByTestId, queryByTestId } = render(
+      <VehiclesScreen items={[]} status="unavailable" />,
+    );
+
+    expect(getByTestId('vehicles-unavailable')).toBeTruthy();
+    expect(queryByTestId('vehicles-empty')).toBeNull();
+  });
+});

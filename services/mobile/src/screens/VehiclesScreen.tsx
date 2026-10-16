@@ -73,7 +73,7 @@ type VehiclesScreenProps = {
 };
 
 /** Estados visuais dos veículos; a origem dos dados é do backend (F05 futuro). */
-export type VehicleScreenStatus = 'loading' | 'success' | 'empty' | 'error';
+export type VehicleScreenStatus = 'loading' | 'success' | 'empty' | 'error' | 'unavailable';
 
 /** Mutáveis do veículo; placa e id nunca entram. */
 export type VehicleUpdate = {
@@ -319,7 +319,16 @@ export function VehiclesScreen({ onTabPress, onBack, items = [], onSelectVehicle
           </View>
         ) : null}
 
-        {visibleItems.length > 0 && status !== 'empty' ? (
+        {status === 'unavailable' ? (
+          <Text
+            accessibilityLabel="Veículos indisponíveis no momento."
+            accessibilityRole="alert"
+            style={styles.emptyText}
+            testID="vehicles-unavailable"
+          >
+            Veículos indisponíveis no momento.
+          </Text>
+        ) : visibleItems.length > 0 && status !== 'empty' ? (
           <View style={styles.listCard} testID="vehicles-list">
             {visibleItems.map((item) => (
               <Pressable

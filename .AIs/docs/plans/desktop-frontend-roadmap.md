@@ -166,6 +166,11 @@ Andamento:
   (aguardando revisão e commit do programador).** Validação como os DTOs,
   recusas do backend tratadas, cadastro em três etapas. Plano em
   [desktop-frontend-autenticacao.md](desktop-frontend-autenticacao.md).
+- **Veículos (cadastro de carros) — implementada em 15/10/2026, a pedido do
+  usuário (aguardando revisão).** Lista, cadastro, detalhes, edição, troca do
+  principal e remoção; ID gerado pelo sistema e chassi opcional (ainda sem
+  coluna no backend). Plano em
+  [desktop-frontend-veiculos.md](desktop-frontend-veiculos.md).
 - **Fase 4 concluída**: as 9 telas do Stitch estão implementadas sobre o
   repositório de exemplo. Próximo passo: revisão do programador, commits e
   a Fase 5.

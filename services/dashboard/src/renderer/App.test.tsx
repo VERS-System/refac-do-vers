@@ -36,6 +36,7 @@ describe('App', () => {
     ['/telemetria', 'Telemetria'],
     ['/energia', 'Energia'],
     ['/testes', 'Testes de campo'],
+    ['/veiculos', 'Veículos'],
     ['/veiculo-instalacao', 'Veículo e instalação'],
     ['/viber-ia', 'Viber'],
     ['/configuracoes', 'Configurações'],

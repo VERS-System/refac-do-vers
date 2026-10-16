@@ -810,3 +810,80 @@ describe('criarRepositorioMock — autenticação', () => {
     ).resolves.toBeUndefined();
   });
 });
+
+describe('repositório de exemplo: tela Veículos', () => {
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+  /** O ID vem do sistema (UUID) e o chassi é opcional, validado e único. */
+  it('cadastra com ID gerado e chassi', async () => {
+    const proprio = criarRepositorioMock();
+    for (const veiculo of await proprio.obterVeiculos()) expect(veiculo.id).toMatch(UUID);
+
+    const novo = await proprio.criarVeiculo({ placa: 'GHI2J34', chassi: '9bwzzz377vt004251' });
+    expect(novo.id).toMatch(UUID);
+    expect(novo.chassi).toBe('9BWZZZ377VT004251');
+    expect((await proprio.criarVeiculo({ placa: 'JKL3M45' })).chassi).toBeNull();
+
+    await expect(
+      proprio.criarVeiculo({ placa: 'MNO4P56', chassi: '9BWZZZ377VT004251' }),
+    ).rejects.toMatchObject({ codigo: 'conflito' });
+    await expect(proprio.criarVeiculo({ placa: 'MNO4P56', chassi: 'curto' })).rejects.toMatchObject(
+      { codigo: 'validacao' },
+    );
+  });
+
+  /** O chassi pode ser informado uma vez; depois não muda. */
+  it('preenche o chassi uma vez', async () => {
+    const proprio = criarRepositorioMock();
+    const [, strada] = await proprio.obterVeiculos();
+
+    const editado = await proprio.atualizarVeiculo(strada.id, { chassi: '9bd17164g55123456' });
+    expect(editado.chassi).toBe('9BD17164G55123456');
+    await expect(
+      proprio.atualizarVeiculo(strada.id, { chassi: '9BWZZZ377VT004251' }),
+    ).rejects.toMatchObject({ codigo: 'validacao' });
+  });
+
+  /** Remover segue o backend: substituto quando o principal sai e sobram dois ou mais. */
+  it('remove com substituição do principal', async () => {
+    const proprio = criarRepositorioMock();
+    const [civic, strada] = await proprio.obterVeiculos();
+    const polo = await proprio.criarVeiculo({ placa: 'GHI2J34' });
+    await proprio.atualizarVeiculo(polo.id, { principal: true });
+
+    await expect(proprio.removerVeiculo(polo.id)).rejects.toMatchObject({ codigo: 'validacao' });
+    await expect(proprio.removerVeiculo(polo.id, polo.id)).rejects.toMatchObject({
+      codigo: 'validacao',
+    });
+    await proprio.removerVeiculo(polo.id, strada.id);
+
+    const restantes = await proprio.obterVeiculos();
+    expect(restantes.map((v) => [v.placa, v.principal])).toEqual([
+      ['ABC1D23', false],
+      ['DEF4G56', true],
+    ]);
+    await expect(proprio.removerVeiculo(polo.id)).rejects.toMatchObject({
+      codigo: 'nao-encontrado',
+    });
+    expect(civic.id).not.toBe(strada.id);
+  });
+
+  /** Sobrando um só, ele vira principal; carro com instalação não sai no exemplo. */
+  it('promove o último e protege a instalação', async () => {
+    const proprio = criarRepositorioMock();
+    const [civic, strada] = await proprio.obterVeiculos();
+
+    await expect(proprio.removerVeiculo(civic.id)).rejects.toMatchObject({
+      codigo: 'indisponivel',
+    });
+    await proprio.atualizarVeiculo(strada.id, { principal: true });
+    const polo = await proprio.criarVeiculo({ placa: 'GHI2J34' });
+    await proprio.atualizarVeiculo(polo.id, { principal: true });
+    await proprio.removerVeiculo(strada.id);
+    await proprio.removerVeiculo(polo.id);
+
+    expect((await proprio.obterVeiculos()).map((v) => [v.placa, v.principal])).toEqual([
+      ['ABC1D23', true],
+    ]);
+  });
+});

@@ -316,8 +316,8 @@ export function useLogsDispositivo(dispositivoId: string | null) {
 }
 
 /**
- * Ações de cadastro de veículos: adicionar e editar (inclusive tornar
- * principal). Depois da resposta, refaz as consultas de cadastro, o que
+ * Ações de cadastro de veículos: adicionar, editar (inclusive tornar
+ * principal) e remover. Depois da resposta, refaz as consultas de cadastro, o que
  * atualiza também o veículo dos subtítulos das telas.
  */
 export function useAcoesVeiculo() {
@@ -334,7 +334,12 @@ export function useAcoesVeiculo() {
       repositorio.atualizarVeiculo(veiculoId, atualizacao),
     onSuccess: atualizarCadastro,
   });
-  return { criar, atualizar };
+  const remover = useMutation({
+    mutationFn: ({ veiculoId, substitutoId }: { veiculoId: string; substitutoId?: string }) =>
+      repositorio.removerVeiculo(veiculoId, substitutoId),
+    onSuccess: atualizarCadastro,
+  });
+  return { criar, atualizar, remover };
 }
 
 /** Contextos autorizados para a conversa com o Viber. */

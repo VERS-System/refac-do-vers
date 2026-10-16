@@ -424,3 +424,16 @@ const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function emailValido(email: string): boolean {
   return FORMATO_EMAIL.test(email.trim());
 }
+
+/** Chassi no padrão VIN (ISO 3779): 17 letras e números, sem I, O e Q. */
+const FORMATO_CHASSI = /^[A-HJ-NPR-Z0-9]{17}$/;
+
+/**
+ * Normaliza o chassi digitado (maiúsculas, sem espaços nem hífens) e confere
+ * o padrão VIN. Devolve `null` se não for um chassi válido. O chassi vai
+ * identificar cada carro quando o sistema for real.
+ */
+export function normalizarChassi(chassi: string): string | null {
+  const limpo = chassi.toUpperCase().replace(/[\s-]/g, '');
+  return FORMATO_CHASSI.test(limpo) ? limpo : null;
+}

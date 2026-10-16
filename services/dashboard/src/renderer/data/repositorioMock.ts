@@ -345,6 +345,8 @@ export function criarRepositorioMock(opcoes: OpcoesRepositorioMock = {}): Reposi
     obterVeiculoAtivo: () => executar(() => cadastro.principal()),
     obterVeiculos: () => executar(() => cadastro.listar()),
     criarVeiculo: (novo) => executar(() => cadastro.criar(novo)),
+    removerVeiculo: (veiculoId, substitutoId) =>
+      executar(() => cadastro.remover(veiculoId, substitutoId)),
     atualizarVeiculo: (veiculoId, atualizacao) =>
       executar(() => cadastro.atualizar(veiculoId, atualizacao)),
     obterInstalacao: (veiculoId) =>

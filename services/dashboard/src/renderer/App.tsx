@@ -3,7 +3,7 @@
  *
  * Define as rotas da interface. Usa HashRouter porque, empacotado no
  * Electron, o app é aberto via `file://`, onde rotas baseadas em caminho não
- * funcionam. As 7 telas internas ficam dentro do `AppShell` (sidebar + tela);
+ * funcionam. As 8 telas internas ficam dentro do `AppShell` (sidebar + tela);
  * Login e Criar conta ficam fora dele. A rota raiz e rotas desconhecidas
  * levam à Visão geral, a tela inicial.
  *
@@ -23,6 +23,7 @@ import { EnergiaPage } from '@/pages/EnergiaPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { TelemetriaPage } from '@/pages/TelemetriaPage';
 import { TestesPage } from '@/pages/TestesPage';
+import { VeiculosPage } from '@/pages/VeiculosPage';
 import { VeiculoInstalacaoPage } from '@/pages/VeiculoInstalacaoPage';
 import { ViberIaPage } from '@/pages/ViberIaPage';
 import { VisaoGeralPage } from '@/pages/VisaoGeralPage';
@@ -49,6 +50,7 @@ export default function App({ repositorio: externo }: { repositorio?: Repositori
               <Route path={ROTAS.telemetria} element={<TelemetriaPage />} />
               <Route path={ROTAS.energia} element={<EnergiaPage />} />
               <Route path={ROTAS.testes} element={<TestesPage />} />
+              <Route path={ROTAS.veiculos} element={<VeiculosPage />} />
               <Route path={ROTAS.veiculoInstalacao} element={<VeiculoInstalacaoPage />} />
               <Route path={ROTAS.viberIa} element={<ViberIaPage />} />
               <Route path={ROTAS.configuracoes} element={<ConfiguracoesPage />} />

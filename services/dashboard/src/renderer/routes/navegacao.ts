@@ -5,7 +5,15 @@
  * que um item de menu nunca aponte para uma rota inexistente.
  */
 
-import { Activity, Car, FlaskConical, LayoutDashboard, Settings, Zap } from 'lucide-react';
+import {
+  Activity,
+  Car,
+  CarFront,
+  FlaskConical,
+  LayoutDashboard,
+  Settings,
+  Zap,
+} from 'lucide-react';
 import type { IconComponent } from '@/components/ui/Button';
 import { ViberMark } from '@/components/ui/ViberMark';
 
@@ -20,6 +28,7 @@ export const ROTAS = {
   telemetria: '/telemetria',
   energia: '/energia',
   testes: '/testes',
+  veiculos: '/veiculos',
   veiculoInstalacao: '/veiculo-instalacao',
   viberIa: '/viber-ia',
   configuracoes: '/configuracoes',
@@ -32,6 +41,7 @@ export const NAVEGACAO_PRINCIPAL: ItemNavegacao[] = [
   { path: ROTAS.telemetria, label: 'Telemetria', icon: Activity },
   { path: ROTAS.energia, label: 'Energia', icon: Zap },
   { path: ROTAS.testes, label: 'Testes', icon: FlaskConical },
+  { path: ROTAS.veiculos, label: 'Veículos', icon: CarFront },
   { path: ROTAS.veiculoInstalacao, label: 'Veículo e instalação', icon: Car },
   { path: ROTAS.viberIa, label: 'Viber IA', icon: ViberMark },
   { path: ROTAS.configuracoes, label: 'Configurações', icon: Settings },

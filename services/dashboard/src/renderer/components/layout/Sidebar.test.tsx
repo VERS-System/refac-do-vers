@@ -56,6 +56,7 @@ describe('Sidebar', () => {
       'Telemetria',
       'Energia',
       'Testes',
+      'Veículos',
       'Veículo e instalação',
       'Viber IA',
       'Configurações',

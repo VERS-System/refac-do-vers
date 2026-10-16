@@ -83,6 +83,11 @@ export interface RepositorioVers {
   obterVeiculos(): Promise<Veiculo[]>;
   criarVeiculo(novo: NovoVeiculo): Promise<Veiculo>;
   atualizarVeiculo(veiculoId: string, atualizacao: AtualizacaoVeiculo): Promise<Veiculo>;
+  /**
+   * Remove o veículo da conta (`DELETE /vehicles/:id`). Se ele é o principal
+   * e sobram dois ou mais, `substitutoId` diz qual vira principal.
+   */
+  removerVeiculo(veiculoId: string, substitutoId?: string): Promise<void>;
   obterInstalacao(veiculoId: string): Promise<Instalacao | null>;
   obterConfiguracoes(instalacaoId: string): Promise<Configuracao[]>;
   obterRevisoes(): Promise<Revisao[]>;

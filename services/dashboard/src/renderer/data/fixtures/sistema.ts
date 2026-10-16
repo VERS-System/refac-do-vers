@@ -87,27 +87,33 @@ export const VIBRACAO_EXEMPLO: Vibracao = {
   temperaturaBlocoC: 31.4,
 };
 
+/** IDs dos veículos de exemplo, no formato UUID que o backend gera. */
+export const ID_CIVIC = '3f2b8c1e-6d4a-4b7e-9c21-5a8f0e6d7b14';
+export const ID_STRADA = '8a1d5e90-2c47-4f3b-b6e8-1d9c7a4e2f63';
+
 /**
  * Veículos da usuária: o Civic (principal, com a instalação) e a Strada,
  * que ela dirige e ainda não tem instalação.
  */
 export const VEICULOS_EXEMPLO: Veiculo[] = [
   {
-    id: 'veiculo-civic',
+    id: ID_CIVIC,
     placa: 'ABC1D23',
     fabricante: 'Honda',
     modelo: 'Civic',
     ano: 2026,
+    chassi: null,
     relacao: 'proprietario',
     principal: true,
     criadoEm: '2026-09-10T14:20:00-03:00',
   },
   {
-    id: 'veiculo-strada',
+    id: ID_STRADA,
     placa: 'DEF4G56',
     fabricante: 'Fiat',
     modelo: 'Strada',
     ano: 2024,
+    chassi: null,
     relacao: 'motorista',
     principal: false,
     criadoEm: '2026-09-18T09:05:00-03:00',
@@ -117,7 +123,7 @@ export const VEICULOS_EXEMPLO: Veiculo[] = [
 /** Instalação do VERS no Civic, ativa desde 12/09/2026, com o ESP32 VERS-01. */
 export const INSTALACAO_EXEMPLO: Omit<Instalacao, 'dispositivo'> = {
   id: 'instalacao-pz01',
-  veiculoId: 'veiculo-civic',
+  veiculoId: ID_CIVIC,
   modelo: 'VERS-PZ01',
   status: 'ativa',
   instaladaEm: '2026-09-12',
@@ -184,7 +190,7 @@ export const CONFIGURACOES_EXEMPLO: Configuracao[] = [
 export const REVISOES_EXEMPLO: Revisao[] = [
   {
     id: 'revisao-3',
-    veiculoId: 'veiculo-civic',
+    veiculoId: ID_CIVIC,
     instalacaoId: 'instalacao-pz01',
     motivo: 'Ruído no piezo 6 (traseiro esquerdo), desligado na Config v3.',
     status: 'agendada',
@@ -193,7 +199,7 @@ export const REVISOES_EXEMPLO: Revisao[] = [
   },
   {
     id: 'revisao-2',
-    veiculoId: 'veiculo-civic',
+    veiculoId: ID_CIVIC,
     instalacaoId: 'instalacao-pz01',
     motivo: 'Refixação do piezo 7 após a falha do teste #017.',
     status: 'resolvida',
@@ -202,7 +208,7 @@ export const REVISOES_EXEMPLO: Revisao[] = [
   },
   {
     id: 'revisao-1',
-    veiculoId: 'veiculo-civic',
+    veiculoId: ID_CIVIC,
     instalacaoId: 'instalacao-pz01',
     motivo: 'Recalibração do conversor LTC3588.',
     status: 'resolvida',

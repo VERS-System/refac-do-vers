@@ -13,23 +13,13 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { ProfileScreen } from '../ProfileScreen';
 
 describe('ProfileScreen (09a)', () => {
-  /** Apresenta título e vazio inicial na aba profile. */
-  it('apresenta título e vazio inicial', () => {
-    const { getByTestId, getByText } = render(<ProfileScreen />);
+  /** Apresenta vazio inicial na aba profile, sem barra de título (R1). */
+  it('apresenta vazio inicial sem barra de título', () => {
+    const { getByTestId, queryByTestId } = render(<ProfileScreen />);
 
     expect(getByTestId('profile-screen')).toBeTruthy();
-    expect(getByText('Perfil')).toBeTruthy();
     expect(getByTestId('profile-empty')).toBeTruthy();
-  });
-
-  /** Volta ao fluxo anterior por callback puro, sem regra de navegação interna. */
-  it('volta ao acionar o botão voltar', () => {
-    const onBack = jest.fn();
-    const { getByRole } = render(<ProfileScreen onBack={onBack} />);
-
-    fireEvent.press(getByRole('button', { name: 'Voltar' }));
-
-    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(queryByTestId('profile-header')).toBeNull();
   });
 });
 
@@ -40,7 +30,7 @@ describe('ProfileScreen leitura (09b)', () => {
     email: 'anna@vers.com',
   };
 
-  /** Exibe foto, nome e email crus e esconde o vazio. */
+  /** Exibe foto e nome crus e esconde o vazio (R1, sem email). */
   it('exibe os dados quando informados', () => {
     const { getByTestId, getByText, queryByTestId } = render(
       <ProfileScreen profile={PROFILE} />,
@@ -49,7 +39,6 @@ describe('ProfileScreen leitura (09b)', () => {
     expect(getByTestId('profile-data')).toBeTruthy();
     expect(getByTestId('profile-avatar-image')).toBeTruthy();
     expect(getByText('Anna Newman')).toBeTruthy();
-    expect(getByText('anna@vers.com')).toBeTruthy();
     expect(queryByTestId('profile-empty')).toBeNull();
   });
 
@@ -258,11 +247,10 @@ describe('ProfileScreen sair (09f)', () => {
 describe('ProfileScreen acessibilidade (09g)', () => {
   const PROFILE = { displayName: 'Anna Newman', email: 'anna@vers.com' };
 
-  /** Expõe nome+papel em todos os botões: voltar, editar, atalhos, sair e abas. */
+  /** Expõe nome+papel em todos os botões: editar, atalhos, sair e abas (R1, sem voltar). */
   it('expõe nome acessível em botões e atalhos', () => {
     const { getAllByRole } = render(
       <ProfileScreen
-        onBack={jest.fn()}
         onOpenSupport={jest.fn()}
         onOpenVehicles={jest.fn()}
         profile={PROFILE}
@@ -270,7 +258,7 @@ describe('ProfileScreen acessibilidade (09g)', () => {
     );
 
     const buttons = getAllByRole('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(9);
+    expect(buttons.length).toBeGreaterThanOrEqual(8);
 
     for (const button of buttons) {
       expect(button.props.accessibilityLabel).toBeTruthy();
@@ -296,5 +284,37 @@ describe('ProfileScreen acessibilidade (09g)', () => {
     expect(
       getByRole('button', { name: 'Início' }).props.accessibilityState,
     ).toEqual(expect.objectContaining({ selected: false }));
+  });
+});
+
+describe('ProfileScreen reestilização (R1)', () => {
+  const PROFILE = { displayName: 'Anna Newman', email: 'anna@vers.com' };
+
+  /** Exibe o selo de admin quando informado e omite sem ele. */
+  it('exibe selo de admin quando informado', () => {
+    const { getByTestId, getByText, queryByTestId, rerender } = render(
+      <ProfileScreen isAdmin profile={PROFILE} />,
+    );
+
+    expect(getByTestId('profile-admin-seal')).toBeTruthy();
+    expect(getByText('Área do administrador')).toBeTruthy();
+
+    rerender(<ProfileScreen profile={PROFILE} />);
+
+    expect(queryByTestId('profile-admin-seal')).toBeNull();
+  });
+
+  /** Apresenta avatar com anel e nome sem barra de título. */
+  it('apresenta avatar e nome sem barra de título', () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <ProfileScreen
+        profile={{ avatarUrl: 'https://exemplo.com/ana.png', displayName: 'Anna Newman' }}
+      />,
+    );
+
+    expect(getByTestId('profile-avatar-ring')).toBeTruthy();
+    expect(getByTestId('profile-avatar-image')).toBeTruthy();
+    expect(getByText('Anna Newman')).toBeTruthy();
+    expect(queryByTestId('profile-header')).toBeNull();
   });
 });

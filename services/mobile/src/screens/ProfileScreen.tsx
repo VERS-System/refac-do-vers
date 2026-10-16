@@ -1,9 +1,10 @@
 /**
- * Implementa a tela de perfil (Task 09, lotes 09a–09f).
+ * Implementa a tela de perfil (Task 09, lotes 09a–09f; reestilização R1).
  *
  * Existe para dar ao perfil uma rota própria na aba `profile` sem criar
- * pilha nova: usa o `ScreenShell` padrão, o `AppHeader` com voltar por
- * callback e a `BottomNavigation` com a aba profile ativa. Leitura, edição,
+ * pilha nova, no modelo de `fotoConfig.png`: selo de admin, avatar com anel
+ * dourado e nome centralizados, sem barra de título. Usa o `ScreenShell`
+ * padrão e a `BottomNavigation` com a aba profile ativa. Leitura, edição,
  * estados, atalhos e saída chegam por props (fixtures até F01/F05); sem
  * props de controle, edição, rascunho e confirmação usam estado visual
  * interno para não travar a rota. Só `displayName` é enviado e nada é
@@ -13,7 +14,6 @@
 
 import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { AppHeader } from '../components/AppHeader';
 import { AppSkeleton } from '../components/AppSkeleton';
 import { AuthTextField } from '../components/AuthTextField';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
@@ -23,8 +23,10 @@ import { theme } from '../constants/theme';
 
 type ProfileScreenProps = {
   onTabPress?: (tab: MainTab) => void;
-  /** Volta ao fluxo anterior; rota interna, sem regra de sessão. */
+  /** Volta ao fluxo anterior; sem botão próprio nesta tela. */
   onBack?: () => void;
+  /** Exibe o selo de admin; ausente omite o selo. */
+  isAdmin?: boolean | null;
   /** Dados públicos da conta; ausente mantém o vazio. */
   profile?: UserProfile | null;
   /** Modo de edição; ausente usa estado visual interno. */
@@ -88,7 +90,7 @@ function getInitials(displayName?: string | null) {
  * delegando voltar, edição, salvamento, nova tentativa, retorno ao Login,
  * atalhos, saída e troca de aba por callbacks.
  */
-export function ProfileScreen({ onTabPress, onBack, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave, status = 'success', onRetry, onOpenLogin, onOpenVehicles, onOpenSupport, confirmingLogout = null, onRequestLogout, onConfirmLogout, onCancelLogout }: ProfileScreenProps) {
+export function ProfileScreen({ onTabPress, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave, status = 'success', onRetry, onOpenLogin, onOpenVehicles, onOpenSupport, confirmingLogout = null, onRequestLogout, onConfirmLogout, onCancelLogout, isAdmin = null }: ProfileScreenProps) {
   const [internalEditing, setInternalEditing] = useState(false);
   const [internalDraft, setInternalDraft] = useState<string | null>(null);
   const [internalSaved, setInternalSaved] = useState<string | null>(null);
@@ -243,28 +245,29 @@ export function ProfileScreen({ onTabPress, onBack, profile = null, editing = nu
       footer={<BottomNavigation activeTab="profile" onTabPress={onTabPress} />}
       testID="profile-screen"
     >
-      <AppHeader
-        onBack={onBack}
-        subtitle="Dados da conta e acessos"
-        testID="profile-header"
-        title="Perfil"
-      />
+      {isAdmin ? (
+        <Text style={styles.adminSeal} testID="profile-admin-seal">
+          Área do administrador
+        </Text>
+      ) : null}
 
       <View style={styles.emptyBlock}>
         {profile && status !== 'empty' ? (
           <View style={styles.card} testID="profile-data">
-            {profile.avatarUrl ? (
-              <Image
-                accessibilityLabel="Foto de perfil"
-                source={{ uri: profile.avatarUrl }}
-                style={styles.avatar}
-                testID="profile-avatar-image"
-              />
-            ) : (
-              <View style={styles.avatarFallback} testID="profile-avatar-initials">
-                <Text style={styles.initialsText}>{getInitials(currentName)}</Text>
-              </View>
-            )}
+            <View style={styles.avatarRing} testID="profile-avatar-ring">
+              {profile.avatarUrl ? (
+                <Image
+                  accessibilityLabel="Foto de perfil"
+                  source={{ uri: profile.avatarUrl }}
+                  style={styles.avatar}
+                  testID="profile-avatar-image"
+                />
+              ) : (
+                <View style={styles.avatarFallback} testID="profile-avatar-initials">
+                  <Text style={styles.initialsText}>{getInitials(currentName)}</Text>
+                </View>
+              )}
+            </View>
             {isEditing ? (
               <View style={styles.editBlock}>
                 <AuthTextField
@@ -293,9 +296,6 @@ export function ProfileScreen({ onTabPress, onBack, profile = null, editing = nu
                 <Text style={styles.nameText}>
                   {currentName ? currentName : 'Sem nome definido'}
                 </Text>
-                {profile.email ? (
-                  <Text style={styles.emailText}>{profile.email}</Text>
-                ) : null}
                 <View style={styles.actionButton}>
                   <PrimaryButton
                     accessibilityLabel="Editar perfil"
@@ -393,30 +393,42 @@ const styles = StyleSheet.create({
     padding: 16,
     width: '100%',
   },
+  adminSeal: {
+    alignSelf: 'flex-start',
+    color: theme.colors.gold,
+    fontSize: 12,
+  },
+  avatarRing: {
+    alignItems: 'center',
+    borderColor: theme.colors.gold,
+    borderRadius: 50,
+    borderWidth: 2,
+    height: 100,
+    justifyContent: 'center',
+    width: 100,
+  },
   avatar: {
-    borderRadius: 32,
-    height: 64,
-    width: 64,
+    borderRadius: 46,
+    height: 92,
+    width: 92,
   },
   avatarFallback: {
     alignItems: 'center',
     backgroundColor: theme.colors.tabActive,
-    borderColor: theme.colors.border,
-    borderRadius: 32,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 64,
+    borderRadius: 46,
+    height: 92,
     justifyContent: 'center',
-    width: 64,
+    width: 92,
   },
   initialsText: {
     color: theme.colors.primary,
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: '700',
   },
   nameText: {
-    color: theme.colors.white,
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.gold,
+    fontSize: 18,
+    fontWeight: '700',
     marginTop: 8,
   },
   editBlock: {
@@ -439,11 +451,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  emailText: {
-    color: theme.colors.gray,
-    fontSize: 12,
-    marginTop: 4,
   },
   emptyText: {
     color: theme.colors.white,

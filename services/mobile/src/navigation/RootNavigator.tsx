@@ -14,6 +14,7 @@ import { BatteryScreen } from '../screens/BatteryScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { SupportScreen } from '../screens/SupportScreen';
 import { TestsScreen } from '../screens/TestsScreen';
 import { VehiclesScreen } from '../screens/VehiclesScreen';
 import { VersSystemScreen } from '../screens/VersSystemScreen';
@@ -47,6 +48,7 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
   const [isTestsVisible, setTestsVisible] = useState(false);
   const [isVehiclesVisible, setVehiclesVisible] = useState(false);
   const [isViberVisible, setViberVisible] = useState(false);
+  const [isSupportVisible, setSupportVisible] = useState(false);
 
   if (isSplashVisible) {
     return <SplashScreen />;
@@ -59,6 +61,10 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
 
     if (isViberVisible) {
       return <ViberScreen onBack={() => setViberVisible(false)} />;
+    }
+
+    if (isSupportVisible) {
+      return <SupportScreen onBack={() => setSupportVisible(false)} />;
     }
 
     if (isTestsVisible) {
@@ -80,12 +86,19 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
     }
 
     if (activeTab === 'vers') {
-      return <VersSystemScreen onOpenTests={() => setTestsVisible(true)} onTabPress={setActiveTab} />;
+      return (
+        <VersSystemScreen
+          onOpenSupport={() => setSupportVisible(true)}
+          onOpenTests={() => setTestsVisible(true)}
+          onTabPress={setActiveTab}
+        />
+      );
     }
 
     if (activeTab === 'profile') {
       return (
         <ProfileScreen
+          onOpenSupport={() => setSupportVisible(true)}
           onOpenVehicles={() => setVehiclesVisible(true)}
           onTabPress={setActiveTab}
           profile={DEMO_PROFILE}

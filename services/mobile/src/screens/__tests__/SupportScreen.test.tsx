@@ -31,3 +31,53 @@ describe('SupportScreen (12a)', () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('SupportScreen listagem (12b)', () => {
+  const ITEMS = [
+    { id: 'r1', status: 'OPEN' as const, createdAt: '2026-10-01T10:00:00.000Z' },
+    { id: 'r2', status: 'RESOLVED' as const, createdAt: '2026-10-02T10:00:00.000Z' },
+  ];
+
+  /** Exibe as linhas com o selo textual de status, sem o vazio. */
+  it('exibe a lista com selo de status quando informada', () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <SupportScreen items={ITEMS} />,
+    );
+
+    expect(getByTestId('support-list')).toBeTruthy();
+    expect(getByText('Aberta')).toBeTruthy();
+    expect(getByText('Resolvida')).toBeTruthy();
+    expect(queryByTestId('support-empty')).toBeNull();
+  });
+
+  /** Repassa a seleção sem decidir nada no cliente. */
+  it('seleciona a solicitação ao tocar na linha', () => {
+    const onSelectRequest = jest.fn();
+    const { getByLabelText } = render(
+      <SupportScreen items={ITEMS} onSelectRequest={onSelectRequest} />,
+    );
+
+    fireEvent.press(getByLabelText('Aberta 2026-10-01T10:00:00.000Z'));
+
+    expect(onSelectRequest).toHaveBeenCalledTimes(1);
+    expect(onSelectRequest).toHaveBeenCalledWith('r1');
+  });
+
+  /** Mantém só o vazio quando nenhum item é informado. */
+  it('mantém o vazio sem itens', () => {
+    const { getByTestId, queryByTestId } = render(<SupportScreen items={[]} />);
+
+    expect(getByTestId('support-empty')).toBeTruthy();
+    expect(queryByTestId('support-list')).toBeNull();
+  });
+
+  /** Abre o formulário pelo CTA, sem validar nada no cliente. */
+  it('abre o formulário ao acionar nova solicitação', () => {
+    const onOpenCreate = jest.fn();
+    const { getByRole } = render(<SupportScreen onOpenCreate={onOpenCreate} />);
+
+    fireEvent.press(getByRole('button', { name: 'Nova solicitação' }));
+
+    expect(onOpenCreate).toHaveBeenCalledTimes(1);
+  });
+});

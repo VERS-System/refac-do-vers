@@ -1,0 +1,9 @@
+# Credencial consumidora somente lê; cada remetente escreve apenas no seu tópico.
+user backend-test
+topic read vers/v1/devices/+/telemetry
+
+user vers-sim-001
+topic write vers/v1/devices/vers-sim-001/telemetry
+
+user vers-sim-002
+topic write vers/v1/devices/vers-sim-002/telemetry

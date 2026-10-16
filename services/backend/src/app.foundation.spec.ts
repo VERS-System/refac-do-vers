@@ -13,6 +13,7 @@ import { configureApplication } from './main';
 import { PrismaService } from './prisma/prisma.service';
 import { LoginAttemptsService } from './modules/auth/login-attempts.service';
 import { AuthService } from './modules/auth/auth.service';
+import { MqttService } from './modules/mqtt/mqtt.service';
 import {
   PaginationQueryDto,
   UtcDateRangeQueryDto,
@@ -166,15 +167,25 @@ describe('fundacao HTTP da aplicacao', () => {
       headers: { 'x-request-id': 'integration-ready' },
     });
     const body = (await response.json()) as {
-      data: { dependencies: { database: string; redis: string } };
+      data: { dependencies: { database: string; redis: string; mqtt: string } };
       requestId: string;
     };
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({
-      data: { dependencies: { database: 'ok', redis: 'ok' } },
+      data: { dependencies: { database: 'ok', redis: 'ok', mqtt: 'disabled' } },
       requestId: 'integration-ready',
     });
+  });
+
+  it('retorna ready HTTP 200 com MQTT indisponível sem expor broker ou credenciais', async () => {
+    const mqtt = jest.spyOn(app.get(MqttService), 'status', 'get').mockReturnValue('unavailable');
+    try {
+      const response = await fetch(`${baseUrl}/api/v1/health/ready`);
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { data: { dependencies: object } };
+      expect(body.data.dependencies).toEqual({ database: 'ok', redis: 'ok', mqtt: 'unavailable' });
+    } finally { mqtt.mockRestore(); }
   });
 
   it.each([

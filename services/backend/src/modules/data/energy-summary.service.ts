@@ -45,8 +45,8 @@ export class EnergySummaryService {
   }
 
   /** Produz TEST só após encerramento, preservando histórico e a leitura terminal como vizinho. */
-  async recomputeTest(testId: string): Promise<EnergySummary | null> {
-    return this.prisma.$transaction(async (tx) => {
+  async recomputeTest(testId: string, transaction?: Prisma.TransactionClient): Promise<EnergySummary | null> {
+    const recompute = async (tx: Prisma.TransactionClient): Promise<EnergySummary | null> => {
       const initial = await tx.test.findUnique({ where: { id: testId }, select: { installationId: true } });
       if (!initial) throw new NotFoundException({ code: 'TEST_NOT_FOUND' });
       if (initial.installationId !== null) await this.lockInstallation(tx, initial.installationId);
@@ -58,7 +58,58 @@ export class EnergySummaryService {
       if (!['COMPLETED', 'FAILED', 'CANCELLED'].includes(test.status) || !test.startedAt || !test.endedAt ||
         test.endedAt.getTime() <= test.startedAt.getTime()) return null;
       return this.persist(tx, { testId, installationId: test.installationId }, 'TEST', test.startedAt, test.endedAt);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    };
+    return transaction ? recompute(transaction) :
+      this.prisma.$transaction(recompute, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+  }
+
+  /** Recompõe períodos afetados e vizinhos na transação da ingestão, ou repara histórico em transação própria. */
+  async recomputeMessage(messageId: string, transaction?: Prisma.TransactionClient): Promise<void> {
+    const recompute = async (tx: Prisma.TransactionClient): Promise<void> => {
+      const rows = await tx.telemetrySample.findMany({ where: { messageId },
+        select: { installationId: true, deviceId: true, testId: true, capturedAt: true } });
+      if (!rows.length) return;
+      const installations = [...new Set(rows.flatMap((row) => row.installationId ? [row.installationId] : []))].sort();
+      const active = new Set<string>();
+      for (const installationId of installations) {
+        if (await this.lockInstallation(tx, installationId)) active.add(installationId);
+      }
+      for (const testId of [...new Set(rows.flatMap((row) => row.testId ? [row.testId] : []))].sort()) {
+        await this.recomputeTest(testId, tx);
+      }
+      for (const installationId of active) {
+        const groups = new Map<string, typeof rows>();
+        for (const row of rows.filter((item) => item.installationId === installationId)) {
+          const key = JSON.stringify([row.deviceId, row.testId]);
+          const group = groups.get(key) ?? []; group.push(row); groups.set(key, group);
+        }
+        let from = Infinity; let to = -Infinity;
+        for (const group of groups.values()) {
+          const start = new Date(Math.min(...group.map((row) => row.capturedAt.getTime())));
+          const end = new Date(Math.max(...group.map((row) => row.capturedAt.getTime())));
+          const source = { installationId, deviceId: group[0].deviceId, testId: group[0].testId };
+          const [before, after] = group[0].deviceId === null ? [null, null] : await Promise.all([
+            tx.telemetrySample.aggregate({ where: { ...source, capturedAt: { lt: start } }, _max: { capturedAt: true } }),
+            tx.telemetrySample.aggregate({ where: { ...source, capturedAt: { gt: end } }, _min: { capturedAt: true } }),
+          ]);
+          from = Math.min(from, before?._max.capturedAt?.getTime() ?? start.getTime());
+          to = Math.max(to, after?._min.capturedAt?.getTime() ?? end.getTime());
+        }
+        for (const periodType of ['HOUR', 'DAY', 'MONTH'] as const) {
+          let start = new Date(from); start.setUTCMinutes(0, 0, 0);
+          if (periodType !== 'HOUR') start.setUTCHours(0);
+          if (periodType === 'MONTH') start.setUTCDate(1);
+          // shortcut: intervalos extensos podem exceder timeout e manter RECEIVED, particionar trabalho durável quando carga exigir.
+          while (start.getTime() <= to) {
+            const end = calendarEnd(periodType, start);
+            await this.persist(tx, { installationId, testId: null }, periodType, start, end);
+            start = end;
+          }
+        }
+      }
+    };
+    if (transaction) await recompute(transaction);
+    else await this.prisma.$transaction(recompute, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
   }
 
   /** Recompõe um período de instalação; o caller futuro escolhe os períodos afetados. */

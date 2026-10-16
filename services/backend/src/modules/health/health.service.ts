@@ -4,6 +4,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { PrismaService } from '../../prisma/prisma.service';
+import { MqttService } from '../mqtt/mqtt.service';
 
 export interface HealthStatus {
   status: 'ok';
@@ -12,6 +13,7 @@ export interface HealthStatus {
   dependencies?: {
     database: 'ok';
     redis: 'ok';
+    mqtt: 'disabled' | 'unavailable' | 'ok';
   };
 }
 
@@ -47,6 +49,7 @@ export class HealthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly mqtt: MqttService,
   ) {}
 
   /**
@@ -98,6 +101,7 @@ export class HealthService {
         dependencies: {
           database: 'ok',
           redis: 'ok',
+          mqtt: this.mqtt.status,
         },
       };
     } catch {

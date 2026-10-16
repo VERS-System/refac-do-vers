@@ -1,7 +1,14 @@
 <!-- Planeja a ingestão MQTT em etapas revisáveis antes da integração real. -->
 # F07 — Contrato e ingestão MQTT
 
-Estado: proposta para validação, sem autorização de implementação.
+Estado: recortes locais 7.1–7.3 entregues para revisão em 14/10/2026;
+7.4 entregue para revisão com mocks, testes, lint/build e container atualizado.
+7.5 entregue para revisão com mocks/testes/lint/build e container atualizado.
+7.6 entregue para revisão com mocks/testes/lint/build e container atualizado.
+7.7 entregue para revisão com PostgreSQL/Mosquitto TLS isolados autorizados;
+evidências e comandos em [ensaio local](backend-phase-7-rehearsal.md).
+Sequência, políticas temporais e REST não bloqueado por MQTT aprovados;
+integração HiveMQ/ESP32 ainda não iniciada.
 F05 preservada; F06 permanece com as decisões registradas. F08 e F09 serão
 planejadas separadamente após validação do programador.
 
@@ -125,24 +132,371 @@ silenciosa, com evidência de transações/concorrência em PostgreSQL isolado.
 
 ## Decisões para validação
 
-1. Origem do primeiro ensaio: ESP32 disponível ou simulador MQTT aprovado?
+1. Origem do primeiro ensaio: simulador MQTT autorizado em 14/10/2026;
+   ESP32 ainda sem firmware. Isso não autoriza conexão externa ou carga de banco.
 2. Proposta de transporte: QoS 1 para telemetria e eventos; retained desativado
    nesses dois tópicos. Status/Last Will dependem do contrato de conectividade.
-3. Reinício: sequência persiste no dispositivo ou haverá identificador de
-   inicialização no envelope? Segunda opção exige ajuste do schema/contrato.
+3. Reinício: sequência persistente escolhida em 14/10/2026; simulador reserva
+   número em arquivo local antes da saída. Firmware futuro deve manter a regra.
 4. Limites e atraso: definir com exemplos e cadência reais; não usar o limite
    REST de 100 registros como limite automático de lote MQTT.
-5. Retenção e rejeições: definir quanto guardar e como registrar envelopes
-   malformados sem payload irrestrito. Nenhuma limpeza automática sem decisão.
+5. Retenção e rejeições: em 14/10 aprovados logs seguros agregados sem payload
+   inválido e preservação de válidas sem nova limpeza automática no desenvolvimento.
+   Prazo de produção e retenção no destino dos logs continuam pendentes.
 6. Eventos: confirmar quem inicia/finaliza teste e como mensagens offline
    serão associadas; o backend não muda regras operacionais por suposição.
 
 ## Arquivos previstos e limites
+
+### Plano autorizado 7.6 — pipeline, recuperação e resumos após captura
+
+Programador solicitou próximo lote em 14/10/2026 e aprovou recuperação no início
+explícito do pipeline e a cada 60 s. Não ligar no bootstrap, conectar broker
+ou usar Redis como fila. Skills Ponytail/Backend-master/IoT-master/DatArquiteto.
+
+Escopo informado: novo mqtt-pipeline.service.ts/spec.ts, MqttModule e receptor;
+energy-summary.service.ts/spec.ts, testes de processamento/recepção afetados;
+contrato MQTT, plano/índice/contexto. Sem schema, migration, dependência, REST,
+mudança de estado de teste ou frontend. Commits continuam com o programador.
+
+process(id) passa a gravar amostras, recomputar resumos e marcar PROCESSED na
+mesma transação. EnergySummaryService expõe recomputeMessage(id, tx?) e permite
+recomputeTest na transação existente, reutilizando persist/cálculo F06 e locks.
+Recálculo inclui HOUR/DAY/MONTH UTC afetados pelas novas capturas e vizinhos
+imediatos da mesma origem dispositivo/teste, inclusive intervalos sem amostra
+entre pontas. TEST somente após encerramento, conforme regra F06 existente.
+Sem somar deltas incrementalmente, duplicar energia ou usar chegada como captura.
+Intervalos muito extensos podem exceder timeout: abortar e manter RECEIVED,
+sem descarte nem truncamento. Particionar trabalho durável quando carga real
+demonstrar necessidade; não inventar limite de idade/calibração nesta etapa.
+
+Pipeline handle recebe→persiste→processa; duplicata equivalente também retoma
+mensagem pendente. Rejeição permanente é confirmável; falha lança código seguro
+sem ACK positivo. PROCESSED anterior pode reparar resumo por recomputeMessage,
+sem recriar amostras. Evento interno telemetry.processed carrega somente ID
+interno e sai após resolução do commit; perda/falha de listener não desfaz
+histórico. EventEmitter nativo com tratamento de erros síncronos/assíncronos,
+sem promessa de entrega durável ou exposição WebSocket nesta fase.
+
+recover pagina RECEIVED por ID, 100 por consulta, sem offset sobre coleção
+mutável; falha de uma mensagem não bloqueia as posteriores e fica para outra
+varredura. Pagina também testes encerrados com amostras para gerar TEST após
+encerramento sem depender de nova mensagem MQTT, inclusive após crash. Mantém
+regra F06 para histórico já associado de teste cancelado; 7.4 continua impedindo
+novas associações CANCELLED. Falhas agregadas sem payload/causa/IDs do remetente.
+Varredura usa corte de criação e não executa em paralelo consigo mesma.
+
+start explícito só opera quando transporte habilitado; primeiro recupera e só
+depois liga consumidor. Timer único de 60 s é cancelado no shutdown; aguardar
+varredura em curso e impedir nova recepção/reconexão pelo ciclo do transporte.
+Nenhum timer, leitura de histórico ou rede no bootstrap/constructor.
+
+TDD: retomada/retransmissão, falha entre amostra/resumo/estado, commit/evento,
+erro de listener, paginação/falha sem starvation, início/timer/shutdown, teste
+encerrado sem nova telemetria, fronteiras UTC/vizinhos/origins e idempotência.
+Mocks não provam transação/concorrência SQL; ensaio PostgreSQL isolado e broker
+continuam sujeitos à autorização específica e ao fechamento 7.7. Rodar testes
+unitários, lint/build/diff --check e reconstruir/verificar backend no Docker.
+
+#### Entrega local 7.6
+
+Pipeline passivo registrado/exportado; início explícito recupera antes de
+consumir e agenda 60 s, sem sobreposição. Recuperação pagina pendências e
+testes encerrados por ID; falhas não bloqueiam itens posteriores. Shutdown
+aguarda trabalhos iniciados. Evento interno após commit, com tratamento de
+falha de listeners síncronos/assíncronos; evento não é garantia durável.
+Resumos F06 e PROCESSED agora compartilham a transação das amostras. Reparo
+de PROCESSED legado recompõe sem novas amostras. Calendário inclui vizinhos
+por origem e TEST após encerramento, sem mudança operacional no teste.
+TDD RED por módulo/método ausentes; ajuste de inferência de página antes do
+GREEN. Regressão 39 suítes/806 testes, 28 novos; lint/build/diff --check aprovados.
+Oracle real F06 na virada UTC distribui 0,02 + 0,08 Wh, total 0,1 Wh.
+Limite transacional para intervalos extensos documentado, sem truncamento ou
+descarte. Nenhum broker, fila, schema/migration ou dado real de ensaio alterado.
+SQL/rollback/concorrência reais pendentes do ensaio autorizado 7.7; não encerrar
+F07 ou pendências F06 com esta evidência de mocks.
+Backend reconstruído/reiniciado; live ok e readiness ok na repetição após
+503 inicial, banco/Redis ok e MQTT disabled. Pipeline não iniciado nesta sessão.
+
+### Plano autorizado 7.5 — normalização e persistência atômica
+
+Programador solicitou próximo lote em 14/10/2026 e confirmou capturas futuras
+como SUSPECT, preservadas e excluídas dos cálculos F06. Atraso não altera
+qualidade elétrica. Mantidas decisões 7.4 e preservação de leituras externas ao
+intervalo com testId null na instalação; leitura terminal pode associar.
+
+Escopo informado: novos mqtt-normalization.ts/spec.ts e
+mqtt-processing.service.spec.ts; mqtt-reception.service.ts extrai seus próprios
+locks/autorização para reutilizar em receive e novo process(id). Atualizar
+contrato MQTT, plano, índice e contexto. Sem schema/migration, dependência,
+controller/REST, worker, broker, resumo ou evento. Consumidor continua passivo.
+
+Normalizador recebe envelope revalidado e contexto autorizado. Campos ausentes
+viram null, zero permanece zero, potência reportada é preservada e potência
+calculada reutiliza calculatePowerW. VALID exige V/I/contador; ausência de algum
+gera PARTIAL, inclusive measurements vazio. Somente qualidade temporal futura
+sobrescreve para SUSPECT, mantendo medições e potência elétrica calculada.
+Não inventar máximos físicos/tolerância de potência nem classificar contador
+reiniciado como erro: segmentação continua na F06. Valores estruturalmente
+inválidos recusam lote antes de qualquer amostra, como no parser 7.1.
+
+Método process recebe ID interno, lê bruto, revalida parser/metadados e origem
+atual, bloqueia veículo → instalação → dispositivo → teste → mensagem e relê
+estado sob lock. REJECTED/PROCESSED não são reescritos. Origem revogada/removida,
+teste agora CANCELLED/alheio/inválido ou transporte incompatível tornam bruto
+REJECTED sem amostras. Recepção conserva comportamento já testado.
+createMany sem skipDuplicates mais PROCESSED/processedAt/testId na mesma
+transação ReadCommitted; falha propaga erro fixo e rollback é responsabilidade
+do PostgreSQL, sem esconder conflito de amostras pré-existentes. Payload e
+metadados brutos nunca são atualizados. Sem limpeza de dados.
+
+Retorno interno informa entrega CURRENT/DELAYED/CLOCK_SKEW e associação por
+índice ASSOCIATED/OUTSIDE_TEST/NO_TEST. Sem nova coluna/flag pública: persistência
+conserva testId individual, qualidade, capturedAt e referência ao bruto para
+rastrear a classificação. SUSPECT não entra na F06; sinalização OUTSIDE_TEST
+não transforma qualidade elétrica em erro. Recuperação automática e ligação
+receive→process→resumos/eventos ficam no lote 7.6, com revalidação obrigatória.
+
+TDD antes de implementar: unidades/null/zero/todos os sensores, potência versus
+reportada, contador reiniciado, lotes parciais, atraso/futuro misto, fronteiras,
+oracles F06; persistência/estado na mesma transação, locks, concorrente já
+concluído, fonte/teste alterados, parser/metadados e falha de createMany/update
+sem sucesso parcial. Mocks não comprovam concorrência ou rollback SQL real.
+Rodar test:unit/lint/build, diff --check; reconstruir backend e verificar health.
+
+#### Entrega local 7.5
+
+Criados normalizador puro, testes de normalização e testes de processamento.
+Receptor oferece process(id), reutilizando locks/autorização antes da escrita;
+não é ligado automaticamente ao transporte. createMany e estado PROCESSED
+na mesma transação; falhas propagam código fixo. Estado relido após lock da
+mensagem impede duplicação cooperativa. Bruto e metadados não são atualizados.
+Qualidade/ausência/zero, captura futura SUSPECT, vínculo por amostra e potência
+real usam funções existentes. Contador é preservado para F06, sem cálculo de
+energia novo. Retorno interno informa delivery/associações por índice.
+TDD RED por módulo/método ausentes; GREEN 90 testes das três suítes envolvidas,
+38 novos. Corrigida descrição de caso BigInt que usava serialização JSON do
+Jest; nenhum ajuste de regra por causa do teste. Regressão 38 suítes/778 testes,
+lint/build e diff --check aprovados. Sem ensaio SQL real nem alegação de
+rollback/concorrência comprovados por mocks. Próximo lote 7.6: recuperação de
+mensagens e pipeline de resumos/eventos após commit; broker segue pendente.
+Backend reconstruído e reiniciado; live ok e readiness ok na repetição após
+503 inicial, com banco/Redis ok e MQTT disabled. Sem ensaio de ingestão real.
+
+### Plano autorizado 7.4 — autorização e associação do envelope
+
+Continuidade solicitada pelo programador em 14/10/2026. Decisões explícitas:
+processar dispositivos ONLINE/OFFLINE/FAULT, recusar PROVISIONING/REVOKED;
+instalação pode estar em qualquer estado para preservar histórico. Teste
+inexistente, alheio ou nunca iniciado: preservar bruto e rejeitar processamento.
+Somente RUNNING/COMPLETED/FAILED podem receber associação; CANCELLED não.
+Encerramento não impede captura histórica dentro do intervalo. Fora do
+intervalo, amostra futura permanece na instalação sem vínculo, como em 7.1.
+
+Escopo informado: mqtt-reception.service.ts/spec.ts, contrato MQTT, este plano,
+índice operacional e contexto. Reutilizar parser e resolveSampleTest existentes,
+Prisma/constraints e locks veículo → instalação → dispositivo → teste.
+Sem migration, dependência, rota REST ou mudança no ciclo de testes.
+
+Receptor preserva recusa prévia de origem desconhecida/revogada sem armazenar
+bruto. Para origem conhecida não revogada, PROVISIONING, QoS diferente de 1,
+retained ou teste não autorizado geram envelope REJECTED com motivo fixo e
+processedAt do backend. Isso não expõe dados de teste alheio nem altera bruto.
+Envelope aceito permanece RECEIVED; testId relacional indica somente teste
+autorizado, não associa automaticamente todas as amostras do lote. Helper de
+7.1 resolve intervalo individual; persistência das amostras continua em 7.5.
+Teste em execução exige início válido e nenhum fim; encerrado exige intervalo
+válido. Consulta bloqueia somente teste da mesma instalação e veículo.
+
+Deduplicação precede decisão de domínio: retransmissão equivalente conserva
+ID/estado/motivo/horários originais; conflito não sobrescreve. Mensagens antigas
+RECEIVED não são retroativamente autorizadas por este lote: pipeline 7.5–7.6
+deverá revalidar origem/teste antes de normalizar sob os mesmos locks.
+
+TDD: estados, vínculo/instantes, chegada pós-encerramento, fronteiras via
+helper existente, QoS/retained, bruto imutável, deduplicação de rejeitada,
+ordem dos locks, falha de banco sem ACK e P2002. Testes com mocks; sem alegar
+concorrência/rollback PostgreSQL real. Rodar test:unit, lint e build; atualizar
+documentação e rebuildar backend local. Consumidor MQTT continua passivo.
+
+#### Entrega local 7.4
+
+Autorização implementada no receptor existente, sem novo serviço ou dependência.
+Estado do dispositivo lido sob lock; teste consultado por ID/instalação/veículo
+e bloqueado antes da escrita. Bruto e metadados preservados; envelope recusado
+recebe REJECTED/motivo fixo/processedAt, sem vínculo relacional com teste.
+Duplicatas e conflitos mantêm regra anterior. Intervalo individual permanece
+no helper 7.1 para uso obrigatório pela futura normalização.
+TDD RED: 19 falhas das regras novas, após corrigir parametrização da suíte.
+GREEN: 52 testes do receptor, 21 novos; regressão 36 suítes/740 testes,
+lint/build aprovados. Somente mocks para persistência/locks; nenhum ensaio SQL.
+Próximo lote 7.5: normalização/amostras, revalidando autorização na transação.
+Sem fechamento F06/F07, start MQTT, migration ou alteração REST.
+Backend reconstruído/reiniciado; live ok e readiness ok após primeira resposta
+503. Banco/Redis disponíveis e MQTT disabled. Isso não é ensaio de ingestão.
+
+### Plano autorizado 7.3 — recepção e rastreabilidade
+
+Programador pediu próximo lote e respondeu decisões em 14/10/2026: mensagens
+malformadas/campos proibidos somente em logs seguros agregados, sem payload
+inválido; válidas preservadas sem limpeza automática no desenvolvimento.
+Prazo de retenção de produção será fechado antes de implantar, sem job de descarte.
+
+Escopo informado: novos mqtt-reception.service.ts/spec.ts, registro/exportação
+no MqttModule; contrato MQTT, plano/índice e contexto. Reutilizar parser 7.1,
+Prisma global e schema atual, sem migration, rota REST ou dependência nova.
+Serviço passivo receive(packet, receivedAt), não chama start/conecta broker.
+Envelope íntegro, QoS/retain e capturedAt/receivedAt ficam em MqttMessage
+RECEIVED. UUID interno persistido serve como correlação; não inventar IDs ou
+datas para rejeições. Amostras/resumos e associação de teste aguardam 7.4–7.6;
+testId relacional permanece null nesta etapa, preservado no payload original.
+
+Antes de persistir, exigir dispositivo conhecido e não revogado, verificando
+origem sob locks veículo → instalação → dispositivo. Isso protege contra
+exclusão/revogação e não substitui autenticação/ACL no broker. Estados de
+provisionamento/teste e política completa de autorização serão fechados na 7.4.
+Deduplicação mínima necessária ao QoS 1: mesmo messageId/dispositivo/sequência
+e conteúdo JSON equivalente retornam ID original sem alterar payload ou horário;
+conflito é rejeição segura, inclusive colisão com outro dispositivo. Retry único
+após P2002 reconsulta em transação nova, pois PostgreSQL aborta a anterior.
+
+Rejeições contam somente códigos fixos em memória e geram um log agregado por
+janela de um minuto, com horário e contagem; flush no shutdown. Sem tópico,
+payload, credencial, identificador enviado pelo cliente ou dados pessoais.
+Não armazenar conteúdo inválido nem escrever sua rejeição em MqttMessage.
+Falha de banco propaga ao transporte sem ACK positivo; não é rejeição definitiva.
+Sem idade máxima: atrasadas/futuras persistem como origem histórica para tratamento.
+
+TDD antes da implementação: metadados/imutabilidade, parse/limites/null/zero,
+segredo canário em logs, agregação/flush, identidade/locks, duplicatas/conflitos,
+P2002/retry e falhas de gravação sem confirmação positiva. Testes só com Prisma
+simulado e integração local do callback do transporte; não alegar concorrência
+ou rollback SQL real. Executar test:unit/lint/build, atualizar documentação.
+
+#### Entrega local 7.3
+
+Criados mqtt-reception.service.ts/spec.ts, registrados/exportados no MqttModule.
+Recepção passiva valida parser/metadados, exige origem conhecida não revogada
+sob locks e grava bruto RECEIVED em ReadCommitted, sem amostras ou resumo.
+testId relacional null até autorização; payload guarda ID declarado. Horários
+antigos/futuros preservados; sem TTL/job novo. Constraints existentes e leitura
+prévia tratam retransmissões/conflitos; P2002 reconsulta uma vez em transação nova.
+Logs por janela de minuto com apenas códigos/horário/contagens e flush no shutdown.
+Falha de persistência impede ACK positivo; rejeição permanente não vira retry infinito.
+Interface do transporte/receiver exercitada com commit simulado, sem start real.
+
+TDD RED por serviço ausente. GREEN: 36 suítes/719 testes (31 novos), lint/build.
+Refinado caso de -0 com bytes JSON literais e suíte isolada aprovada; sem mudança
+de produção depois da regressão completa. Sem schema/migration/dependência,
+REST/OpenAPI, configuração, Docker, banco ou broker reais neste lote.
+Próximo 7.4: autorização completa de dispositivo/teste, estados de provisionamento
+e associação segura; manter consumidor sem start automático até pipeline.
+SQL/trigger/concorrência/rollback reais ainda precisam de ensaio autorizado.
+
+### Plano autorizado 7.2 — cliente MQTT com testes simulados
+
+Programador autorizou continuar por lotes e aprovou em 14/10/2026 manter REST
+disponível quando MQTT cair, sinalizando MQTT separadamente. readiness mantém
+PostgreSQL/Redis obrigatórios e passa a informar mqtt disabled/unavailable/ok.
+TLS obrigatório e credencial consumidora separada; exemplo sem segredos reais.
+
+Escopo: implementar mqtt.service.ts e mqtt.module.ts antes vazios, novo
+mqtt.service.spec.ts; modificar config/env.config.ts/spec.ts e .env.example
+do backend; health.service.ts/spec.ts, health.module.ts e teste HTTP foundation;
+contratos endpoints/OpenAPI, documento MQTT, roadmap e contexto.
+Sem configuração nova na raiz, Docker, schema, migrations ou dependências.
+
+Usar mqtt 5.15.2 já instalado. Cliente desativado por padrão; módulo não conecta
+automaticamente: start exige processador explícito, recebido pelo lote posterior
+de ingestão. Conectar TLS com verificação de certificado, credenciais fora da
+URL, clientId estável configurado e sessão MQTT 3.1.1 não limpa. Assinar somente
+telemetry QoS 1, confirmar concessão antes de sinalizar ok. Reconexão exponencial
+1–30 s e shutdown limitado; logs de códigos fixos, sem payload/causa/credenciais.
+Processador recebe pacote e instante do backend; confirmação QoS 1 somente
+depois de sucesso; erro fecha transporte sem confirmação positiva.
+Tamanho de payload permanece validado no processador 7.1; limite de pacote e
+ACL no broker dependem do ensaio real, sem alegar proteção pré-alocação local.
+
+TDD: configuração TLS/credenciais/clientId e default; lifecycle com mock de
+MQTT, assinatura aceita/recusada, erro TLS, reconexão/backoff, callback antigo,
+shutdown/timeout e ordem de confirmação do processador. Health HTTP/JWT do
+harness existente continua sem serviços externos. Executar test:unit/lint/build
+e validar contratos. Nenhuma ativação MQTT/credencial/broker real nesta entrega.
+Permanecem abertas broker/ACL/revogação, status/events e persistência/retenção.
+
+#### Entrega local 7.2
+
+Cliente passivo TLS usando mqtt instalado, configuração opcional por padrão
+e obrigatória quando habilitado; processador explícito antes de start.
+QoS 1 concedido antes de ok, timeout de conexão/assinatura dez segundos,
+backoff 1–30 s, callbacks antigos ignorados e shutdown limitado cinco segundos.
+Confirmação pelo handleMessage ocorre após conclusão do processador;
+falha fecha stream sem confirmação positiva. Logs só de códigos fixos.
+MqttModule importado pelo HealthModule, singleton passivo exportado para ingestão.
+Health informa disabled/unavailable/ok sem bloquear REST; contrato OpenAPI e
+teste HTTP atualizados. Live preservado sem probe MQTT.
+
+RED inicial: serviço vazio, constructor de health e configuração ausente.
+Novos casos demonstraram RED para callback antigo/timer/recepção no shutdown
+e assinatura sem resposta, corrigidos no código compartilhado antes do GREEN.
+Final: 35 suítes/688 testes (41 novos), lint/build aprovados.
+Sem conectar broker, ler .env, acessar banco, Docker, dependências ou migrations.
+Próximo 7.3: persistência/rastreabilidade; decisões de registro de rejeições e
+retenção precisam ser fechadas antes do código correspondente. Broker/ACL e
+sessão persistente real continuam pendentes; manter consumer inativo até pipeline.
+
+### Preparação 7.1 — 14/10/2026
+
+Proposta concreta e exemplos em [MQTT v1](../Api/mqtt-contract-v1.md).
+Lotes com timestamps individuais, limites sintéticos, sequência persistente,
+ausência/null/zero, deduplicação, atraso e expectativas de rejeição documentados.
+Sequência após reinício e regras de atraso/intervalo decididas na continuação
+abaixo. Código implementado somente depois das respostas; F06 mantém pendências.
+
+#### Decisões e escopo autorizado — continuação de 14/10
+
+Programador aprovou sequência salva e pediu preservação dos dados fora do tempo.
+Confirmou atraso quando receivedAt excede em mais de 15 segundos a última
+captura; envio em lote de dez segundos permanece o perfil do simulador.
+Confirmou preservar leitura fora do intervalo no histórico da instalação,
+sinalizar vínculo inválido e não somar naquele teste. Dados futuros não serão
+apagados apenas pelo horário: sinalizar relógio divergente, sem afirmar presente.
+Todos esses tratamentos exigem identidade/recurso autorizados; preservação não
+libera dados de dispositivo revogado nem vínculo de outro usuário.
+
+Implementar somente contrato local e simulador sem broker: novos
+src/modules/mqtt/mqtt-contract.ts/spec.ts e mqtt-simulator.ts/spec.ts.
+Parser limitado em bytes e com allowlist, reutilizando validador UTC existente;
+metadados temporais derivados, resolução pura do intervalo de teste autorizado;
+gerador de dez leituras e sequência em arquivo local com exclusão concorrente.
+CLI de geração imprime envelope JSON, sem publicar/armazenar telemetria no banco.
+Nenhum registro em AppModule, rota/DTO REST, schema/migration ou dependência nova.
+Testes antes da implementação: formatos/limites, ausência/null/zero, horários,
+intervalo de teste, contador sintético, reinício/corrupção/concorrência do estado.
+Executar test:unit, lint e build. Atualizar contrato/roadmap/contexto ao concluir.
+Persistência SQL, associação real e deduplicação concorrente pertencem aos
+próximos lotes; helpers locais não declaram pipeline de ingestão entregue.
+
+#### Entrega local 7.1
+
+Criados mqtt-contract.ts/spec.ts e mqtt-simulator.ts/spec.ts. Validação em
+bytes/UTF-8/allowlist/data/medições; idade por amostra, CURRENT/DELAYED/CLOCK_SKEW;
+resolução de teste autorizado por intervalo sem descartar leitura externa.
+CLI dev/test gera dez leituras sintéticas de 2 W e reserva sequência via
+lock/arquivo temporário sincronizado/rename. Sem registro em AppModule.
+TDD RED por módulos ausentes, GREEN 34 suítes/647 testes (68 novos), lint/build.
+CLI em dois processos conferida com sequências 1/2, sem broker ou banco.
+Limites: lock residual após queda exige revisão manual; estado não deve ser
+apagado; contador é sintético e não simula medição durante pausa. Perfil físico,
+status/events, rejeições/retencão e broker ainda precisam dos respectivos lotes.
+Próximo lote: 7.2 cliente MQTT com testes simulados; conexão externa dependerá
+de ambiente explicitamente autorizado. Não encerrar F06 nem declarar F07 completa.
 
 Futura implementação em `services/backend/src/modules/mqtt`, testes e exemplos
 de contrato; reutilização de Prisma, domínio e cálculo da F06. Schema e
 constraints só mudam por necessidade demonstrada de integridade. Configuração
 documentada apenas em exemplos, sem segredos. Sem WebSocket nesta fase.
 
-Nesta entrega: somente plano, índice e contexto. Sem alterações na F05,
-código, serviços externos, migrations aplicadas, commits ou pushes.
+Registro original do planejamento: somente plano, índice e contexto. As
+entregas locais posteriores estão descritas acima; F05 preservada, sem serviços
+externos, migrations aplicadas, commits ou pushes.

@@ -45,8 +45,10 @@ continuam registradas, sem impedir preparação local do tempo real.
 Preparação do próximo recorte: [ensaio F08.7](backend-phase-8-rehearsal.md).
 Primeiro recorte Redis/Socket.IO/PostgreSQL executado com autorização própria em
 16/10/2026: seis cenários reais aprovados, fixtures removidas e containers
-isolados parados. Coordenação MQTT sob falha Redis não coberta por esse recorte
-de transporte; não declarar a fase inteira concluída.
+isolados parados. [Continuação MQTT/Redis](backend-phase-8-mqtt-rehearsal.md)
+adicionou sétimo cenário real com TLS, ponte, pausa e retomada offline, também
+aprovado. Snapshot/UI e limites registrados continuam pendentes; não declarar
+a fase inteira concluída.
 
 Próximo recorte autorizado pelo pedido de desenvolvimento em 15/10/2026.
 Consolidar matriz de cenários no contrato e cobertura do gateway para avisos

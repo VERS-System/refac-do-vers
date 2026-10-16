@@ -1,6 +1,11 @@
 <!-- Prepara um ensaio real restrito a dados e serviços sintéticos locais. -->
 # F08.7 — Ensaio isolado de tempo real
 
+Continuação integrada aprovada em 16/10/2026: [MQTT/TLS, ponte e coordenação
+sob queda Redis](backend-phase-8-mqtt-rehearsal.md), sete cenários reais ao todo.
+Os limites abaixo descrevem o primeiro recorte; a continuação acrescenta a
+evidência de pausa/retomada MQTT, sem cobrir UI ou produção.
+
 Estado: primeiro recorte real aprovado em 16/10/2026, seis cenários; pendências
 MQTT/cliente preservadas. Execução isolada autorizada pelo programador via `nxt`
 em resposta ao pedido explícito para iniciar Docker Desktop, criar/remover

@@ -39,7 +39,8 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 ## Organização
 
 - [Ensaio de tempo real F08.7](plans/backend-phase-8-rehearsal.md): alvos,
-  comandos e seis cenários reais aprovados; coordenação MQTT ainda pendente.
+  comandos e seis cenários iniciais; [continuação MQTT/Redis](plans/backend-phase-8-mqtt-rehearsal.md)
+  acrescenta caminho integrado e pausa real, sete cenários aprovados ao todo.
 
 - [Consistência F08.6](plans/backend-phase-8-consistency.md): contrato de
   recuperação REST e limites da cobertura local, sem integração frontend.

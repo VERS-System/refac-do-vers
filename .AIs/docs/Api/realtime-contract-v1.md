@@ -228,6 +228,13 @@ restart Redis exigindo nova assinatura. Publicação direta no transporte não
 comprova pipeline MQTT/ponte, pausa/retomada da ingestão ou estado de UI.
 Nenhuma evidência de HiveMQ/ESP32/produção ou garantia durável acrescentada.
 
+Continuação [MQTT/Redis F08.7](../plans/backend-phase-8-mqtt-rehearsal.md):
+sétimo cenário real aprovado em 16/10/2026 cobre MQTT/TLS→commit→ponte→Redis→
+cliente. Parada Redis pausou consumidor, lote QoS 1 permaneceu offline no broker
+e só entrou no banco após retomada. Nova assinatura recebeu aviso do lote
+seguinte; retransmissão não duplicou amostras/energia. Não comprova retenção
+ilimitada ou commit deliberadamente mantido em curso durante a queda.
+
 ## Transporte interno Redis — lote 8.3
 
 RealtimeModule registra/exporta RealtimePubSubService no backend. Constructor

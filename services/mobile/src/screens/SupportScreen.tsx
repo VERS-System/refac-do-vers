@@ -375,6 +375,7 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
           <View style={styles.createButton}>
             <PrimaryButton
               accessibilityLabel="Enviar solicitação"
+              disabled={status === 'sending'}
               label="ENVIAR SOLICITAÇÃO"
               onPress={requestCreate}
             />

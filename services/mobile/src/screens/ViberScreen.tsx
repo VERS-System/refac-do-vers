@@ -129,6 +129,7 @@ export function ViberScreen({
           <ViberSuggestions onSuggest={applyDraft} />
           <ViberComposer
             draft={currentDraft}
+            disabled={status === 'sending'}
             onDraftChange={applyDraft}
             onSend={(text) => {
               onSend?.(text);
@@ -289,10 +290,13 @@ function ViberContextBar({
  */
 function ViberComposer({
   draft,
+  disabled = false,
   onDraftChange,
   onSend,
 }: {
   draft: string;
+  /** Trava o envio durante a resposta, sem apagar o digitado. */
+  disabled?: boolean;
   onDraftChange?: (text: string) => void;
   onSend?: (text: string) => void;
 }) {
@@ -312,6 +316,8 @@ function ViberComposer({
       <Pressable
         accessibilityLabel="Enviar mensagem"
         accessibilityRole="button"
+        accessibilityState={{ disabled }}
+        disabled={disabled}
         onPress={() => onSend?.(draft)}
         style={styles.sendButton}
       >

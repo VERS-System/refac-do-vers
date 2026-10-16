@@ -5,12 +5,11 @@
  * sistema (UUID); a placa é validada, única e não muda depois do cadastro;
  * só um veículo é principal (marcar um desmarca o anterior); o ano precisa
  * ser plausível; remover o principal pede um substituto quando sobram dois
- * ou mais. O chassi (opcional, único, preenchido uma vez) ainda não existe
- * no backend. As mudanças valem só para esta instância e somem ao
- * recarregar a página.
+ * ou mais. As mudanças valem só para esta instância e somem ao recarregar
+ * a página.
  */
 
-import { formatarIsoComFuso, normalizarChassi, normalizarPlaca } from './calculos';
+import { formatarIsoComFuso, normalizarPlaca } from './calculos';
 import { ErroRepositorio } from './erros';
 import { INSTALACAO_EXEMPLO, VEICULOS_EXEMPLO } from './fixtures/sistema';
 import type { AtualizacaoVeiculo, NovoVeiculo, Veiculo } from './tipos';
@@ -45,22 +44,6 @@ export function criarCadastroEmMemoria(agora: () => Date) {
     }
   }
 
-  /**
-   * Valida o chassi informado e confere que nenhum outro veículo o usa.
-   * Vazio vira `null` (o chassi é opcional).
-   */
-  function validarChassi(chassi: string | null | undefined, ignorarId?: string): string | null {
-    if (!chassi?.trim()) return null;
-    const normalizado = normalizarChassi(chassi);
-    if (!normalizado) {
-      throw new ErroRepositorio('validacao', 'O chassi tem 17 letras e números, sem I, O e Q.');
-    }
-    if (veiculos.some((v) => v.chassi === normalizado && v.id !== ignorarId)) {
-      throw new ErroRepositorio('conflito', `Já existe um veículo com o chassi ${normalizado}.`);
-    }
-    return normalizado;
-  }
-
   /** Acha o veículo ou recusa com "não encontrado". */
   function achar(veiculoId: string): Veiculo {
     const veiculo = veiculos.find((v) => v.id === veiculoId);
@@ -87,14 +70,12 @@ export function criarCadastroEmMemoria(agora: () => Date) {
       throw new ErroRepositorio('conflito', `Já existe um veículo com a placa ${placa}.`);
     }
     validarAno(novo.ano);
-    const chassi = validarChassi(novo.chassi);
     const veiculo: Veiculo = {
       id: globalThis.crypto.randomUUID(),
       placa,
       fabricante: textoOpcional(novo.fabricante),
       modelo: textoOpcional(novo.modelo),
       ano: novo.ano ?? null,
-      chassi,
       relacao: 'proprietario',
       principal: veiculos.length === 0,
       criadoEm: formatarIsoComFuso(agora(), FUSO_MINUTOS),
@@ -106,19 +87,13 @@ export function criarCadastroEmMemoria(agora: () => Date) {
   /**
    * Edita fabricante, modelo e ano, ou marca como principal (desmarcando o
    * anterior). Desmarcar o principal diretamente não é permitido: é preciso
-   * escolher outro. O chassi só pode ser informado enquanto estiver vazio.
+   * escolher outro.
    */
   function atualizar(veiculoId: string, atualizacao: AtualizacaoVeiculo): Veiculo {
     const veiculo = achar(veiculoId);
     validarAno(atualizacao.ano);
     if (atualizacao.principal === false && veiculo.principal) {
       throw new ErroRepositorio('validacao', 'Escolha outro veículo como principal.');
-    }
-    if (atualizacao.chassi?.trim()) {
-      if (veiculo.chassi) {
-        throw new ErroRepositorio('validacao', 'O chassi não muda depois de informado.');
-      }
-      veiculo.chassi = validarChassi(atualizacao.chassi, veiculo.id);
     }
     if ('fabricante' in atualizacao) veiculo.fabricante = textoOpcional(atualizacao.fabricante);
     if ('modelo' in atualizacao) veiculo.modelo = textoOpcional(atualizacao.modelo);

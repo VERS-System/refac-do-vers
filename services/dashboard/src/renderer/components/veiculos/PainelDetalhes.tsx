@@ -1,7 +1,7 @@
 /**
  * Detalhes do veículo selecionado na tela Veículos e o diálogo de remoção.
  *
- * Mostra o ID gerado pelo sistema (com "Copiar ID"), placa, chassi, dados do
+ * Mostra o ID gerado pelo sistema (com "Copiar ID"), placa, dados do
  * carro, relação, data do cadastro e a instalação do VERS, se houver. As
  * ações são editar, tornar principal e remover; a remoção segue o backend
  * (substituto quando o principal sai e sobram dois ou mais) e, no exemplo,
@@ -87,9 +87,6 @@ export function PainelDetalhes({
       <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4">
         <Campo rotulo="Placa">
           <span className="font-mono">{veiculo.placa}</span>
-        </Campo>
-        <Campo rotulo="Chassi">
-          <span className="font-mono">{veiculo.chassi ?? 'Não informado'}</span>
         </Campo>
         <Campo rotulo="Fabricante">{veiculo.fabricante ?? '–'}</Campo>
         <Campo rotulo="Modelo">{veiculo.modelo ?? '–'}</Campo>

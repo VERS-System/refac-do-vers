@@ -162,8 +162,6 @@ export interface Veiculo {
   fabricante: string | null;
   modelo: string | null;
   ano: number | null;
-  /** Chassi (VIN); `null` enquanto não informado. Ainda não existe no backend. */
-  chassi: string | null;
   relacao: RelacaoVeiculo;
   /** Veículo principal: o que aparece nas telas e recebe os testes. */
   principal: boolean;
@@ -173,8 +171,6 @@ export interface Veiculo {
 /** Cadastro de veículo (`CreateVehicleRequest`). */
 export interface NovoVeiculo {
   placa: string;
-  /** Chassi opcional (só no exemplo, até o backend ter a coluna). */
-  chassi?: string | null;
   fabricante?: string | null;
   modelo?: string | null;
   ano?: number | null;
@@ -182,8 +178,6 @@ export interface NovoVeiculo {
 
 /** Edição permitida de veículo (`UpdateVehicleRequest`; a placa não muda). */
 export interface AtualizacaoVeiculo {
-  /** Só aceito enquanto o veículo não tem chassi. */
-  chassi?: string | null;
   fabricante?: string | null;
   modelo?: string | null;
   ano?: number | null;

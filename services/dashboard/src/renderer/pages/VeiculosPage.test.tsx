@@ -2,9 +2,9 @@
  * Testes da tela Veículos (cadastro de carros).
  *
  * Seguem o plano `.AIs/docs/plans/desktop-frontend-veiculos.md`: lista com
- * o principal, detalhes com o ID gerado pelo sistema, cadastro com chassi
- * opcional, edição (placa fixa, chassi preenchível uma vez), troca do
- * principal e remoção com substituição.
+ * o principal, detalhes com o ID gerado pelo sistema (o carro é identificado
+ * só pelo ID, sem chassi), cadastro, edição (placa fixa), troca do principal
+ * e remoção com substituição.
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -59,6 +59,8 @@ describe('VeiculosPage — lista e detalhes', () => {
     expect(civic).toHaveTextContent('Principal');
     expect(strada).toHaveTextContent('DEF4G56');
     expect(strada).not.toHaveTextContent('Principal');
+    const tabela = screen.getByRole('table', { name: 'Seus veículos' });
+    expect(within(tabela).queryByRole('columnheader', { name: 'Chassi' })).not.toBeInTheDocument();
   });
 
   /** Começa no principal; o ID completo pode ser copiado. */
@@ -75,6 +77,7 @@ describe('VeiculosPage — lista e detalhes', () => {
     const id = within(painel).getByText(UUID).textContent ?? '';
     expect(id).toMatch(UUID);
     expect(painel).toHaveTextContent('VERS-PZ01');
+    expect(painel).not.toHaveTextContent('Chassi');
 
     await userEvent.click(within(painel).getByRole('button', { name: 'Copiar ID' }));
     expect(escrever).toHaveBeenCalledWith(id);
@@ -86,35 +89,30 @@ describe('VeiculosPage — lista e detalhes', () => {
 });
 
 describe('VeiculosPage — cadastro', () => {
-  /** Valida placa e chassi antes de enviar. */
+  /** Valida placa e ano antes de enviar; não há campo de chassi. */
   it('valida o novo veículo', async () => {
     abrirVeiculos();
     await userEvent.click(await screen.findByRole('button', { name: 'Novo veículo' }));
     const formulario = await screen.findByRole('region', { name: 'Novo veículo' });
+    expect(within(formulario).queryByLabelText(/chassi/i)).not.toBeInTheDocument();
 
     await userEvent.type(within(formulario).getByLabelText('Placa'), 'abc');
-    await userEvent.type(within(formulario).getByLabelText('Chassi (opcional)'), 'xyz');
+    await userEvent.type(within(formulario).getByLabelText('Ano'), '23');
     await userEvent.click(within(formulario).getByRole('button', { name: 'Salvar veículo' }));
 
     expect(
       within(formulario).getByText('Informe uma placa válida, como ABC1D23.'),
     ).toBeInTheDocument();
-    expect(
-      within(formulario).getByText('O chassi tem 17 letras e números, sem I, O e Q.'),
-    ).toBeInTheDocument();
+    expect(within(formulario).getByText('Informe o ano com 4 dígitos.')).toBeInTheDocument();
   });
 
-  /** Cadastra com chassi; o novo fica selecionado e mostra o ID gerado. */
+  /** Cadastra; o novo fica selecionado e mostra o ID gerado. */
   it('cadastra um veículo', async () => {
     abrirVeiculos();
     await userEvent.click(await screen.findByRole('button', { name: 'Novo veículo' }));
     const formulario = await screen.findByRole('region', { name: 'Novo veículo' });
 
     await userEvent.type(within(formulario).getByLabelText('Placa'), 'ghi-2j34');
-    await userEvent.type(
-      within(formulario).getByLabelText('Chassi (opcional)'),
-      '9bwzzz377vt004251',
-    );
     await userEvent.type(within(formulario).getByLabelText('Fabricante'), 'Volkswagen');
     await userEvent.type(within(formulario).getByLabelText('Modelo'), 'Polo');
     await userEvent.type(within(formulario).getByLabelText('Ano'), '2023');
@@ -123,7 +121,7 @@ describe('VeiculosPage — cadastro', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Veículo cadastrado.');
     const painel = await detalhes();
     expect(painel).toHaveTextContent('GHI2J34');
-    expect(painel).toHaveTextContent('9BWZZZ377VT004251');
+    expect(painel).toHaveTextContent('Volkswagen');
     expect(painel).toHaveTextContent(UUID);
     expect(await linhas()).toHaveLength(3);
   });
@@ -142,7 +140,7 @@ describe('VeiculosPage — cadastro', () => {
 });
 
 describe('VeiculosPage — edição, principal e remoção', () => {
-  /** Placa fixa; o chassi vazio pode ser preenchido uma vez. */
+  /** Placa fixa; edita fabricante, modelo e ano, sem campo de chassi. */
   it('edita o veículo', async () => {
     abrirVeiculos();
     await verVeiculo('Fiat Strada 2024');
@@ -150,22 +148,14 @@ describe('VeiculosPage — edição, principal e remoção', () => {
     await userEvent.click(within(await detalhes()).getByRole('button', { name: 'Editar' }));
     const formulario = screen.getByRole('region', { name: 'Editar veículo' });
     expect(within(formulario).queryByLabelText('Placa')).not.toBeInTheDocument();
-    await userEvent.type(
-      within(formulario).getByLabelText('Chassi (opcional)'),
-      '9BD17164G55123456',
-    );
+    expect(within(formulario).queryByLabelText(/chassi/i)).not.toBeInTheDocument();
+    expect(formulario).not.toHaveTextContent('chassi');
     await userEvent.clear(within(formulario).getByLabelText('Ano'));
     await userEvent.type(within(formulario).getByLabelText('Ano'), '2025');
     await userEvent.click(within(formulario).getByRole('button', { name: 'Salvar alterações' }));
 
-    const painel = await detalhes();
-    expect(await within(painel).findByText('9BD17164G55123456')).toBeInTheDocument();
-    expect(painel).toHaveTextContent('2025');
-
-    await userEvent.click(within(painel).getByRole('button', { name: 'Editar' }));
-    const deNovo = screen.getByRole('region', { name: 'Editar veículo' });
-    expect(within(deNovo).queryByLabelText('Chassi (opcional)')).not.toBeInTheDocument();
-    expect(deNovo).toHaveTextContent('O chassi não muda depois de informado.');
+    expect(await screen.findByRole('status')).toHaveTextContent('Alterações salvas.');
+    expect(await detalhes()).toHaveTextContent('2025');
   });
 
   /** Tornar principal pede confirmação e move o selo na lista. */

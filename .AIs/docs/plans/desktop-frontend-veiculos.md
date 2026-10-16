@@ -17,9 +17,9 @@ visual das telas já implementadas. Task da equipe: D09
   e a instalação.
 - **ID gerado pelo sistema**: o backend cria o `id` (UUID) ao cadastrar; a
   tela mostra o ID só para leitura, com botão de copiar.
-- **Chassi opcional já validado**: 17 caracteres, letras e números sem I, O
-  e Q (padrão VIN). Fica só no repositório de exemplo: o backend ainda não
-  tem a coluna, que precisa existir antes de o chassi virar identificador.
+- ~~**Chassi opcional já validado**~~: **retirado em 16/10/2026** (seção 7).
+  O carro é identificado só pelo ID; o backend não ganha a coluna de chassi
+  por enquanto.
 - **Perfil continua nas Configurações** (seção Perfil); nenhuma tela nova
   de perfil.
 
@@ -74,12 +74,9 @@ Commit só se o programador pedir (regra 7).
 ## 5. A validar pelo programador
 
 - Ícone e posição do item "Veículos" na sidebar.
-- Chassi preenchível uma vez e depois fixo.
 - Remoção desativada no exemplo para carros com instalação.
 - "Veículo e instalação" mantém os diálogos de editar, adicionar e tornar
   principal; a alternativa é levar essas ações só para a tela Veículos.
-- Backend: coluna `vin` (chassi) única em `vehicles` e nos contratos, antes
-  de usar o chassi como identificador.
 
 ## 6. Execução (15/10/2026)
 
@@ -99,3 +96,21 @@ Commit só se o programador pedir (regra 7).
 - Resultado: 465 testes passando (a suíte rodou com um processo por vez:
   a máquina estava com menos de 1 GB de memória livre e os processos
   paralelos não iniciavam), `tsc` e build ok, prints em 1280 e 1512 px.
+
+## 7. Retirada do chassi (16/10/2026)
+
+Decisão do usuário: o chassi não vai para o backend por enquanto e sai
+também do app; cada carro é identificado só pelo ID gerado pelo sistema.
+
+- Sai o campo "Chassi (opcional)" do "Novo veículo" e do "Editar veículo",
+  a coluna "Chassi" da lista e a linha "Chassi" dos detalhes.
+- Sai do repositório de exemplo: `chassi` em `Veiculo`, `NovoVeiculo` e
+  `AtualizacaoVeiculo`, a validação e a unicidade no cadastro em memória e
+  `normalizarChassi` em `calculos.ts`.
+- Ficam: ID em UUID com "Copiar ID", placa fixa depois do cadastro e todo o
+  resto da tela.
+- Saem dos itens "a validar" (seção 5) o chassi fixo e a coluna `vin` no
+  backend.
+- TDD: os testes passam a exigir que a tela não tenha campo nem coluna de
+  chassi (vermelhos antes da retirada); os testes de chassi do repositório e
+  de `normalizarChassi` saem junto com o código.

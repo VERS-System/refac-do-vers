@@ -2,7 +2,7 @@
  * Lista "Seus veículos" da tela Veículos.
  *
  * Tabela com os carros da conta: nome e placa, ID curto (o completo fica nos
- * detalhes), chassi, relação e o selo do principal. O nome é um botão que
+ * detalhes), relação e o selo do principal. O nome é um botão que
  * mostra os detalhes do carro; o selecionado fica destacado.
  */
 
@@ -68,13 +68,6 @@ function colunas({ selecionadoId, onSelecionar }: ListaVeiculosProps): TableColu
         <span className="font-mono text-xs text-fg-secondary" title={veiculo.id}>
           {idCurto(veiculo.id)}
         </span>
-      ),
-    },
-    {
-      key: 'chassi',
-      header: 'Chassi',
-      render: (veiculo) => (
-        <span className="font-mono text-xs text-fg-secondary">{veiculo.chassi ?? '–'}</span>
       ),
     },
     {

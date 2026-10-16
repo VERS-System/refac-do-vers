@@ -18,7 +18,6 @@ import {
   horarioParaMinutos,
   integrarTrapezios,
   minutosParaHorario,
-  normalizarChassi,
   normalizarPlaca,
   perdaPercentual,
   recortarUltimosMinutos,
@@ -461,16 +460,5 @@ describe('emailValido', () => {
     expect(emailValido('ana.silva@vers')).toBe(false);
     expect(emailValido('ana silva@vers.com')).toBe(false);
     expect(emailValido('')).toBe(false);
-  });
-});
-
-describe('normalizarChassi', () => {
-  /** 17 caracteres do VIN, sem I, O e Q; espaços e minúsculas são normalizados. */
-  it('aceita só chassis no padrão VIN', () => {
-    expect(normalizarChassi(' 9bw zzz377vt004251 ')).toBe('9BWZZZ377VT004251');
-    expect(normalizarChassi('9BWZZZ377VT00425')).toBeNull();
-    expect(normalizarChassi('9BWZZZ377VT0042511')).toBeNull();
-    expect(normalizarChassi('9BWZZZ377VTO04251')).toBeNull();
-    expect(normalizarChassi('')).toBeNull();
   });
 });

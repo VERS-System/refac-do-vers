@@ -4,8 +4,7 @@
  * Sem referência no Stitch; segue o visual das outras telas. Lista à
  * esquerda e, à direita, os detalhes do carro selecionado (começa no
  * principal), o formulário de cadastro ou o de edição. Cada carro é
- * identificado pelo ID gerado pelo sistema; o chassi, opcional por enquanto,
- * vai identificá-lo quando o sistema for real. Plano em
+ * identificado pelo ID gerado pelo sistema. Plano em
  * `.AIs/docs/plans/desktop-frontend-veiculos.md`.
  */
 

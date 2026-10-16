@@ -144,3 +144,13 @@ describe('HomeScreen', () => {
     }
   });
 });
+
+describe('HomeScreen alvos de toque (13f)', () => {
+  /** Garante alvo de toque nos atalhos da Home. */
+  it('garante alvo de toque nos atalhos', () => {
+    const { getByLabelText } = render(<HomeScreen />);
+
+    expect(getByLabelText('Conversar com o Viber').props.hitSlop).toBeTruthy();
+    expect(getByLabelText('Abrir sistema VERS').props.hitSlop).toBeTruthy();
+  });
+});

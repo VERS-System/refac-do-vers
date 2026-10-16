@@ -46,6 +46,10 @@ type SupportScreenProps = {
   onSubmitCreate?: (draft: SupportDraft) => void;
   /** Cancela o formulário. */
   onCancelCreate?: () => void;
+  /** Volta ao login na expirada; ausente mantém o botão sem efeito. */
+  onOpenLogin?: () => void;
+  /** Quando falso, omite o selo de amostra (dados reais do backend). */
+  isSampleData?: boolean;
   /** Confirmação de envio; ausente usa estado visual interno. */
   confirmingCreate?: boolean | null;
   /** Estado visual atual; `success` exibe lista, detalhe e form. */
@@ -55,7 +59,7 @@ type SupportScreenProps = {
 };
 
 /** Estados visuais do suporte; a origem dos dados é do backend (F05 futuro). */
-export type SupportScreenStatus = 'loading' | 'empty' | 'error' | 'sending' | 'success';
+export type SupportScreenStatus = 'loading' | 'empty' | 'error' | 'sending' | 'success' | 'unavailable' | 'sessionExpired';
 
 /** Estados do contrato de suporte; só exibidos, sem transição no cliente. */
 export type SupportStatus = 'OPEN' | 'IN_REVIEW' | 'SCHEDULED' | 'RESOLVED' | 'CANCELLED';
@@ -122,7 +126,7 @@ const EMPTY_DRAFT: SupportDraft = { vehicleId: '', installationId: '', reason: '
  * Renderiza o scaffold do suporte com lista, detalhes e formulário; a
  * confirmação e os estados chegam nos próximos lotes por props.
  */
-export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreate, selectedRequest = null, onBackToList, isCreating, vehicles, installations, supportDraft, onSupportChange, onSubmitCreate, onCancelCreate, confirmingCreate = null, status = 'success', onRetry }: SupportScreenProps) {
+export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreate, selectedRequest = null, onBackToList, isCreating, vehicles, installations, supportDraft, onSupportChange, onSubmitCreate, onCancelCreate, onOpenLogin, confirmingCreate = null, status = 'success', onRetry, isSampleData = true }: SupportScreenProps) {
   const [innerDraft, setInnerDraft] = useState<SupportDraft>(EMPTY_DRAFT);
   const [innerConfirming, setInnerConfirming] = useState(false);
   const [innerSent, setInnerSent] = useState(false);
@@ -163,6 +167,30 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
               accessibilityLabel="Tentar novamente"
               label="TENTAR NOVAMENTE"
               onPress={() => onRetry?.()}
+            />
+          </View>
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (status === 'sessionExpired') {
+    return (
+      <ScreenShell testID="support-screen">
+        <View style={styles.emptyBlock}>
+          <Text
+            accessibilityLabel="Sessão expirada. Entre novamente para continuar."
+            accessibilityRole="alert"
+            style={styles.emptyText}
+            testID="support-session-expired"
+          >
+            Sessão expirada. Entre novamente para continuar.
+          </Text>
+          <View style={styles.createButton}>
+            <PrimaryButton
+              accessibilityLabel="Ir para o Login"
+              label="IR PARA O LOGIN"
+              onPress={() => onOpenLogin?.()}
             />
           </View>
         </View>
@@ -217,6 +245,12 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
         testID="support-header"
         title="Suporte"
       />
+
+      {isSampleData && (
+        <Text style={styles.sampleSeal} testID="support-sample-seal">
+          DADOS DE AMOSTRA
+        </Text>
+      )}
       {isCreating ? (
         <View style={styles.emptyBlock} testID="support-form">
           {vehicles && vehicles.length > 0 ? (
@@ -341,6 +375,7 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
           <View style={styles.createButton}>
             <PrimaryButton
               accessibilityLabel="Enviar solicitação"
+              disabled={status === 'sending'}
               label="ENVIAR SOLICITAÇÃO"
               onPress={requestCreate}
             />
@@ -393,7 +428,16 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
             </View>
           ) : null}
 
-          {items.length > 0 ? (
+          {status === 'unavailable' ? (
+            <Text
+              accessibilityLabel="Solicitações indisponíveis no momento."
+              accessibilityRole="alert"
+              style={styles.emptyText}
+              testID="support-unavailable"
+            >
+              Solicitações indisponíveis no momento.
+            </Text>
+          ) : items.length > 0 ? (
             <View style={styles.listCard} testID="support-list">
               {items.map((item) => (
               <Pressable
@@ -530,5 +574,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: theme.spacing.sm,
     textAlign: 'center',
+  },
+  /** Selo de amostra; omitido com dados reais do backend. */
+  sampleSeal: {
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    color: theme.colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
 });

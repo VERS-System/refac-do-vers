@@ -80,6 +80,8 @@ type BatteryScreenProps = {
   energySourceLabel?: string;
   /** Dias com dados no formato `YYYY-MM-DD`. */
   daysWithData?: string[];
+  /** Quando falso, omite o selo de amostra (dados reais do backend). */
+  isSampleData?: boolean;
 };
 
 /**
@@ -101,6 +103,7 @@ export function BatteryScreen({
   vehicleEnergyUsedWh = null,
   energySourceLabel = '',
   daysWithData = [],
+  isSampleData = true,
 }: BatteryScreenProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -208,6 +211,12 @@ export function BatteryScreen({
       testID="battery-screen"
     >
       <Text style={styles.recordTitle}>MONTHLY RECORD</Text>
+
+      {isSampleData && (
+        <Text style={styles.sampleSeal} testID="battery-sample-seal">
+          DADOS DE AMOSTRA
+        </Text>
+      )}
 
       {status === 'partial' && (
         <Text
@@ -436,5 +445,17 @@ const styles = StyleSheet.create({
     color: theme.colors.gray,
     fontSize: 10,
     marginTop: 2,
+  },
+  /** Selo de amostra; omitido com dados reais do backend. */
+  sampleSeal: {
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    color: theme.colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
 });

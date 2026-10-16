@@ -403,3 +403,87 @@ describe('SupportScreen acessibilidade e layout (12g)', () => {
     expect(getByText(longReason)).toBeTruthy();
   });
 });
+
+describe('SupportScreen indisponibilidade (13a)', () => {
+  const ITEMS = [{ id: 'r1', status: 'OPEN' as const, createdAt: '2026-10-01T10:00:00.000Z' }];
+
+  /** Exibe aviso neutro no lugar da lista quando indisponível. */
+  it('exibe aviso neutro quando indisponível', () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <SupportScreen items={ITEMS} status="unavailable" />,
+    );
+
+    expect(getByTestId('support-unavailable')).toBeTruthy();
+    expect(getByText('Solicitações indisponíveis no momento.')).toBeTruthy();
+    expect(queryByTestId('support-list')).toBeNull();
+  });
+
+  /** Mantém o formulário no modo criação quando indisponível. */
+  it('mantém o formulário quando indisponível', () => {
+    const { getByTestId, queryByTestId } = render(
+      <SupportScreen isCreating status="unavailable" />,
+    );
+
+    expect(getByTestId('support-form')).toBeTruthy();
+    expect(queryByTestId('support-unavailable')).toBeNull();
+  });
+});
+
+describe('SupportScreen sessão expirada (13b)', () => {
+  const ITEMS = [{ id: 'r1', status: 'OPEN' as const, createdAt: '2026-10-01T10:00:00.000Z' }];
+
+  /** Exibe expirada com volta ao login, sem conteúdo. */
+  it('exibe expirada com volta ao login', () => {
+    const onOpenLogin = jest.fn();
+    const { getByRole, getByTestId, getByText, queryByTestId } = render(
+      <SupportScreen items={ITEMS} onOpenLogin={onOpenLogin} status="sessionExpired" />,
+    );
+
+    expect(getByTestId('support-session-expired')).toBeTruthy();
+    expect(getByText('Sessão expirada. Entre novamente para continuar.')).toBeTruthy();
+    expect(queryByTestId('support-list')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Ir para o Login' }));
+
+    expect(onOpenLogin).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('SupportScreen envio duplicado (13d)', () => {
+  /** Desabilita o envio durante sending sem apagar o rascunho. */
+  it('desabilita o envio durante sending', () => {
+    const onSubmitCreate = jest.fn();
+    const { getByDisplayValue, getByRole } = render(
+      <SupportScreen
+        isCreating
+        onSubmitCreate={onSubmitCreate}
+        status="sending"
+        supportDraft={{ vehicleId: 'v1', installationId: '', reason: 'Barulho estranho.' }}
+      />,
+    );
+
+    const send = getByRole('button', { name: 'Enviar solicitação' });
+
+    expect(send.props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true }),
+    );
+
+    fireEvent.press(send);
+
+    expect(onSubmitCreate).not.toHaveBeenCalled();
+    expect(getByDisplayValue('Barulho estranho.')).toBeTruthy();
+  });
+});
+
+describe('SupportScreen selo de amostra (13c)', () => {
+  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
+  it('exibe selo de amostra e omite com dados reais', () => {
+    const { getByTestId, queryByTestId, rerender } = render(<SupportScreen />);
+
+    expect(getByTestId('support-sample-seal')).toBeTruthy();
+
+    rerender(<SupportScreen isSampleData={false} />);
+
+    expect(queryByTestId('support-sample-seal')).toBeNull();
+  });
+});

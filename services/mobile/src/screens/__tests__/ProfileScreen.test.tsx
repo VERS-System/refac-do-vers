@@ -187,11 +187,11 @@ describe('ProfileScreen atalhos (09e, itens R2)', () => {
   });
 });
 
-describe('ProfileScreen sair (09f)', () => {
+describe('ProfileScreen sair (09f, popup R3+)', () => {
   const PROFILE = { displayName: 'Anna Newman', email: 'anna@vers.com' };
 
-  /** Abre a confirmação inline ao acionar SAIR. */
-  it('abre a confirmação ao acionar SAIR', () => {
+  /** Abre o popup de confirmação ao acionar SAIR. */
+  it('abre o popup ao acionar SAIR', () => {
     const onRequestLogout = jest.fn();
     const { getByRole, getByText } = render(
       <ProfileScreen onRequestLogout={onRequestLogout} profile={PROFILE} />,
@@ -200,7 +200,9 @@ describe('ProfileScreen sair (09f)', () => {
     fireEvent.press(getByRole('button', { name: 'Sair' }));
 
     expect(onRequestLogout).toHaveBeenCalledTimes(1);
-    expect(getByText('Deseja sair?')).toBeTruthy();
+    expect(getByText('Deseja sair da conta?')).toBeTruthy();
+    expect(getByRole('button', { name: 'Confirmar saída' })).toBeTruthy();
+    expect(getByRole('button', { name: 'Cancelar saída' })).toBeTruthy();
   });
 
   /** Confirma a saída sem encerrar nada localmente. */
@@ -216,7 +218,7 @@ describe('ProfileScreen sair (09f)', () => {
     expect(onConfirmLogout).toHaveBeenCalledTimes(1);
   });
 
-  /** Cancela a saída sem notificar confirmação. */
+  /** Cancela a saída fechando o popup, sem confirmar. */
   it('cancela a saída sem confirmar', () => {
     const onCancelLogout = jest.fn();
     const onConfirmLogout = jest.fn();
@@ -229,7 +231,57 @@ describe('ProfileScreen sair (09f)', () => {
 
     expect(onCancelLogout).toHaveBeenCalledTimes(1);
     expect(onConfirmLogout).not.toHaveBeenCalled();
-    expect(queryByText('Deseja sair?')).toBeNull();
+    expect(queryByText('Deseja sair da conta?')).toBeNull();
+  });
+
+  /** Toque no fundo escurecido cancela como o Cancelar. */
+  it('cancela ao tocar no fundo do popup', () => {
+    const onCancelLogout = jest.fn();
+    const { getByRole, getByTestId } = render(
+      <ProfileScreen onCancelLogout={onCancelLogout} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Sair' }));
+    fireEvent.press(getByTestId('profile-logout-backdrop'));
+
+    expect(onCancelLogout).toHaveBeenCalledTimes(1);
+  });
+
+  /** Sair do popup sem fundo, só o texto vermelho. */
+  it('mantém o sair do popup só em texto vermelho', () => {
+    const { getByRole, getByText } = render(
+      <ProfileScreen profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Sair' }));
+
+    expect(
+      getByRole('button', { name: 'Confirmar saída' }).props.style.backgroundColor,
+    ).toBeUndefined();
+    expect(getByText('Sair').props.style.color).toBe(theme.colors.error);
+  });
+
+  /** Botões do popup em linhas separadas por divisor. */
+  it('separa os botões do popup por linhas', () => {
+    const { getAllByTestId, getByRole } = render(
+      <ProfileScreen profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Sair' }));
+
+    expect(getAllByTestId('profile-logout-confirm-divider').length).toBeGreaterThanOrEqual(1);
+  });
+
+  /** Divisores da confirmação e das ações cortam o cartão ponta a ponta. */
+  it('corta os divisores ponta a ponta sem margem', () => {
+    const { getAllByTestId, getByRole, getByTestId } = render(
+      <ProfileScreen profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Sair' }));
+
+    expect(getAllByTestId('profile-logout-confirm-divider').length).toBe(2);
+    expect(getByTestId('profile-logout-confirm').props.style.padding).toBeUndefined();
   });
 });
 

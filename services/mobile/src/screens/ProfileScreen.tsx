@@ -13,7 +13,7 @@
  */
 
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppSkeleton } from '../components/AppSkeleton';
 import { AuthTextField } from '../components/AuthTextField';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
@@ -346,25 +346,6 @@ export function ProfileScreen({ onTabPress, profile = null, editing = null, draf
                 >
                   <Text style={styles.logoutText}>SAIR</Text>
                 </Pressable>
-                {isConfirmingLogout ? (
-                  <View style={styles.confirmBlock} testID="profile-logout-confirm">
-                    <Text style={styles.confirmText}>Deseja sair?</Text>
-                    <View style={styles.actionButton}>
-                      <PrimaryButton
-                        accessibilityLabel="Confirmar saída"
-                        label="SAIR"
-                        onPress={confirmLogout}
-                      />
-                    </View>
-                    <View style={styles.actionButton}>
-                      <PrimaryButton
-                        accessibilityLabel="Cancelar saída"
-                        label="CANCELAR"
-                        onPress={cancelLogout}
-                      />
-                    </View>
-                  </View>
-                ) : null}
               </>
             )}
           </View>
@@ -379,6 +360,49 @@ export function ProfileScreen({ onTabPress, profile = null, editing = null, draf
           </Text>
         )}
       </View>
+      <Modal
+        animationType="fade"
+        onRequestClose={cancelLogout}
+        transparent
+        visible={isConfirmingLogout}
+      >
+        <Pressable
+          accessibilityLabel="Fechar confirmação de saída"
+          onPress={cancelLogout}
+          style={styles.backdrop}
+          testID="profile-logout-backdrop"
+        >
+          <View
+            accessibilityViewIsModal
+            style={styles.confirmCard}
+            testID="profile-logout-confirm"
+          >
+            <Text accessibilityRole="alert" style={styles.confirmText}>
+              Deseja sair da conta?
+            </Text>
+            <View style={styles.confirmDivider} testID="profile-logout-confirm-divider" />
+            <View style={styles.confirmActions}>
+              <Pressable
+                accessibilityLabel="Confirmar saída"
+                accessibilityRole="button"
+                onPress={confirmLogout}
+                style={styles.confirmActionRow}
+              >
+                <Text style={styles.logoutText}>Sair</Text>
+              </Pressable>
+              <View style={styles.confirmDivider} testID="profile-logout-confirm-divider" />
+              <Pressable
+                accessibilityLabel="Cancelar saída"
+                accessibilityRole="button"
+                onPress={cancelLogout}
+                style={styles.confirmActionRow}
+              >
+                <Text style={styles.cancelText}>Cancelar</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </ScreenShell>
   );
 }
@@ -509,15 +533,49 @@ const styles = StyleSheet.create({
     maxWidth: 350,
     width: '100%',
   },
-  confirmBlock: {
-    gap: 8,
-    marginTop: 12,
+  /** Fundo escurecido do popup de confirmação de saída. */
+  backdrop: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  /** Cartão centralizado do popup, na identidade da marca; sem margem horizontal (divisores cortam ponta a ponta). */
+  confirmCard: {
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
     width: '100%',
   },
+  /** Linhas de ação do popup empilhadas, sem respiro (o divisor separa). */
+  confirmActions: {
+    width: '100%',
+  },
+  /** Linha de ação do popup em texto, sem fundo. */
+  confirmActionRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    width: '100%',
+  },
+  /** Divisor entre as linhas do popup. */
+  confirmDivider: {
+    borderTopColor: theme.colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    width: '100%',
+  },
+  /** Texto da pergunta em branco, centralizado, com respiro vertical próprio. */
   confirmText: {
     color: theme.colors.white,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
+    paddingBottom: 20,
+    paddingHorizontal: 24,
+    paddingTop: 24,
     textAlign: 'center',
   },
   emptyText: {

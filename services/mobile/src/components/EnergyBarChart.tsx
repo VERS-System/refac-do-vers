@@ -8,13 +8,25 @@ import { theme } from '../constants/theme';
 type EnergyBarChartProps = {
   height?: number;
   values: number[];
+  /**
+   * Teto de escala das barras; a altura vira `value / max * 100`. O padrão 100
+   * preserva o comportamento percentual das fixtures atuais, e a futura
+   * integração passa o teto real (ex.: maior Wh do período) para receber
+   * valores absolutos sem saturar.
+   */
+  max?: number;
 };
 
 /**
- * Normaliza cada valor entre zero e cem e o converte em uma barra vertical,
- * mantendo o componente independente da origem futura dos dados.
+ * Normaliza cada valor contra o teto `max` e o converte em uma barra
+ * vertical: zero e negativos viram altura 0 (sem energia não vira barrinha),
+ * positivos abaixo de 8% têm piso de visibilidade. O componente aceita
+ * qualquer escala desde que o chamador informe o teto.
  */
-export function EnergyBarChart({ height = 84, values }: EnergyBarChartProps) {
+export function EnergyBarChart({ height = 84, values, max = 100 }: EnergyBarChartProps) {
+  /** Teto inválido cai no padrão percentual 100 (guarda defensiva). */
+  const scaleMax = max > 0 ? max : 100;
+
   return (
     <View
       accessibilityLabel={`Gráfico de barras com ${values.length} valores`}
@@ -24,7 +36,8 @@ export function EnergyBarChart({ height = 84, values }: EnergyBarChartProps) {
       <View style={styles.baseline} />
       <View style={styles.bars}>
         {values.map((value, index) => {
-          const normalizedValue = Math.max(8, Math.min(100, value));
+          const normalizedValue =
+            value <= 0 ? 0 : Math.max(8, Math.min(100, (value / scaleMax) * 100));
 
           return (
             <View

@@ -11,6 +11,7 @@
 
 import { render } from '@testing-library/react-native';
 import { Dimensions, ScrollView } from 'react-native';
+import { BatteryScreen } from '../BatteryScreen';
 import { HomeScreen } from '../HomeScreen';
 import { LoginScreen } from '../LoginScreen';
 import { SplashScreen } from '../SplashScreen';
@@ -38,6 +39,15 @@ describe('responsividade (Task 00 - Item 6b)', () => {
 
     expect(getByTestId('home-screen')).toBeTruthy();
     expect(getByText('Battery usage')).toBeTruthy();
+    expect(UNSAFE_getByType(ScrollView).props.scrollEnabled).toBe(true);
+  });
+
+  /** A Bateria mantém donut, gráfico e cartões alcançáveis em tela estreita. */
+  it('exibe a Bateria em 320px com rolagem ativa', () => {
+    mockNarrowScreen();
+    const { getByTestId, UNSAFE_getByType } = render(<BatteryScreen />);
+
+    expect(getByTestId('battery-screen')).toBeTruthy();
     expect(UNSAFE_getByType(ScrollView).props.scrollEnabled).toBe(true);
   });
 

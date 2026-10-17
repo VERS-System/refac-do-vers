@@ -66,4 +66,55 @@ describe('EnergyBarChart', () => {
 
     expect(barHeight(getAllByTestId('energy-bar')[0])).toBe('50%');
   });
+
+  /** Cada valor ganha um rótulo no slot correspondente, alinhado por construção. */
+  it('renderiza um rótulo por barra quando labels é informado', () => {
+    const { getAllByTestId, getByText } = render(
+      <EnergyBarChart labels={['11 AM', '12 PM', '1 PM']} values={[10, 20, 30]} />,
+    );
+
+    expect(getByText('11 AM')).toBeTruthy();
+    expect(getByText('12 PM')).toBeTruthy();
+    expect(getByText('1 PM')).toBeTruthy();
+    expect(getAllByTestId('energy-label-slot')).toHaveLength(3);
+  });
+
+  /** Sem labels, não existe linha de rótulos (Home e Money economy). */
+  it('omite a linha de rótulos sem a prop labels', () => {
+    const { queryAllByTestId } = render(<EnergyBarChart values={[10, 20]} />);
+
+    expect(queryAllByTestId('energy-label-slot')).toHaveLength(0);
+  });
+
+  /** Séries longas perdem rótulos intermediários, mas a contagem de slots fica. */
+  it('aplica thinning mantendo um slot por barra e o primeiro rótulo', () => {
+    const labels = Array.from({ length: 24 }, (_, index) => `h${index}`);
+    const { getAllByTestId, getByText, queryByText } = render(
+      <EnergyBarChart labels={labels} values={labels.map(() => 50)} />,
+    );
+
+    expect(getAllByTestId('energy-label-slot')).toHaveLength(24);
+    expect(getByText('h0')).toBeTruthy();
+    expect(getAllByTestId('energy-label')).toHaveLength(8);
+    expect(queryByText('h1')).toBeNull();
+    expect(queryByText('h23')).toBeNull();
+  });
+
+  /** `maxVisibleLabels` menor força thinning mais agressivo. */
+  it('respeita maxVisibleLabels informado pelo chamador', () => {
+    const labels = Array.from({ length: 10 }, (_, index) => `h${index}`);
+    const { getAllByTestId, getByText, queryByText } = render(
+      <EnergyBarChart
+        labels={labels}
+        maxVisibleLabels={3}
+        values={labels.map(() => 50)}
+      />,
+    );
+
+    expect(getAllByTestId('energy-label')).toHaveLength(3);
+    expect(getByText('h0')).toBeTruthy();
+    expect(getByText('h4')).toBeTruthy();
+    expect(getByText('h8')).toBeTruthy();
+    expect(queryByText('h1')).toBeNull();
+  });
 });

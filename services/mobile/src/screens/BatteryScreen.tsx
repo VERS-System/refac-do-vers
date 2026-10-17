@@ -255,15 +255,9 @@ export function BatteryScreen({
         </View>
         <EnergyBarChart
           height={isExpanded ? 180 : 96}
+          labels={visibleHourly.map((point) => point.label)}
           values={visibleHourly.map((point) => point.value)}
         />
-        <View style={styles.hourLabels}>
-          {visibleHourly.map((point) => (
-            <Text key={point.label} style={styles.hourLabel}>
-              {point.label}
-            </Text>
-          ))}
-        </View>
         <View style={styles.originRow}>
           <Text style={styles.originText}>● Medido</Text>
           <Text style={styles.originText}>● Calculado</Text>
@@ -392,16 +386,6 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontSize: 18,
     fontWeight: '600',
-  },
-  hourLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 6,
-    paddingHorizontal: 5,
-  },
-  hourLabel: {
-    color: theme.colors.primary,
-    fontSize: 10,
   },
   originRow: {
     flexDirection: 'row',

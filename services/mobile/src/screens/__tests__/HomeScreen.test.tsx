@@ -99,16 +99,6 @@ describe('HomeScreen', () => {
     expect(queryByText('Battery usage')).toBeNull();
   });
 
-  /** Garante selo de amostra enquanto houver fixtures (04c). */
-  it('exibe selo de amostra no sucesso e omite com dados reais', () => {
-    const { getByTestId, queryByTestId, rerender } = render(<HomeScreen />);
-
-    expect(getByTestId('home-sample-seal')).toBeTruthy();
-
-    rerender(<HomeScreen isSampleData={false} />);
-    expect(queryByTestId('home-sample-seal')).toBeNull();
-  });
-
   /** Garante atalhos de bateria e sistema VERS por callbacks (04d). */
   it('aciona os atalhos de bateria e sistema VERS', () => {
     const onOpenBattery = jest.fn();

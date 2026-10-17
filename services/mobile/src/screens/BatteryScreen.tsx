@@ -62,6 +62,8 @@ type BatteryScreenProps = {
   onRetry?: () => void;
   /** Abre o histórico standalone (Task 06); ausente omite o atalho. */
   onOpenHistory?: () => void;
+  /** Repassa o período completo (início, fim) escolhido no calendário. */
+  onSelectRange?: (startDate: string, endDate: string) => void;
   /** Estado visual atual; `success` e `partial` exibem os gráficos. */
   status?: BatteryStatus;
   /** Porcentagem recuperada do donut. */
@@ -80,8 +82,6 @@ type BatteryScreenProps = {
   energySourceLabel?: string;
   /** Dias com dados no formato `YYYY-MM-DD`. */
   daysWithData?: string[];
-  /** Quando falso, omite o selo de amostra (dados reais do backend). */
-  isSampleData?: boolean;
 };
 
 /**
@@ -91,6 +91,7 @@ type BatteryScreenProps = {
 export function BatteryScreen({
   onTabPress,
   onSelectDay,
+  onSelectRange,
   onExpandToday,
   onRetry,
   onOpenHistory,
@@ -103,7 +104,6 @@ export function BatteryScreen({
   vehicleEnergyUsedWh = null,
   energySourceLabel = '',
   daysWithData = [],
-  isSampleData = true,
 }: BatteryScreenProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -212,12 +212,6 @@ export function BatteryScreen({
     >
       <Text style={styles.recordTitle}>MONTHLY RECORD</Text>
 
-      {isSampleData && (
-        <Text style={styles.sampleSeal} testID="battery-sample-seal">
-          DADOS DE AMOSTRA
-        </Text>
-      )}
-
       {status === 'partial' && (
         <Text
           accessibilityLabel="Dados parciais para o período."
@@ -291,7 +285,11 @@ export function BatteryScreen({
 
       {!isExpanded && (
         <View style={styles.card}>
-          <BatteryCalendar daysWithData={daysWithData} onSelectDay={onSelectDay} />
+          <BatteryCalendar
+            daysWithData={daysWithData}
+            onSelectDay={onSelectDay}
+            onSelectRange={onSelectRange}
+          />
         </View>
       )}
 
@@ -429,17 +427,5 @@ const styles = StyleSheet.create({
     color: theme.colors.gray,
     fontSize: 10,
     marginTop: 2,
-  },
-  /** Selo de amostra; omitido com dados reais do backend. */
-  sampleSeal: {
-    borderColor: theme.colors.primary,
-    borderRadius: theme.radii.lg,
-    borderWidth: 1,
-    color: theme.colors.primary,
-    fontSize: 11,
-    fontWeight: '800',
-    marginTop: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
   },
 });

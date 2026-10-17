@@ -48,8 +48,6 @@ type SupportScreenProps = {
   onCancelCreate?: () => void;
   /** Volta ao login na expirada; ausente mantém o botão sem efeito. */
   onOpenLogin?: () => void;
-  /** Quando falso, omite o selo de amostra (dados reais do backend). */
-  isSampleData?: boolean;
   /** Confirmação de envio; ausente usa estado visual interno. */
   confirmingCreate?: boolean | null;
   /** Estado visual atual; `success` exibe lista, detalhe e form. */
@@ -126,7 +124,7 @@ const EMPTY_DRAFT: SupportDraft = { vehicleId: '', installationId: '', reason: '
  * Renderiza o scaffold do suporte com lista, detalhes e formulário; a
  * confirmação e os estados chegam nos próximos lotes por props.
  */
-export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreate, selectedRequest = null, onBackToList, isCreating, vehicles, installations, supportDraft, onSupportChange, onSubmitCreate, onCancelCreate, onOpenLogin, confirmingCreate = null, status = 'success', onRetry, isSampleData = true }: SupportScreenProps) {
+export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreate, selectedRequest = null, onBackToList, isCreating, vehicles, installations, supportDraft, onSupportChange, onSubmitCreate, onCancelCreate, onOpenLogin, confirmingCreate = null, status = 'success', onRetry }: SupportScreenProps) {
   const [innerDraft, setInnerDraft] = useState<SupportDraft>(EMPTY_DRAFT);
   const [innerConfirming, setInnerConfirming] = useState(false);
   const [innerSent, setInnerSent] = useState(false);
@@ -246,11 +244,6 @@ export function SupportScreen({ onBack, items = [], onSelectRequest, onOpenCreat
         title="Suporte"
       />
 
-      {isSampleData && (
-        <Text style={styles.sampleSeal} testID="support-sample-seal">
-          DADOS DE AMOSTRA
-        </Text>
-      )}
       {isCreating ? (
         <View style={styles.emptyBlock} testID="support-form">
           {vehicles && vehicles.length > 0 ? (
@@ -574,17 +567,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: theme.spacing.sm,
     textAlign: 'center',
-  },
-  /** Selo de amostra; omitido com dados reais do backend. */
-  sampleSeal: {
-    borderColor: theme.colors.primary,
-    borderRadius: theme.radii.lg,
-    borderWidth: 1,
-    color: theme.colors.primary,
-    fontSize: 11,
-    fontWeight: '800',
-    marginTop: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
   },
 });

@@ -474,16 +474,3 @@ describe('SupportScreen envio duplicado (13d)', () => {
     expect(getByDisplayValue('Barulho estranho.')).toBeTruthy();
   });
 });
-
-describe('SupportScreen selo de amostra (13c)', () => {
-  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
-  it('exibe selo de amostra e omite com dados reais', () => {
-    const { getByTestId, queryByTestId, rerender } = render(<SupportScreen />);
-
-    expect(getByTestId('support-sample-seal')).toBeTruthy();
-
-    rerender(<SupportScreen isSampleData={false} />);
-
-    expect(queryByTestId('support-sample-seal')).toBeNull();
-  });
-});

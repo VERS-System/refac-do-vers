@@ -23,5 +23,7 @@ export const colors = {
   error: '#ef5350',
   /** Vermelho translúcido para fundos de perigo sem apagar o texto. */
   errorSoft: 'rgba(239, 83, 80, 0.16)',
+  /** Dourado translúcido para destaques suaves (ex.: período no calendário). */
+  primarySoft: 'rgba(216, 201, 90, 0.16)',
   success: '#6fbd72',
 } as const;

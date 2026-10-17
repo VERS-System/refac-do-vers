@@ -84,6 +84,19 @@ describe('HistoryScreen calendário standalone (06b)', () => {
     expect(onSelectDay).toHaveBeenCalledWith('2025-04-24');
   });
 
+  /** Repassa o período selecionado no calendário ao chamador. */
+  it('notifica o período completo ao chamador pelo onSelectRange', () => {
+    const onSelectRange = jest.fn();
+    const { getByRole } = render(
+      <HistoryScreen month={3} onSelectRange={onSelectRange} year={2025} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: '10' }));
+    fireEvent.press(getByRole('button', { name: '15' }));
+
+    expect(onSelectRange).toHaveBeenCalledWith('2025-04-10', '2025-04-15');
+  });
+
   /** Trava a navegação dentro dos limites aceitos por props. */
   it('trava a navegação dentro dos limites aceitos', () => {
     const onMonthChange = jest.fn();
@@ -421,18 +434,5 @@ describe('HistoryScreen acessibilidade (06g)', () => {
     expect(
       getByRole('button', { name: '23' }).props.accessibilityState,
     ).toEqual(expect.objectContaining({ selected: false }));
-  });
-});
-
-describe('HistoryScreen selo de amostra (13c)', () => {
-  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
-  it('exibe selo de amostra e omite com dados reais', () => {
-    const { getByTestId, queryByTestId, rerender } = render(<HistoryScreen />);
-
-    expect(getByTestId('history-sample-seal')).toBeTruthy();
-
-    rerender(<HistoryScreen isSampleData={false} />);
-
-    expect(queryByTestId('history-sample-seal')).toBeNull();
   });
 });

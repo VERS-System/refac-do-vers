@@ -47,6 +47,25 @@ describe('BatteryScreen', () => {
     expect(onSelectDay).toHaveBeenCalledTimes(1);
   });
 
+  /** Repassa o período selecionado no calendário ao chamador. */
+  it('notifica o período completo ao chamador pelo onSelectRange', () => {
+    const onSelectRange = jest.fn();
+    const { getByRole } = render(
+      <BatteryScreen onSelectRange={onSelectRange} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: '10' }));
+    fireEvent.press(getByRole('button', { name: '15' }));
+
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+
+    expect(onSelectRange).toHaveBeenCalledWith(
+      `${today.getFullYear()}-${month}-10`,
+      `${today.getFullYear()}-${month}-15`,
+    );
+  });
+
   /** Responde aos dados fornecidos por props. */
   it('responde aos dados fornecidos', () => {
     const { getAllByTestId, getByText, queryByText } = render(
@@ -192,18 +211,5 @@ describe('BatteryScreen', () => {
     expect(getAllByTestId('energy-bar')).toHaveLength(5);
     expect(queryByText('4 PM')).toBeNull();
     expect(getByText('cobertura 5 de 6 horas')).toBeTruthy();
-  });
-});
-
-describe('BatteryScreen selo de amostra (13c)', () => {
-  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
-  it('exibe selo de amostra e omite com dados reais', () => {
-    const { getByTestId, queryByTestId, rerender } = render(<BatteryScreen />);
-
-    expect(getByTestId('battery-sample-seal')).toBeTruthy();
-
-    rerender(<BatteryScreen isSampleData={false} />);
-
-    expect(queryByTestId('battery-sample-seal')).toBeNull();
   });
 });

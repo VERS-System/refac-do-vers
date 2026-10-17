@@ -378,19 +378,6 @@ describe('ViberScreen envio duplicado (13d)', () => {
   });
 });
 
-describe('ViberScreen selo de amostra (13c)', () => {
-  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
-  it('exibe selo de amostra e omite com dados reais', () => {
-    const { getByTestId, queryByTestId, rerender } = render(<ViberScreen />);
-
-    expect(getByTestId('viber-sample-seal')).toBeTruthy();
-
-    rerender(<ViberScreen isSampleData={false} />);
-
-    expect(queryByTestId('viber-sample-seal')).toBeNull();
-  });
-});
-
 describe('ViberScreen alvos de toque (13f)', () => {
   /** Garante alvo de toque nos atalhos, no contexto e no envio. */
   it('garante alvo de toque nos atalhos e no envio', () => {

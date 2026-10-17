@@ -298,16 +298,3 @@ describe('VersSystemScreen acessibilidade (07g)', () => {
     ).toEqual(expect.objectContaining({ selected: false }));
   });
 });
-
-describe('VersSystemScreen selo de amostra (13c)', () => {
-  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
-  it('exibe selo de amostra e omite com dados reais', () => {
-    const { getByTestId, queryByTestId, rerender } = render(<VersSystemScreen />);
-
-    expect(getByTestId('vers-system-sample-seal')).toBeTruthy();
-
-    rerender(<VersSystemScreen isSampleData={false} />);
-
-    expect(queryByTestId('vers-system-sample-seal')).toBeNull();
-  });
-});

@@ -283,6 +283,27 @@ describe('ProfileScreen sair (09f, popup R3+)', () => {
     expect(getAllByTestId('profile-logout-confirm-divider').length).toBe(2);
     expect(getByTestId('profile-logout-confirm').props.style.padding).toBeUndefined();
   });
+
+  /** Popup aberto: nome+papel em todos os botões e alvo de toque nas linhas. */
+  it('expõe nome acessível e hitSlop no popup', () => {
+    const { getAllByRole, getByRole } = render(
+      <ProfileScreen profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Sair' }));
+
+    for (const button of getAllByRole('button')) {
+      expect(button.props.accessibilityLabel).toBeTruthy();
+      expect(button.props.accessibilityRole).toBe('button');
+    }
+
+    expect(
+      getByRole('button', { name: 'Confirmar saída' }).props.hitSlop,
+    ).toBeTruthy();
+    expect(
+      getByRole('button', { name: 'Cancelar saída' }).props.hitSlop,
+    ).toBeTruthy();
+  });
 });
 
 describe('ProfileScreen acessibilidade (09g)', () => {

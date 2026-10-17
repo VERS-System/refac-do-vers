@@ -385,6 +385,7 @@ export function ProfileScreen({ onTabPress, profile = null, editing = null, draf
               <Pressable
                 accessibilityLabel="Confirmar saída"
                 accessibilityRole="button"
+                hitSlop={8}
                 onPress={confirmLogout}
                 style={styles.confirmActionRow}
               >
@@ -394,6 +395,7 @@ export function ProfileScreen({ onTabPress, profile = null, editing = null, draf
               <Pressable
                 accessibilityLabel="Cancelar saída"
                 accessibilityRole="button"
+                hitSlop={8}
                 onPress={cancelLogout}
                 style={styles.confirmActionRow}
               >

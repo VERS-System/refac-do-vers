@@ -17,11 +17,15 @@ import {
 const LOGO_WIDTH = 140;
 const LOGO_HEIGHT = 93;
 
-/** Polígono (trapézio) de cada barra nas coordenadas do viewBox oficial. */
+/**
+ * Polígono de cada barra nas coordenadas do viewBox 140x93, medido pixel a
+ * pixel no versLogo.png: largura constante (~24px) até y=49 e afilamento
+ * acentuado só no terço inferior (formato de pincelada da identidade).
+ */
 const BAR_POINTS: Record<LogoBar, string> = {
-  left: '41,0 65,0 12,92 0,92',
-  center: '79,0 103,0 50,92 38,92',
-  right: '115,0 139,0 86,92 74,92',
+  left: '42,0 66,0 43,49 12,92 0,92',
+  center: '80,0 104,0 81,49 50,92 38,92',
+  right: '116,0 140,0 117,49 86,92 74,92',
 };
 
 /** Cor de preenchimento de cada barra do logotipo. */

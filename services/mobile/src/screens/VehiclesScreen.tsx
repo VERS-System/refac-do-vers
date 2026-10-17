@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   },
   optionChipTextSelected: {
     color: theme.colors.white,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   fieldGap: {
     marginTop: 12,

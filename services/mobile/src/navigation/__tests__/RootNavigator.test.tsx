@@ -127,7 +127,7 @@ describe('RootNavigator (Task 00 - Item 4b)', () => {
     );
 
     fireEvent.press(getByRole('button', { name: 'Perfil' }));
-    fireEvent.press(getByRole('button', { name: 'Meus veículos' }));
+    fireEvent.press(getByRole('button', { name: 'Informações do carro' }));
 
     expect(getByTestId('vehicles-screen')).toBeTruthy();
     expect(queryByTestId('profile-screen')).toBeNull();
@@ -155,22 +155,17 @@ describe('RootNavigator (Task 00 - Item 4b)', () => {
     expect(queryByTestId('viber-screen')).toBeNull();
   });
 
-  /** Abre o suporte pelo Perfil sem criar aba nova (12a). */
-  it('abre o suporte pelo Perfil e volta sem mudar as abas', () => {
+  /** Abre a energia pelo Perfil trocando para a aba VERS (R2). */
+  it('abre a energia pelo Perfil na aba VERS', () => {
     const { getByRole, getByTestId, queryByTestId } = render(
       <RootNavigator isAuthenticated isSplashVisible={false} onAuthenticated={jest.fn()} />,
     );
 
     fireEvent.press(getByRole('button', { name: 'Perfil' }));
-    fireEvent.press(getByRole('button', { name: 'Ajuda e suporte' }));
+    fireEvent.press(getByRole('button', { name: 'Informações de energia' }));
 
-    expect(getByTestId('support-screen')).toBeTruthy();
+    expect(getByTestId('vers-system-screen')).toBeTruthy();
     expect(queryByTestId('profile-screen')).toBeNull();
-
-    fireEvent.press(getByRole('button', { name: 'Voltar' }));
-
-    expect(getByTestId('profile-screen')).toBeTruthy();
-    expect(queryByTestId('support-screen')).toBeNull();
   });
 
   /** Abre o suporte pelo Sistema VERS sem criar aba nova (12a). */

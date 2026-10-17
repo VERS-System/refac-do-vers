@@ -10,6 +10,7 @@
  */
 
 import { fireEvent, render } from '@testing-library/react-native';
+import { theme } from '../../constants/theme';
 import { ProfileScreen } from '../ProfileScreen';
 
 describe('ProfileScreen (09a)', () => {
@@ -73,7 +74,7 @@ describe('ProfileScreen edição (09c)', () => {
       <ProfileScreen onEdit={onEdit} profile={PROFILE} />,
     );
 
-    fireEvent.press(getByRole('button', { name: 'Editar perfil' }));
+    fireEvent.press(getByRole('button', { name: 'Editar informações de usuário' }));
 
     expect(onEdit).toHaveBeenCalledTimes(1);
     expect(getByDisplayValue('Anna Newman')).toBeTruthy();
@@ -161,7 +162,7 @@ describe('ProfileScreen estados (09d)', () => {
   });
 });
 
-describe('ProfileScreen atalhos (09e)', () => {
+describe('ProfileScreen atalhos (09e, itens R2)', () => {
   const PROFILE = { displayName: 'Anna Newman', email: 'anna@vers.com' };
 
   /** Abre os veículos por callback puro. */
@@ -171,30 +172,18 @@ describe('ProfileScreen atalhos (09e)', () => {
       <ProfileScreen onOpenVehicles={onOpenVehicles} profile={PROFILE} />,
     );
 
-    fireEvent.press(getByRole('button', { name: 'Meus veículos' }));
+    fireEvent.press(getByRole('button', { name: 'Informações do carro' }));
 
     expect(onOpenVehicles).toHaveBeenCalledTimes(1);
   });
 
-  /** Abre o suporte por callback puro. */
-  it('abre o suporte ao acionar o atalho', () => {
-    const onOpenSupport = jest.fn();
-    const { getByRole } = render(
-      <ProfileScreen onOpenSupport={onOpenSupport} profile={PROFILE} />,
-    );
-
-    fireEvent.press(getByRole('button', { name: 'Ajuda e suporte' }));
-
-    expect(onOpenSupport).toHaveBeenCalledTimes(1);
-  });
-
-  /** Omite os atalhos sem callbacks sem quebrar o layout. */
-  it('omite os atalhos sem callbacks', () => {
+  /** Omite os itens do carro sem callbacks sem quebrar o layout. */
+  it('omite os itens sem callbacks', () => {
     const { getByTestId, queryByRole } = render(<ProfileScreen profile={PROFILE} />);
 
     expect(getByTestId('profile-data')).toBeTruthy();
-    expect(queryByRole('button', { name: 'Meus veículos' })).toBeNull();
-    expect(queryByRole('button', { name: 'Ajuda e suporte' })).toBeNull();
+    expect(queryByRole('button', { name: 'Informações do carro' })).toBeNull();
+    expect(queryByRole('button', { name: 'Informações de energia' })).toBeNull();
   });
 });
 
@@ -251,7 +240,7 @@ describe('ProfileScreen acessibilidade (09g)', () => {
   it('expõe nome acessível em botões e atalhos', () => {
     const { getAllByRole } = render(
       <ProfileScreen
-        onOpenSupport={jest.fn()}
+        onOpenEnergy={jest.fn()}
         onOpenVehicles={jest.fn()}
         profile={PROFILE}
       />,
@@ -284,6 +273,140 @@ describe('ProfileScreen acessibilidade (09g)', () => {
     expect(
       getByRole('button', { name: 'Início' }).props.accessibilityState,
     ).toEqual(expect.objectContaining({ selected: false }));
+  });
+});
+
+describe('ProfileScreen seções (R2)', () => {
+  const PROFILE = { displayName: 'Anna Newman' };
+
+  /** Exibe as seções Carro e Usuário em texto. */
+  it('exibe as seções em texto', () => {
+    const { getByText } = render(
+      <ProfileScreen
+        onOpenEnergy={jest.fn()}
+        onOpenVehicles={jest.fn()}
+        profile={PROFILE}
+      />,
+    );
+
+    expect(getByText('Carro')).toBeTruthy();
+    expect(getByText('Informações do carro')).toBeTruthy();
+    expect(getByText('Informações de energia')).toBeTruthy();
+    expect(getByText('Usuário')).toBeTruthy();
+    expect(getByText('Editar informações de usuário')).toBeTruthy();
+  });
+
+  /** Abre os veículos pelas informações do carro. */
+  it('abre os veículos pelas informações do carro', () => {
+    const onOpenVehicles = jest.fn();
+    const { getByRole } = render(
+      <ProfileScreen onOpenVehicles={onOpenVehicles} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Informações do carro' }));
+
+    expect(onOpenVehicles).toHaveBeenCalledTimes(1);
+  });
+
+  /** Abre a energia pela seção do carro. */
+  it('abre a energia pelas informações de energia', () => {
+    const onOpenEnergy = jest.fn();
+    const { getByRole } = render(
+      <ProfileScreen onOpenEnergy={onOpenEnergy} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Informações de energia' }));
+
+    expect(onOpenEnergy).toHaveBeenCalledTimes(1);
+  });
+
+  /** Abre a edição pelas informações do usuário. */
+  it('abre a edição pelas informações do usuário', () => {
+    const onEdit = jest.fn();
+    const { getByDisplayValue, getByRole } = render(
+      <ProfileScreen onEdit={onEdit} profile={PROFILE} />,
+    );
+
+    fireEvent.press(getByRole('button', { name: 'Editar informações de usuário' }));
+
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(getByDisplayValue('Anna Newman')).toBeTruthy();
+  });
+});
+
+describe('ProfileScreen alinhamento (ajuste R2)', () => {
+  const PROFILE = { displayName: 'Anna Newman' };
+
+  /** Alinha títulos e itens à esquerda, direto na tela. */
+  it('alinha seções à esquerda sem cartão', () => {
+    const { getByTestId, getByText } = render(
+      <ProfileScreen
+        onOpenEnergy={jest.fn()}
+        onOpenVehicles={jest.fn()}
+        profile={PROFILE}
+      />,
+    );
+
+    expect(getByTestId('profile-data').props.style.backgroundColor).toBeUndefined();
+    expect(getByText('Carro').props.style.textAlign).toBe('left');
+    expect(getByText('Informações do carro').props.style.textAlign).toBe('left');
+    expect(getByText('Usuário').props.style.textAlign).toBe('left');
+  });
+
+  /** Hierarquia: respiro após o título, itens compactos. */
+  it('separa títulos da lista e compacta os itens', () => {
+    const { getByRole, getByText } = render(
+      <ProfileScreen
+        onOpenEnergy={jest.fn()}
+        onOpenVehicles={jest.fn()}
+        profile={PROFILE}
+      />,
+    );
+
+    expect(getByText('Carro').props.style.marginBottom).toBe(12);
+    expect(
+      getByRole('button', { name: 'Informações do carro' }).props.style.paddingVertical,
+    ).toBe(4);
+  });
+
+  /** Dourado só nos títulos e divisores; itens em branco. */
+  it('restringe o dourado a títulos e divisores', () => {
+    const { getAllByTestId, getByText } = render(
+      <ProfileScreen
+        onOpenEnergy={jest.fn()}
+        onOpenVehicles={jest.fn()}
+        profile={PROFILE}
+      />,
+    );
+
+    expect(getByText('Carro').props.style.color).toBe(theme.colors.gold);
+    expect(getByText('Usuário').props.style.color).toBe(theme.colors.gold);
+    expect(getByText('Informações do carro').props.style.color).toBe(theme.colors.white);
+    expect(getByText('Editar informações de usuário').props.style.color).toBe(
+      theme.colors.white,
+    );
+
+    for (const divider of getAllByTestId('profile-section-divider')) {
+      expect(divider.props.style.borderTopColor).toBe(theme.colors.gold);
+    }
+  });
+
+  /** Sair em peso médio. */
+  it('renderiza o sair em peso médio', () => {
+    const { getByText } = render(<ProfileScreen profile={PROFILE} />);
+
+    expect(getByText('SAIR').props.style.fontWeight).toBe('500');
+  });
+
+  /** Nome em branco e Sair em vermelho suave. */
+  it('aplica branco no nome e vermelho no sair', () => {
+    const { getByRole, getByText } = render(<ProfileScreen profile={PROFILE} />);
+
+    expect(getByText('Anna Newman').props.style.color).toBe(theme.colors.white);
+
+    const logout = getByRole('button', { name: 'Sair' });
+    expect(logout.props.style.backgroundColor).toBe(theme.colors.errorSoft);
+    expect(getByText('SAIR').props.style.color).toBe(theme.colors.error);
   });
 });
 

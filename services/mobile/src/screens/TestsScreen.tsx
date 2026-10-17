@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
   },
   filterChipTextSelected: {
     color: theme.colors.white,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   listCard: {
     backgroundColor: theme.colors.surface,

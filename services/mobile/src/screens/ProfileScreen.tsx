@@ -13,7 +13,7 @@
  */
 
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppSkeleton } from '../components/AppSkeleton';
 import { AuthTextField } from '../components/AuthTextField';
 import { BottomNavigation, type MainTab } from '../components/BottomNavigation';
@@ -47,10 +47,10 @@ type ProfileScreenProps = {
   onRetry?: () => void;
   /** Volta ao Login na expiração; rota do fluxo público. */
   onOpenLogin?: () => void;
-  /** Abre os veículos (Task 10); ausente omite o atalho. */
+  /** Abre os veículos; ausente omite o item. */
   onOpenVehicles?: () => void;
-  /** Abre o suporte (Task 11); ausente omite o atalho. */
-  onOpenSupport?: () => void;
+  /** Abre a energia na aba VERS; ausente omite o item. */
+  onOpenEnergy?: () => void;
   /** Confirmação de saída; ausente usa estado visual interno. */
   confirmingLogout?: boolean | null;
   /** Solicita a saída; ausente só alterna a confirmação interna. */
@@ -90,7 +90,7 @@ function getInitials(displayName?: string | null) {
  * delegando voltar, edição, salvamento, nova tentativa, retorno ao Login,
  * atalhos, saída e troca de aba por callbacks.
  */
-export function ProfileScreen({ onTabPress, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave, status = 'success', onRetry, onOpenLogin, onOpenVehicles, onOpenSupport, confirmingLogout = null, onRequestLogout, onConfirmLogout, onCancelLogout, isAdmin = null }: ProfileScreenProps) {
+export function ProfileScreen({ onTabPress, profile = null, editing = null, draftName = null, onEdit, onCancelEdit, onDraftChange, onSave, status = 'success', onRetry, onOpenLogin, onOpenVehicles, onOpenEnergy, confirmingLogout = null, onRequestLogout, onConfirmLogout, onCancelLogout, isAdmin = null }: ProfileScreenProps) {
   const [internalEditing, setInternalEditing] = useState(false);
   const [internalDraft, setInternalDraft] = useState<string | null>(null);
   const [internalSaved, setInternalSaved] = useState<string | null>(null);
@@ -253,20 +253,27 @@ export function ProfileScreen({ onTabPress, profile = null, editing = null, draf
 
       <View style={styles.emptyBlock}>
         {profile && status !== 'empty' ? (
-          <View style={styles.card} testID="profile-data">
-            <View style={styles.avatarRing} testID="profile-avatar-ring">
-              {profile.avatarUrl ? (
-                <Image
-                  accessibilityLabel="Foto de perfil"
-                  source={{ uri: profile.avatarUrl }}
-                  style={styles.avatar}
-                  testID="profile-avatar-image"
-                />
-              ) : (
-                <View style={styles.avatarFallback} testID="profile-avatar-initials">
-                  <Text style={styles.initialsText}>{getInitials(currentName)}</Text>
-                </View>
-              )}
+          <View style={styles.profileBlock} testID="profile-data">
+            <View style={styles.avatarBlock}>
+              <View style={styles.avatarRing} testID="profile-avatar-ring">
+                {profile.avatarUrl ? (
+                  <Image
+                    accessibilityLabel="Foto de perfil"
+                    source={{ uri: profile.avatarUrl }}
+                    style={styles.avatar}
+                    testID="profile-avatar-image"
+                  />
+                ) : (
+                  <View style={styles.avatarFallback} testID="profile-avatar-initials">
+                    <Text style={styles.initialsText}>{getInitials(currentName)}</Text>
+                  </View>
+                )}
+              </View>
+              {!isEditing ? (
+                <Text style={styles.nameText}>
+                  {currentName ? currentName : 'Sem nome definido'}
+                </Text>
+              ) : null}
             </View>
             {isEditing ? (
               <View style={styles.editBlock}>
@@ -293,41 +300,50 @@ export function ProfileScreen({ onTabPress, profile = null, editing = null, draf
               </View>
             ) : (
               <>
-                <Text style={styles.nameText}>
-                  {currentName ? currentName : 'Sem nome definido'}
-                </Text>
-                <View style={styles.actionButton}>
-                  <PrimaryButton
-                    accessibilityLabel="Editar perfil"
-                    label="EDITAR"
-                    onPress={openEdit}
-                  />
-                </View>
+                <View style={styles.divider} testID="profile-section-divider" />
+                <Text style={styles.sectionTitle}>Carro</Text>
                 {onOpenVehicles ? (
-                  <View style={styles.actionButton}>
-                    <PrimaryButton
-                      accessibilityLabel="Meus veículos"
-                      label="MEUS VEÍCULOS"
-                      onPress={() => onOpenVehicles?.()}
-                    />
-                  </View>
+                  <Pressable
+                    accessibilityLabel="Informações do carro"
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => onOpenVehicles?.()}
+                    style={styles.sectionItem}
+                  >
+                    <Text style={styles.itemText}>Informações do carro</Text>
+                  </Pressable>
                 ) : null}
-                {onOpenSupport ? (
-                  <View style={styles.actionButton}>
-                    <PrimaryButton
-                      accessibilityLabel="Ajuda e suporte"
-                      label="AJUDA E SUPORTE"
-                      onPress={() => onOpenSupport?.()}
-                    />
-                  </View>
+                {onOpenEnergy ? (
+                  <Pressable
+                    accessibilityLabel="Informações de energia"
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => onOpenEnergy?.()}
+                    style={styles.sectionItem}
+                  >
+                    <Text style={styles.itemText}>Informações de energia</Text>
+                  </Pressable>
                 ) : null}
-                <View style={styles.actionButton}>
-                  <PrimaryButton
-                    accessibilityLabel="Sair"
-                    label="SAIR"
-                    onPress={requestLogout}
-                  />
-                </View>
+                <View style={styles.divider} testID="profile-section-divider" />
+                <Text style={styles.sectionTitle}>Usuário</Text>
+                <Pressable
+                  accessibilityLabel="Editar informações de usuário"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={openEdit}
+                  style={styles.sectionItem}
+                >
+                  <Text style={styles.itemText}>Editar informações de usuário</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Sair"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={requestLogout}
+                  style={styles.logoutButton}
+                >
+                  <Text style={styles.logoutText}>SAIR</Text>
+                </Pressable>
                 {isConfirmingLogout ? (
                   <View style={styles.confirmBlock} testID="profile-logout-confirm">
                     <Text style={styles.confirmText}>Deseja sair?</Text>
@@ -384,14 +400,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
-  card: {
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 16,
+  profileBlock: {
     width: '100%',
+  },
+  avatarBlock: {
+    alignItems: 'center',
   },
   adminSeal: {
     alignSelf: 'flex-start',
@@ -426,10 +439,51 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   nameText: {
-    color: theme.colors.gold,
+    color: theme.colors.white,
     fontSize: 18,
     fontWeight: '700',
     marginTop: 8,
+  },
+  /** Divisor de seção na cor da marca. */
+  divider: {
+    borderTopColor: theme.colors.gold,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginVertical: 16,
+    width: '100%',
+  },
+  /** Título da seção; dourado à esquerda com respiro até a lista. */
+  sectionTitle: {
+    color: theme.colors.gold,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'left',
+  },
+  /** Linha do item compacta; só repassa a navegação. */
+  sectionItem: {
+    paddingVertical: 4,
+  },
+  /** Texto do item; branco à esquerda, direto na tela. */
+  itemText: {
+    color: theme.colors.white,
+    fontSize: 14,
+    textAlign: 'left',
+  },
+  /** Botão de saída em vermelho suave, sem apagar o texto. */
+  logoutButton: {
+    alignItems: 'center',
+    backgroundColor: theme.colors.errorSoft,
+    borderRadius: theme.radii.pill,
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingVertical: 12,
+    width: '100%',
+  },
+  /** Texto de saída em vermelho sólido, peso médio. */
+  logoutText: {
+    color: theme.colors.error,
+    fontSize: 15,
+    fontWeight: '500',
   },
   editBlock: {
     gap: 12,

@@ -58,6 +58,6 @@ const styles = StyleSheet.create({
   label: {
     color: theme.colors.background,
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '500',
   },
 });

@@ -98,7 +98,7 @@ export function RootNavigator({ isSplashVisible, isAuthenticated, onAuthenticate
     if (activeTab === 'profile') {
       return (
         <ProfileScreen
-          onOpenSupport={() => setSupportVisible(true)}
+          onOpenEnergy={() => setActiveTab('vers')}
           onOpenVehicles={() => setVehiclesVisible(true)}
           onTabPress={setActiveTab}
           profile={DEMO_PROFILE}

@@ -21,5 +21,7 @@ export const colors = {
   border: '#626262',
   tabActive: '#292819',
   error: '#ef5350',
+  /** Vermelho translúcido para fundos de perigo sem apagar o texto. */
+  errorSoft: 'rgba(239, 83, 80, 0.16)',
   success: '#6fbd72',
 } as const;

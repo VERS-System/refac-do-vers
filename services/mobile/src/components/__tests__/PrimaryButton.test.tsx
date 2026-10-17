@@ -19,4 +19,13 @@ describe('PrimaryButton', () => {
     fireEvent.press(button);
     expect(onPress).not.toHaveBeenCalled();
   });
+
+  /** Rótulo em peso médio em todo o sistema (ajuste visual). */
+  it('renderiza o rótulo em peso médio', () => {
+    const { getByText } = render(
+      <PrimaryButton label="SIGN-UP" onPress={jest.fn()} />,
+    );
+
+    expect(getByText('SIGN-UP').props.style.fontWeight).toBe('500');
+  });
 });

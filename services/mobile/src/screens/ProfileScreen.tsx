@@ -276,7 +276,7 @@ export function ProfileScreen({ onTabPress, profile = null, editing = null, draf
               ) : null}
             </View>
             {isEditing ? (
-              <View style={styles.editBlock}>
+              <View style={styles.editBlock} testID="profile-edit-block">
                 <AuthTextField
                   label="Nome:"
                   onChangeText={changeDraft}
@@ -290,13 +290,15 @@ export function ProfileScreen({ onTabPress, profile = null, editing = null, draf
                     onPress={saveProfile}
                   />
                 </View>
-                <View style={styles.actionButton}>
-                  <PrimaryButton
-                    accessibilityLabel="Cancelar edição"
-                    label="CANCELAR"
-                    onPress={cancelEdit}
-                  />
-                </View>
+                <Pressable
+                  accessibilityLabel="Cancelar edição"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={cancelEdit}
+                  style={styles.cancelButton}
+                >
+                  <Text style={styles.cancelText}>CANCELAR</Text>
+                </Pressable>
               </View>
             ) : (
               <>
@@ -487,8 +489,20 @@ const styles = StyleSheet.create({
   },
   editBlock: {
     gap: 12,
-    marginTop: 8,
+    marginTop: 16,
     width: '100%',
+  },
+  /** Cancelar em texto, sem pílula; respiro próprio até o SALVAR. */
+  cancelButton: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    width: '100%',
+  },
+  /** Rótulo do cancelar em branco, peso médio. */
+  cancelText: {
+    color: theme.colors.white,
+    fontSize: 15,
+    fontWeight: '500',
   },
   actionButton: {
     marginTop: 12,

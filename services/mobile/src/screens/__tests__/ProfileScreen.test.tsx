@@ -441,3 +441,33 @@ describe('ProfileScreen reestilização (R1)', () => {
     expect(queryByTestId('profile-header')).toBeNull();
   });
 });
+
+describe('ProfileScreen modo de edição (R3)', () => {
+  const PROFILE = { displayName: 'Anna Newman' };
+
+  /** Respiro do bloco de edição igual ao divisor do modo visual. */
+  it('aplica respiro ao bloco de edição', () => {
+    const { getByTestId } = render(<ProfileScreen editing profile={PROFILE} />);
+
+    expect(getByTestId('profile-edit-block').props.style.marginTop).toBe(16);
+  });
+
+  /** Cancelar vira ação de texto (sem pílula dourada) com alvo de toque. */
+  it('renderiza cancelar como ação de texto', () => {
+    const { getByRole, getByText } = render(
+      <ProfileScreen editing profile={PROFILE} />,
+    );
+
+    expect(getByText('CANCELAR').props.style.color).toBe(theme.colors.white);
+    expect(
+      getByRole('button', { name: 'Cancelar edição' }).props.hitSlop,
+    ).toBeTruthy();
+  });
+
+  /** Salvar segue o PrimaryButton dourado como ação principal. */
+  it('mantém salvar como ação principal', () => {
+    const { getByText } = render(<ProfileScreen editing profile={PROFILE} />);
+
+    expect(getByText('SALVAR').props.style.color).toBe(theme.colors.background);
+  });
+});

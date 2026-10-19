@@ -356,3 +356,50 @@ describe('ViberScreen acessibilidade e layout (11g)', () => {
     expect(getByText('Saiba mais em https://vers.com/vers')).toBeTruthy();
   });
 });
+
+describe('ViberScreen envio duplicado (13d)', () => {
+  /** Desabilita o envio durante sending sem apagar o digitado. */
+  it('desabilita o envio durante sending', () => {
+    const onSend = jest.fn();
+    const { getByDisplayValue, getByRole } = render(
+      <ViberScreen draft="Olá, Viber!" onSend={onSend} status="sending" />,
+    );
+
+    const send = getByRole('button', { name: 'Enviar mensagem' });
+
+    expect(send.props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true }),
+    );
+
+    fireEvent.press(send);
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(getByDisplayValue('Olá, Viber!')).toBeTruthy();
+  });
+});
+
+describe('ViberScreen selo de amostra (13c)', () => {
+  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
+  it('exibe selo de amostra e omite com dados reais', () => {
+    const { getByTestId, queryByTestId, rerender } = render(<ViberScreen />);
+
+    expect(getByTestId('viber-sample-seal')).toBeTruthy();
+
+    rerender(<ViberScreen isSampleData={false} />);
+
+    expect(queryByTestId('viber-sample-seal')).toBeNull();
+  });
+});
+
+describe('ViberScreen alvos de toque (13f)', () => {
+  /** Garante alvo de toque nos atalhos, no contexto e no envio. */
+  it('garante alvo de toque nos atalhos e no envio', () => {
+    const { getByLabelText } = render(
+      <ViberScreen contexts={[{ id: 'c1', label: 'Garagem' }]} draft="" />,
+    );
+
+    expect(getByLabelText('Battery usage').props.hitSlop).toBeTruthy();
+    expect(getByLabelText('Garagem').props.hitSlop).toBeTruthy();
+    expect(getByLabelText('Enviar mensagem').props.hitSlop).toBeTruthy();
+  });
+});

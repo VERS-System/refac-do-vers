@@ -67,6 +67,8 @@ type TestsScreenProps = {
   recentDataLabel?: string | null;
   /** Estado de conexão cru exibido na execução. */
   connectionLabel?: string | null;
+  /** Quando falso, omite o selo de amostra (dados reais do backend). */
+  isSampleData?: boolean;
 };
 
 /** Estado visual da ação; só representa o retorno do backend. */
@@ -203,7 +205,7 @@ const TERRAIN_OPTIONS: ReadonlyArray<{ value: TestTerrain; label: string }> = [
  * planejamento e confirmações dos testes, delegando voltar, filtro, seleção,
  * paginação, edição, envio, ações e troca de aba por callbacks.
  */
-export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items = [], page = 1, pageSize = 20, totalItems, onPageChange, onSelectTest, statusFilter = null, installationFilter = null, onFilterChange, selectedTest = null, planDraft = null, onPlanChange, onSubmitPlan, onStart, onFinish, onCancel, actionState = 'idle', conflictMessage = null, recentDataLabel = null, connectionLabel = null }: TestsScreenProps) {
+export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items = [], page = 1, pageSize = 20, totalItems, onPageChange, onSelectTest, statusFilter = null, installationFilter = null, onFilterChange, selectedTest = null, planDraft = null, onPlanChange, onSubmitPlan, onStart, onFinish, onCancel, actionState = 'idle', conflictMessage = null, recentDataLabel = null, connectionLabel = null, isSampleData = true }: TestsScreenProps) {
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [internalDraft, setInternalDraft] = useState<TestPlanDraft>(EMPTY_PLAN);
   const [internalStatus, setInternalStatus] = useState<TestListStatus | 'ALL'>('ALL');
@@ -294,6 +296,12 @@ export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items =
         title="Testes"
       />
 
+      {isSampleData && (
+        <Text style={styles.sampleSeal} testID="tests-sample-seal">
+          DADOS DE AMOSTRA
+        </Text>
+      )}
+
       <View style={styles.emptyBlock}>
         <View style={styles.filterCard} testID="tests-filters">
           <Text style={styles.filterLabel}>
@@ -331,6 +339,7 @@ export function TestsScreen({ onTabPress, onBack, activeTab = 'battery', items =
               <Pressable
                 accessibilityLabel={item.name}
                 accessibilityRole="button"
+                hitSlop={8}
                 key={item.id}
                 onPress={() => onSelectTest?.(item.id)}
                 style={styles.listRow}
@@ -677,5 +686,17 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 14,
     textAlign: 'center',
+  },
+  /** Selo de amostra; omitido com dados reais do backend. */
+  sampleSeal: {
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    color: theme.colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
 });

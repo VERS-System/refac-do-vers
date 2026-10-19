@@ -37,6 +37,8 @@ type VersSystemScreenProps = {
   onOpenTests?: () => void;
   /** Abre a solicitação de revisão; ausente omite o atalho. */
   onOpenSupport?: () => void;
+  /** Quando falso, omite o selo de amostra (dados reais do backend). */
+  isSampleData?: boolean;
 };
 
 /** Estados visuais do sistema VERS; a origem dos dados é do backend (F05 futuro). */
@@ -129,7 +131,7 @@ const DEVICE_STATUS_LABELS: Record<VersDeviceStatus, string> = {
  * atalhos do sistema VERS, delegando voltar, nova tentativa, testes,
  * revisão e troca de aba por callbacks.
  */
-export function VersSystemScreen({ onTabPress, onBack, installation = null, configuration = null, device = null, status = 'success', onRetry, onOpenTests, onOpenSupport }: VersSystemScreenProps) {
+export function VersSystemScreen({ onTabPress, onBack, installation = null, configuration = null, device = null, status = 'success', onRetry, onOpenTests, onOpenSupport, isSampleData = true }: VersSystemScreenProps) {
   const showWarning = installation?.status === 'MAINTENANCE' || installation?.status === 'FAULT';
 
   if (status === 'loading') {
@@ -189,6 +191,12 @@ export function VersSystemScreen({ onTabPress, onBack, installation = null, conf
         testID="vers-system-header"
         title="Sistema VERS"
       />
+
+      {isSampleData && (
+        <Text style={styles.sampleSeal} testID="vers-system-sample-seal">
+          DADOS DE AMOSTRA
+        </Text>
+      )}
 
       <View style={styles.emptyBlock}>
         {showWarning ? (
@@ -352,5 +360,17 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 14,
     textAlign: 'center',
+  },
+  /** Selo de amostra; omitido com dados reais do backend. */
+  sampleSeal: {
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    color: theme.colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
 });

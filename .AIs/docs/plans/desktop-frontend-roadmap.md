@@ -267,7 +267,10 @@ Premissas dos dados de exemplo **a validar pelo programador**:
 
 React Bits conforme o DESIGN.md (SpotlightCard, CountUp, Threads/Waves,
 AnimatedList, Stepper, GlareHover), `prefers-reduced-motion`, foco visível e
-navegação por teclado.
+navegação por teclado. **Implementada em 16/10/2026 (aguardando revisão e
+commits do programador)** na branch `feat/desktop-fase-5`, com busca,
+notificações, divisão por tela, CSP e curva do dia no escopo. Plano e
+execução em [desktop-frontend-fase-5.md](desktop-frontend-fase-5.md).
 
 ## 5. Validação de cada etapa
 

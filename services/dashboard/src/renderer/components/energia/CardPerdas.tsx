@@ -1,9 +1,10 @@
 /**
  * Card "Perdas na conversão" da tela Energia.
  *
- * Mostra a energia do período em cada um dos 4 pontos da cadeia, do nó
- * piezoelétrico ao celular, com a perda de cada estágio e uma barra
- * proporcional à energia do ponto 1. Fecha com a eficiência ponta a ponta.
+ * Mostra os 4 pontos da cadeia, do nó piezoelétrico ao celular: o ponto 1
+ * com a energia gerada no período e os pontos 2 a 4 com quanto dela chegou
+ * até eles, em % (decisão de 19/10/2026). Cada estágio traz a sua perda e
+ * uma barra proporcional ao ponto 1. Fecha com a eficiência ponta a ponta.
  * Na Hora não há energia por ponto (só a curva do P1), e o card diz isso.
  */
 
@@ -15,6 +16,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import type { EnergiaPorPonto, ResumoEnergia } from '@/data/tipos';
 import { useResumoEnergia } from '@/hooks/useDados';
 import { cn } from '@/lib/cn';
+import { eficiencia } from '@/data/calculos';
 import { formatarEnergia, formatarMedida, formatarPercentual } from '@/lib/format';
 import { SEM_DETALHE_POR_PONTO } from './KpisEnergia';
 
@@ -30,6 +32,15 @@ const PONTOS: { chave: keyof EnergiaPorPonto; nome: string; cor: string }[] = [
 function perdasPorPonto(resumo: ResumoEnergia): (number | null)[] {
   const perdas = resumo.perdas;
   return [null, perdas?.regulador ?? null, perdas?.bateria ?? null, perdas?.celular ?? null];
+}
+
+/**
+ * Valor de um ponto: a energia gerada no ponto 1 e, nos demais, quanto do
+ * gerado chegou até ele ("87,1%").
+ */
+function valorDoPonto(energia: EnergiaPorPonto, chave: keyof EnergiaPorPonto): string {
+  if (chave === 'p1') return formatarMedida(formatarEnergia(energia.p1));
+  return formatarMedida(formatarPercentual(eficiencia(energia[chave], energia.p1)));
 }
 
 /** Lista dos pontos e a eficiência ponta a ponta, com os dados carregados. */
@@ -53,9 +64,7 @@ function ConteudoPerdas({ resumo }: { resumo: ResumoEnergia }) {
                   {perda !== null && (
                     <span className="text-danger">{`−${formatarPercentual(perda).valor}%`}</span>
                   )}
-                  <span className="font-medium text-fg">
-                    {formatarMedida(formatarEnergia(energia[ponto.chave]))}
-                  </span>
+                  <span className="font-medium text-fg">{valorDoPonto(energia, ponto.chave)}</span>
                 </span>
               </div>
               <div

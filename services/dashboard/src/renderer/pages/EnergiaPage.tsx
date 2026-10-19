@@ -2,8 +2,8 @@
  * Tela Energia do app desktop (referência: design-reference/03-energia).
  *
  * Balanço de energia do VERS, em quatro faixas:
- * 1. KPIs: energia recuperada, potência média em movimento, energia entregue
- *    à bateria e carga entregue ao celular;
+ * 1. KPIs: energia recuperada, potência média em movimento e quanto do
+ *    recuperado foi para a bateria e para o celular (em %);
  * 2. energia por dia (ou a curva, em Hora e Dia) e as perdas na conversão;
  * 3. estado da bateria, estimativa de economia e energia × vibração;
  * 4. resumo por dia, com exportação em CSV.

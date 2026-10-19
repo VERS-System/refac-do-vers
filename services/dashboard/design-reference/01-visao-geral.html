@@ -1,0 +1,174 @@
+<!DOCTYPE html><html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>VERS · Visão geral</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Fonts: Zen Dots, Geist (Inter/Sans-serif fallback), Geist Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&amp;family=Geist:wght@300;400;500;600;700&amp;family=Zen+Dots&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container-low": "#1b1c1b",
+            "inverse-on-surface": "#30302f",
+            "surface-dim": "#131313",
+            "inverse-primary": "#6b5f00",
+            "secondary": "#a7cce2",
+            "on-secondary-fixed": "#001e2c",
+            "on-error-container": "#ffdad6",
+            "surface": "#131313",
+            "on-error": "#690005",
+            "on-secondary-container": "#96bad0",
+            "primary-fixed": "#f6e47e",
+            "secondary-container": "#264b5e",
+            "outline-variant": "#4a4738",
+            "on-secondary": "#0b3446",
+            "on-background": "#e5e2e0",
+            "surface-container-high": "#2a2a29",
+            "primary": "#f2e07b",
+            "surface-variant": "#353534",
+            "secondary-fixed": "#c3e8ff",
+            "primary-fixed-dim": "#d9c765",
+            "on-tertiary-fixed-variant": "#00531c",
+            "surface-container-highest": "#353534",
+            "on-primary-fixed-variant": "#514700",
+            "primary-container": "#d5c462",
+            "on-secondary-fixed-variant": "#264b5e",
+            "on-surface-variant": "#cdc6b2",
+            "background": "#131313",
+            "error-container": "#93000a",
+            "error": "#ffb4ab",
+            "tertiary-container": "#8ad48d",
+            "surface-bright": "#393938",
+            "surface-container-lowest": "#0e0e0d",
+            "on-surface": "#e5e2e0",
+            "on-primary": "#383100",
+            "tertiary": "#a5f1a7",
+            "on-primary-container": "#5b5000",
+            "surface-container": "#20201f",
+            "on-tertiary-fixed": "#002107",
+            "tertiary-fixed": "#a9f4ab",
+            "on-tertiary": "#003911",
+            "secondary-fixed-dim": "#a7cce2",
+            "outline": "#96917e",
+            "on-primary-fixed": "#201c00",
+            "surface-tint": "#d9c765",
+            "tertiary-fixed-dim": "#8ed891",
+            "inverse-surface": "#e5e2e0",
+            "on-tertiary-container": "#115d24"
+          },
+          fontFamily: {
+            headline: ["Geist", "sans-serif"],
+            display: ["Zen Dots", "sans-serif"],
+            body: ["Geist", "sans-serif"],
+            mono: ["Geist Mono", "monospace"],
+            label: ["Geist", "sans-serif"]
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px"
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #131313;
+      color: #e5e2e0;
+      font-family: 'Geist', sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .font-zendots {
+      font-family: 'Zen Dots', cursive, sans-serif;
+    }
+    .font-mono-numbers {
+      font-family: 'Geist Mono', monospace;
+      font-feature-settings: "tnum" 1;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface antialiased select-none min-h-screen">
+<div class="flex h-screen w-full overflow-hidden bg-surface">
+<!-- ASIDE: Left SideNavBar from Shared Components JSON -->
+<aside class="fixed top-0 left-0 h-screen w-64 border-r border-outline-variant dark:border-outline-variant bg-surface-container-low dark:bg-surface-container-low z-30 flex flex-col justify-between p-4">
+<!-- Top Brand Lockup -->
+<div class="flex flex-col gap-6">
+<div class="px-2 pt-1" style="display: flex; align-items: center; gap: 10px;"><svg height="28" style="flex-shrink: 0;" viewBox="0 0 140 93" width="42" xmlns="http://www.w3.org/2000/svg"><polygon fill="#D9D9D9" points="41.9,0.1 65.6,0.6 43.6,47.9 12.1,92.9 0.1,92.9"></polygon><polygon fill="#D9D9D9" points="115.9,0.1 139.9,0.6 117.6,47.9 86.1,92.9 74.1,92.9"></polygon><polygon fill="#D5C462" points="79.9,0.1 103.6,0.6 81.6,47.9 50.1,92.9 38.1,92.9"></polygon></svg><span style="font-family: 'Zen Dots', sans-serif; font-size: 22px; color: #D9D9D9; letter-spacing: 1px; line-height: 1;" class="">VERS</span><span style="font-size: 11px; color: #737373; margin-left: 2px;" class="">v0.4</span></div>
+<!-- Navigation Tabs: Visão geral is ACTIVE -->
+<nav class="flex flex-col gap-1.5 font-body text-sm font-medium tracking-normal">
+<!-- 1. Visão geral [ACTIVE] -->
+<a class="font-semibold px-3 py-2.5 flex items-center gap-3" href="#" style="background-color: #2E2A16; border: 1px solid #75692C; border-radius: 10px; color: #D5C462;"><span class="material-symbols-outlined text-[19px]" data-icon="dashboard" style="color: #D5C462;">dashboard</span><span style="color: #D5C462;" class="">Visão geral</span></a>
+<!-- 2. Telemetria -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined text-[19px]" data-icon="monitoring">monitoring</span>
+<span class="">Telemetria</span>
+</a>
+<!-- 3. Energia -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined text-[19px]" data-icon="bolt">bolt</span>
+<span class="">Energia</span>
+</a>
+<!-- 4. Testes -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined text-[19px]" data-icon="science">science</span>
+<span class="">Testes</span>
+</a>
+<!-- 5. Veículo e instalação -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined text-[19px]" data-icon="directions_car">directions_car</span>
+<span class="">Veículo e instalação</span>
+</a>
+<!-- 6. Viber IA -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#"><svg height="20" style="flex-shrink:0;" viewBox="0 0 108 84" width="26" xmlns="http://www.w3.org/2000/svg"><polygon fill="#D5C462" points="0.1,0.1 15.9,0.1 39.1,67.4 33.4,82.9 29.1,82.9 28.4,82.1"></polygon><polygon fill="#D5C462" points="64.4,1.4 80.1,1.4 79.9,3.6 63.9,46.6 44.6,81.9 42.9,83.9 36.4,83.9 36.1,81.6"></polygon><polygon fill="#D5C462" points="92.4,1.4 107.9,1.6 101.6,19.1 86.1,18.9 91.1,2.4"></polygon><polygon fill="#D5C462" points="83.6,25.4 99.1,25.9 93.9,42.1 71.1,83.9 63.1,83.9"></polygon></svg><span class="">Viber IA</span></a>
+<!-- 7. Configurações -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined text-[19px]" data-icon="settings">settings</span>
+<span class="">Configurações</span>
+</a>
+</nav>
+</div>
+<!-- Bottom Hardware Status & User Cluster -->
+<div class="flex flex-col gap-3">
+<!-- Device telemetry card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-3 flex flex-col gap-2"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary-container opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span></span><span class="font-mono-numbers text-xs font-semibold text-on-surface">ESP32 · VERS-01</span></div><span class="text-[10px] font-medium uppercase tracking-wider text-tertiary bg-on-tertiary-fixed-variant/40 px-1.5 py-0.5 rounded">Online</span></div><div class="flex items-center justify-between text-[11px] text-outline font-mono-numbers"><span class="">Firmware 0.4.2 · visto há 3 s</span><span class="text-[10px] px-1 py-0.2 rounded bg-surface-container-high text-primary font-semibold">MQTT</span></div></div>
+<!-- User profile row -->
+<div class="flex items-center justify-between pt-2 border-t border-outline-variant/60 px-1">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary font-mono-numbers font-semibold text-xs border border-outline-variant">
+              AS
+            </div>
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-on-surface">Ana Silva</span>
+<span class="text-[10px] text-outline">Administradora</span>
+</div>
+</div>
+<button class="text-outline hover:text-on-surface transition-colors p-1 rounded hover:bg-surface-container" title="Encerrar Sessão">
+<span class="material-symbols-outlined text-[18px]" data-icon="logout">logout</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- MAIN WRAPPER (Top bar + Dashboard Content) -->
+<div class="flex-1 flex flex-col ml-64 overflow-hidden h-screen bg-surface"><header class="flex justify-between items-center h-14 px-8 sticky top-0 z-20 bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline-variant"><div class="flex items-baseline gap-3"><h1 class="font-headline text-lg font-semibold text-on-surface dark:text-on-surface tracking-tight">Visão geral</h1><span class="text-xs font-mono-numbers text-outline">Honda Civic 2026 · ABC1D23</span></div><div class="flex items-center gap-4"><div class="bg-surface-container-lowest border border-outline-variant p-1 rounded-full flex items-center gap-1"><button class="text-on-surface-variant hover:text-on-surface px-3 py-1 text-xs rounded-full transition-colors">Hora</button><button class="bg-primary-container text-on-primary font-semibold rounded-full px-3 py-1 text-xs transition-colors">Dia</button><button class="text-on-surface-variant hover:text-on-surface px-3 py-1 text-xs rounded-full transition-colors">Semana</button><button class="text-on-surface-variant hover:text-on-surface px-3 py-1 text-xs rounded-full transition-colors">Mês</button></div><div class="bg-surface-container-high border border-outline-variant text-on-surface-variant text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-outline"></span><span class="">Dados de exemplo</span></div><div class="flex items-center gap-1.5"><button class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors" title="Buscar registros"><span class="material-symbols-outlined text-[18px]" data-icon="search">search</span></button><button class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors relative" title="Notificações"><span class="material-symbols-outlined text-[18px]" data-icon="notifications">notifications</span><span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary"></span></button></div></div></header><main class="px-8 py-4 flex flex-col gap-4 max-w-[1400px] w-full"><section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"><div class="bg-surface-container-high border border-outline-variant rounded-[20px] p-4 flex flex-col justify-between relative overflow-hidden group"><div class="flex justify-between items-start"><span class="text-xs font-medium text-on-surface-variant">Energia recuperada hoje</span><span class="inline-flex items-center gap-1 text-[11px] font-mono-numbers font-medium text-tertiary bg-on-tertiary-fixed-variant/30 px-2 py-0.5 rounded-full border border-tertiary/20">+6,6% vs média semanal</span></div><div class="my-2 flex items-baseline gap-2"><span class="font-mono-numbers text-3xl font-bold tracking-tight text-on-surface">292</span><span class="font-mono-numbers text-sm text-outline">mWh</span></div><div class="h-8 w-full mt-1"><svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 24"><path d="M 0 21 L 28 21 Q 33 21, 35 12 T 40 21 L 68 21 Q 74 21, 76 8 T 82 21 L 100 21" fill="none" stroke="#D5C462" stroke-linecap="round" stroke-width="1.8"></path><path d="M 0 21 L 28 21 Q 33 21, 35 12 T 40 21 L 68 21 Q 74 21, 76 8 T 82 21 L 100 21 L 100 24 L 0 24 Z" fill="url(#goldSparkGrad)" opacity="0.15"></path><defs><linearGradient id="goldSparkGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#D5C462" stop-opacity="1"></stop><stop offset="100%" stop-color="#D5C462" stop-opacity="0"></stop></linearGradient></defs></svg></div></div><div class="bg-surface-container-high border border-outline-variant rounded-[20px] p-4 flex flex-col justify-between relative overflow-hidden"><div class="flex justify-between items-start"><span class="text-xs font-medium text-on-surface-variant">Potência instantânea</span><div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container-lowest border border-outline-variant"><span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span><span class="text-[10px] font-mono-numbers uppercase text-primary tracking-wider">ao vivo</span></div></div><div class="my-2 flex items-baseline gap-2"><span class="font-mono-numbers text-3xl font-bold tracking-tight text-on-surface">212</span><span class="font-mono-numbers text-sm text-outline">mW</span></div><div class="flex items-center gap-1 w-full mt-2"><div class="h-2 flex-1 rounded-sm bg-primary-container"></div><div class="h-2 flex-1 rounded-sm bg-primary-container"></div><div class="h-2 flex-1 rounded-sm bg-primary-container"></div><div class="h-2 flex-1 rounded-sm bg-primary-container"></div><div class="h-2 flex-1 rounded-sm bg-primary-container/80"></div><div class="h-2 flex-1 rounded-sm bg-surface-container-lowest border border-outline-variant"></div><div class="h-2 flex-1 rounded-sm bg-surface-container-lowest border border-outline-variant"></div><div class="h-2 flex-1 rounded-sm bg-surface-container-lowest border border-outline-variant"></div></div></div><div class="bg-surface-container-high border border-outline-variant rounded-[20px] p-4 flex items-center justify-between relative overflow-hidden"><div class="flex flex-col justify-between h-full"><span class="text-xs font-medium text-on-surface-variant">Eficiência ponta a ponta</span><div class="my-auto flex items-baseline gap-1 pt-1"><span class="font-mono-numbers text-3xl font-bold tracking-tight text-on-surface">53,5</span><span class="font-mono-numbers text-sm text-outline">%</span></div><span class="text-[11px] font-mono-numbers text-outline">Piezo → USB · hoje</span></div><div class="relative w-14 h-14 shrink-0 flex items-center justify-center"><svg class="w-full h-full -rotate-90" viewBox="0 0 36 36"><path class="text-surface-variant stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path><path class="text-primary-container stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="53.5, 100" stroke-linecap="round" stroke-width="3"></path></svg><span class="absolute text-[10px] font-mono-numbers font-semibold text-primary">η</span></div></div><div class="bg-surface-container-high border border-outline-variant rounded-[20px] p-4 flex flex-col justify-between relative overflow-hidden"><div class="flex justify-between items-start"><span class="text-xs font-medium text-on-surface-variant">Bateria do sistema</span><span class="inline-flex items-center gap-1 text-[10px] font-mono-numbers uppercase text-primary bg-primary-container/20 border border-primary/30 px-2 py-0.5 rounded-full"><span class="material-symbols-outlined text-[13px]" data-icon="bolt">bolt</span>Carregando</span></div><div class="my-2 flex items-baseline gap-2"><span class="font-mono-numbers text-3xl font-bold tracking-tight text-on-surface">68</span><span class="font-mono-numbers text-sm text-outline">%</span></div><div class="w-full bg-surface-container-lowest border border-outline-variant rounded-full h-2 p-0.5 flex items-center"><div class="bg-primary-container h-full rounded-full transition-all duration-500" style="width: 68%;"></div></div></div></section><section class="grid grid-cols-1 lg:grid-cols-12 gap-4"><div class="lg:col-span-8 bg-surface-container-high border border-outline-variant rounded-[20px] p-5 flex flex-col justify-between"><div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3"><div><h2 class="text-base font-semibold text-on-surface">Energia recuperada x consumo</h2><p class="text-xs text-outline font-mono-numbers">Ciclo diário 00h às 24h · 1,5 h em movimento · intervalo de 10 s</p></div><div class="flex items-center gap-4 text-xs font-medium"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span><span class="text-on-surface">Recuperada (mW)</span></div><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-outline"></span><span class="text-on-surface-variant">Consumo nó (mW)</span></div></div></div><div class="bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/60 relative"><div class="h-44 w-full flex"><div class="flex flex-col justify-between text-[11px] font-mono-numbers text-outline pr-3 text-right"><span class="">400</span><span class="">300</span><span class="">200</span><span class="">100</span><span class="">0</span></div><div class="relative flex-1 h-full"><svg class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 600 200"><line stroke="#323231" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="600" y1="0" y2="0"></line><line stroke="#323231" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="600" y1="50" y2="50"></line><line stroke="#323231" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="600" y1="100" y2="100"></line><line stroke="#323231" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="600" y1="150" y2="150"></line><line stroke="#4A4738" stroke-width="1" x1="0" x2="600" y1="200" y2="200"></line><defs><linearGradient id="chartGoldGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#D5C462" stop-opacity="0.35"></stop><stop offset="100%" stop-color="#D5C462" stop-opacity="0.0"></stop></linearGradient></defs><path d="M 0 196 L 165 196 C 176 196, 185 45, 192 45 C 198 45, 206 196, 215 196 L 420 196 C 430 196, 440 7, 445 7 C 450 7, 460 196, 470 196 L 600 196 L 600 200 L 0 200 Z" fill="url(#chartGoldGrad)"></path><path d="M 0 196 L 165 196 C 176 196, 185 45, 192 45 C 198 45, 206 196, 215 196 L 420 196 C 430 196, 440 7, 445 7 C 450 7, 460 196, 470 196 L 600 196" fill="none" stroke="#D5C462" stroke-linecap="round" stroke-width="2.2"></path><path d="M 0 165 C 100 168, 200 160, 300 162 C 400 164, 500 158, 600 160" fill="none" stroke="#96917E" stroke-dasharray="4 4" stroke-width="1.8"></path><circle cx="445" cy="7" fill="#D5C462" r="4.5" stroke="#131313" stroke-width="2"></circle><circle class="animate-ping" cx="445" cy="7" fill="#D5C462" opacity="0.4" r="8"></circle></svg><div class="absolute top-0 right-[20%] -translate-y-1 bg-surface-container-high border border-outline-variant px-2 py-0.5 rounded text-[10px] font-mono-numbers text-primary pointer-events-none shadow-sm">Pico 386 mW · 17:42</div></div></div><div class="flex justify-between pl-8 pt-1 text-[11px] font-mono-numbers text-outline"><span class="">00h</span><span class="">04h</span><span class="">08h</span><span class="">12h</span><span class="">16h</span><span class="">20h</span><span class="">24h</span></div></div></div><div class="lg:col-span-4 bg-surface-container-high border border-outline-variant rounded-[20px] p-5 flex flex-col justify-between"><div><div class="flex justify-between items-center mb-2"><h2 class="text-base font-semibold text-on-surface">Vibração RMS</h2><span class="text-xs font-mono-numbers px-2 py-0.5 rounded bg-surface-container-lowest border border-outline-variant text-primary">Eixo Z (Vért.)</span></div><div class="flex items-baseline gap-2 mb-3"><span class="font-mono-numbers text-4xl font-bold tracking-tight text-on-surface">3,2</span><span class="font-mono-numbers text-sm text-outline">m/s²</span><span class="text-xs font-mono-numbers text-tertiary ml-auto">Faixa normal</span></div><div class="h-16 bg-surface-container-lowest rounded-xl border border-outline-variant p-2 overflow-hidden flex items-center"><svg class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 240 64"><line stroke="#2a2a2a" stroke-dasharray="3 3" stroke-width="1" x1="0" x2="240" y1="32" y2="32"></line><path d="M 0,32 Q 15,2 30,32 T 60,32 T 90,32 T 120,32 T 150,32 T 180,32 T 210,32 T 240,32" fill="none" stroke="#D5C462" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div></div><div class="flex flex-col gap-2 pt-3 border-t border-outline-variant/60 mt-3"><div class="flex justify-between items-center text-xs"><span class="text-on-surface-variant font-medium">Piezos ativos</span><div class="flex items-center gap-2"><div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary-container" title="Sensor 1: Ativo"></span><span class="w-2 h-2 rounded-full bg-primary-container" title="Sensor 2: Ativo"></span><span class="w-2 h-2 rounded-full bg-primary-container" title="Sensor 3: Ativo"></span><span class="w-2 h-2 rounded-full bg-primary-container" title="Sensor 4: Ativo"></span><span class="w-2 h-2 rounded-full bg-primary-container" title="Sensor 5: Ativo"></span><span class="w-2 h-2 rounded-full bg-primary-container" title="Sensor 6: Ativo"></span><span class="w-2 h-2 rounded-full bg-surface-container-highest border border-outline-variant" title="Sensor 7: Standby"></span><span class="w-2 h-2 rounded-full bg-surface-container-highest border border-outline-variant" title="Sensor 8: Standby"></span></div><span class="font-mono-numbers font-semibold text-on-surface text-[11px] ml-1">6 / 8</span></div></div><div class="flex justify-between items-center text-xs"><span class="text-on-surface-variant font-medium">Frequência dominante</span><span class="font-mono-numbers font-semibold text-on-surface">42,8 Hz</span></div><div class="flex justify-between items-center text-xs"><span class="text-on-surface-variant font-medium">Temperatura no bloco</span><div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span><span class="font-mono-numbers font-semibold text-on-surface">31,4 °C</span></div></div></div></div></section><section class="bg-surface-container-high border border-outline-variant rounded-[20px] p-4"><div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3"><div><div class="flex items-center gap-2.5"><h2 class="text-base font-semibold text-on-surface">Cadeia de conversão</h2><span class="text-[10px] font-mono-numbers font-medium text-primary bg-primary-container/20 border border-primary/30 px-2 py-0.5 rounded-full">4 nós monitorados</span></div><p class="text-xs text-outline mt-0.5">Rastreamento de fluxo piezoelétrico até a carga final</p></div><div class="flex items-center gap-2 text-xs font-mono-numbers text-outline"><span class="material-symbols-outlined text-[16px] text-tertiary" data-icon="sync">sync</span><span class="">Telemetria em tempo real</span></div></div><div class="grid grid-cols-1 md:grid-cols-4 gap-3 relative items-stretch"><div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-3 flex flex-col justify-between relative group hover:border-primary-container/40 transition-colors"><div><div class="flex items-center justify-between mb-1.5"><span class="text-[10px] font-mono-numbers font-bold text-primary tracking-wider uppercase">Ponto 1</span><span class="text-[9px] font-mono-numbers bg-surface-container-high text-on-surface-variant px-1.5 py-0.5 rounded border border-outline-variant">Entrada AC/DC</span></div><h3 class="text-sm font-semibold text-on-surface">Nó comum</h3><p class="text-[11px] text-outline mb-2">Sensor Piezoelétrico</p></div><div class="space-y-1 pt-1.5 border-t border-outline-variant/60 font-mono-numbers text-xs"><div class="flex justify-between text-on-surface-variant"><span class="">Tensão (V1)</span><span class="text-on-surface font-medium">4,82 V</span></div><div class="flex justify-between text-on-surface-variant"><span class="">Corrente (I1)</span><span class="text-on-surface font-medium">44 mA</span></div><div class="flex justify-between text-on-surface-variant"><span class="">Potência (P1)</span><span class="text-primary font-semibold">212 mW</span></div></div></div><div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-3 flex flex-col justify-between relative group hover:border-primary-container/40 transition-colors"><div><div class="flex items-center justify-between mb-1.5"><span class="text-[10px] font-mono-numbers font-bold text-primary tracking-wider uppercase">Ponto 2</span><span class="text-[10px] font-mono-numbers font-semibold text-primary bg-primary-container/20 px-2 py-0.5 rounded border border-primary/30">η 87,3%</span></div><h3 class="text-sm font-semibold text-on-surface">Saída LTC3588</h3><p class="text-[11px] text-outline mb-2">Retificação e Step-Down</p></div><div class="space-y-1 pt-1.5 border-t border-outline-variant/60 font-mono-numbers text-xs"><div class="flex justify-between text-on-surface-variant"><span class="">Tensão (V2)</span><span class="text-on-surface font-medium">3,30 V</span></div><div class="flex justify-between text-on-surface-variant"><span class="">Corrente (I2)</span><span class="text-on-surface font-medium">56 mA</span></div><div class="flex justify-between text-on-surface-variant"><span class="">Potência (P2)</span><span class="text-primary font-semibold">185 mW</span></div></div></div><div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-3 flex flex-col justify-between relative group hover:border-primary-container/40 transition-colors"><div><div class="flex items-center justify-between mb-1.5"><span class="text-[10px] font-mono-numbers font-bold text-primary tracking-wider uppercase">Ponto 3</span><span class="text-[10px] font-mono-numbers font-semibold text-primary bg-primary-container/20 px-2 py-0.5 rounded border border-primary/30">η 88,6%</span></div><h3 class="text-sm font-semibold text-on-surface">Bateria TP4056</h3><p class="text-[11px] text-outline mb-2">Gerenciamento Li-Po</p></div><div class="space-y-1 pt-1.5 border-t border-outline-variant/60 font-mono-numbers text-xs"><div class="flex justify-between text-on-surface-variant"><span class="">Tensão (V3)</span><span class="text-on-surface font-medium">3,91 V</span></div><div class="flex justify-between text-on-surface-variant"><span class="">Corrente (I3)</span><span class="text-on-surface font-medium">42 mA</span></div><div class="flex justify-between text-on-surface-variant"><span class="">Potência (P3)</span><span class="text-primary font-semibold">164 mW</span></div></div></div><div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-3 flex flex-col justify-between relative group hover:border-primary-container/40 transition-colors"><div><div class="flex items-center justify-between mb-1.5"><span class="text-[10px] font-mono-numbers font-bold text-primary tracking-wider uppercase">Ponto 4</span><span class="text-[10px] font-mono-numbers font-semibold text-primary bg-primary-container/20 px-2 py-0.5 rounded border border-primary/30">η 70,1%</span></div><h3 class="text-sm font-semibold text-on-surface">Celular</h3><p class="text-[11px] text-outline mb-2">Carga de Uso Final</p></div><div class="space-y-1 pt-1.5 border-t border-outline-variant/60 font-mono-numbers text-xs"><div class="flex justify-between text-on-surface-variant"><span class="">Tensão (V4)</span><span class="text-on-surface font-medium">5,02 V</span></div><div class="flex justify-between text-on-surface-variant"><span class="">Corrente (I4)</span><span class="text-on-surface font-medium">23 mA</span></div><div class="flex justify-between text-on-surface-variant"><span class="">Potência (P4)</span><span class="text-primary font-semibold">115 mW</span></div></div></div></div></section></main></div>
+</div>
+
+
+</body></html>

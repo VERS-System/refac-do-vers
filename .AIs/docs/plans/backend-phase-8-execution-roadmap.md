@@ -4,7 +4,9 @@
 > **Status reconciliado em 19/10/2026:** F08.7 executado em 16/10 com sete
 > cenários integrados locais aprovados. Referências abaixo a ensaio ainda não
 > executado descrevem etapas históricas. Permanecem integração dos clientes
-> (snapshot/invalidação/recuperação REST) e ensaio da ativação operacional.
+> (snapshot/invalidação/recuperação REST). Dois cenários reais do bootstrap
+> aprovados no [ensaio de 19/10](backend-phase-8-bootstrap-rehearsal.md), com
+> bancada parada e dados removidos; isso não comprova implantação de produção.
 > Bootstrap opt-in implementado no [lote de 19/10](backend-phase-8-bootstrap-activation.md).
 > F09 ainda planejada. Integração elétrica e
 > ESP32 cancelados, conforme [decisão de simulação](backend-simulacao-19-10-2026.md).

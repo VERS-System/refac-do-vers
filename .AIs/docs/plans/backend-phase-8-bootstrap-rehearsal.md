@@ -1,6 +1,17 @@
 <!-- Prepara ensaio do executável real sem iniciar serviços antes da autorização específica. -->
 # F08 — Ensaio isolado do bootstrap real
 
+> Executado em 19/10/2026: dois cenários reais aprovados, dados sintéticos
+> removidos e cinco containers da bancada parados com código zero. Sem encerrar
+> F08 inteira: integração de clientes permanece pendente.
+
+## Autorização de execução — 19/10/2026
+
+Programador informou ter desligado o outro sistema e liberou Docker e próximo
+passo, em resposta ao pedido específico de subir somente bancada, criar/remover
+dados sintéticos e pará-la ao terminar. Inventário inicial confirma serviços
+parados. Manter os limites deste plano; nenhum comando na stack paralela.
+
 ## Preparação autorizada
 
 Continuidade solicitada após bootstrap opt-in. Criar somente
@@ -60,3 +71,40 @@ de produção novo nem RED/GREEN de integração: os dois cenários reais ainda 
 foram executados. Nenhum comando Docker ou acesso à bancada nesta preparação.
 Execução depende de autorização específica para iniciar os serviços isolados,
 criar/remover seus dados sintéticos e parar somente a bancada ao terminar.
+
+## Ajuste da bancada encontrado na execução
+
+Inicializador mqtt-auth-init falhou ao sobrescrever /auth/passwords preservado,
+com erro File exists. Stat confirmou diretório 755 e arquivo 640, ambos 1883:1883;
+inicializador executa como root. Mudar propriedade para root não resolveu e foi
+descartado. Ajustar docker-compose.test-mqtt.yml para touch do arquivo e
+atualização das três credenciais sem -c; restaurar 1883:1883 e 640 ao fim como
+já fazia. Sem remover volume ou arquivo. Ajuda do utilitário e fonte oficial
+consultadas durante diagnóstico; não atribuir a falha a permissões sem prova.
+Verificação: executar o inicializador duas vezes sobre volume preservado e
+confirmar sucesso/permissões finais antes de iniciar broker.
+
+## Resultado real — 19/10/2026
+
+- Portas 55432/56379/58883/53000 livres no preflight; demais sistemas já parados
+  pelo programador e não alterados pela IA. Iniciado somente projeto isolado.
+- Inicializador corrigido passou uma vez via run e novamente via up; arquivo
+  final /auth/passwords 640 e 1883:1883. Broker/Redis/PostgreSQL saudáveis.
+- Tabelas, triggers e índices relevantes presentes no banco preservado; contagens
+  iniciais zero. Sem reaplicar schema, preparar banco ou executar migration.
+- Certificado TLS público renovado/copiado, ignorado pelo Git; chave só no volume.
+- Build local aprovado. Jest específico: dois cenários aprovados/código zero,
+  em 31,936 s. Desabilitado: readiness e namespace inativo. Habilitado: processo
+  compilado iniciou coordenador sem chamada manual, publicou lote MQTT/TLS,
+  persistiu três amostras, entregou aviso autorizado e retornou um resumo REST
+  com energia 4/3600 Wh. Não houve correção de produção necessária.
+- SQL final confirmou zero para users, refresh_sessions, user_vehicles, vehicles,
+  vers_installations, devices, tests, mqtt_messages, telemetry_samples e
+  energy_summaries. Limpeza pelos IDs das fixtures; sem exclusão global.
+- Porta HTTP 53000 liberada; os cinco containers Exited (0), volumes preservados.
+- Validação final: 46 suítes/961 testes unitários, lint, build, TypeScript noEmit
+  e diff --check aprovados. Sem novo rebuild de imagem: usa dist local.
+
+Este ensaio não repetiu os sete cenários F08.7 antigos, não comprova shutdown
+gracioso Windows, operação de produção, integração de frontend ou múltiplas
+réplicas. Não acessou .env/Neon nem alterou dependências. Sem commit/push.

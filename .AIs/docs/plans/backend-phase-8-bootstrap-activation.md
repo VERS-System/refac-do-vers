@@ -50,3 +50,8 @@ escrita de banco, frontend, commit ou push. F08 não encerrada.
 Continuação: [preparação do ensaio do bootstrap real](backend-phase-8-bootstrap-rehearsal.md)
 usa executável compilado e bancada existente. Execução aguarda autorização
 específica para Docker e dados sintéticos; não depende de rebuild da imagem.
+
+Execução autorizada e concluída em 19/10: dois cenários reais do bootstrap
+aprovados conforme plano acima, incluindo fluxo TLS até resumo REST. Bancada
+parada e dados removidos. A imagem de implantação não foi reconstruída neste
+ensaio; somente executável dist local. Integração dos clientes permanece aberta.

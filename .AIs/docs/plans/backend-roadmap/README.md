@@ -69,7 +69,7 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Consistência e recuperação F08.6](../backend-phase-8-consistency.md)
 - [Aviso de recálculo TEST independente — 19/10](../backend-phase-8-test-summary-notification.md)
 - [Ativação opt-in no bootstrap — 19/10](../backend-phase-8-bootstrap-activation.md)
-- [Ensaio do bootstrap real — preparação](../backend-phase-8-bootstrap-rehearsal.md)
+- [Ensaio do bootstrap real — dois cenários aprovados](../backend-phase-8-bootstrap-rehearsal.md)
 - [Ensaio isolado F08.7 — seis cenários reais aprovados](../backend-phase-8-rehearsal.md)
 - [Continuação F08.7 — MQTT/TLS e pausa Redis, sete cenários reais](../backend-phase-8-mqtt-rehearsal.md)
 - [Contrato incremental de tempo real v1](../../Api/realtime-contract-v1.md)

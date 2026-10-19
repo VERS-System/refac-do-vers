@@ -56,6 +56,9 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 - [Ensaio do bootstrap real](plans/backend-phase-8-bootstrap-rehearsal.md):
   dois cenários reais aprovados do backend compilado, sem start manual.
 
+- [F09 — operação e entrega manual](plans/backend-roadmap/09-operacao-entrega.md):
+  validações locais, demonstração, backup e recuperação. CI/CD fora do escopo.
+
 - `contexts/`: registros resumidos de cada sessão de trabalho com IA.
 - `plans/`: planos aprovados para evolução do projeto.
 - `problems/`: problemas identificados, causas, impactos e soluções.

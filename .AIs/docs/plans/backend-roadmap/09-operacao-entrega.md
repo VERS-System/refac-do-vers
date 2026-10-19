@@ -2,6 +2,11 @@
 
 # Fase 09 — Operação, segurança e entrega
 
+> **Decisão de 19/10/2026:** CI/CD e GitHub Actions fora do escopo por decisão
+> do programador. Workflow proposto removido; verificações continuam locais e
+> entrega permanece manual. [Histórico da decisão](../backend-phase-9-ci-quality.md).
+> Integração, migrations, auditorias e operação continuam pendentes.
+
 ## Objetivo
 
 Tornar o backend reproduzível, implantável, observável e recuperável.
@@ -15,7 +20,10 @@ Tornar o backend reproduzível, implantável, observável e recuperável.
 - duplicata não duplica energia;
 - usuário sem vínculo não acessa dados.
 
-## Etapa B — CI
+## Etapa B — Validação local
+
+Executar pelo programador ou pela IA no ambiente autorizado, sem GitHub Actions
+ou pipeline de CI/CD obrigatório.
 
 - instalação com lockfile congelado;
 - `test:unit`, integração, lint e build;
@@ -23,7 +31,7 @@ Tornar o backend reproduzível, implantável, observável e recuperável.
 - OpenAPI e shared types alinhados;
 - secret scanning e auditoria de dependências.
 
-## Etapa C — Deploy e migrations
+## Etapa C — Entrega manual e migrations
 
 - imagem Docker reproduzível e sem segredos;
 - migrations aplicadas por etapa controlada;

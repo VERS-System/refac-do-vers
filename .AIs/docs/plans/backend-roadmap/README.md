@@ -24,7 +24,7 @@ arquitetura; estes documentos definem como executar cada fase.
 | 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Recorte local pronto para revisão — lotes 6.1–6.8 entregues; aceite e ensaio PostgreSQL pendentes | Fase 05 |
 | 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Recortes 7.1–7.7 entregues para revisão; PostgreSQL e broker TLS locais ensaiados, HiveMQ/ESP32 pendentes | Fase 06 + hardware/simulador |
 | 08 | [Tempo real](08-tempo-real.md) | Até 8.6 local e ensaio real 8.7 MQTT/Redis para revisão; integração cliente e limites registrados pendentes | Fase 07 |
-| 09 | [Operação e entrega](09-operacao-entrega.md) | Planejada | Fases 00–08 |
+| 09 | [Operação e entrega](09-operacao-entrega.md) | Em andamento — validação local e entrega manual; CI/CD fora do escopo | Fases 00–08 |
 
 ```text
 F00 → F01 → F02 → F03 → F04 → F05 → F06
@@ -70,6 +70,7 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Aviso de recálculo TEST independente — 19/10](../backend-phase-8-test-summary-notification.md)
 - [Ativação opt-in no bootstrap — 19/10](../backend-phase-8-bootstrap-activation.md)
 - [Ensaio do bootstrap real — dois cenários aprovados](../backend-phase-8-bootstrap-rehearsal.md)
+- [Histórico — proposta de CI cancelada](../backend-phase-9-ci-quality.md)
 - [Ensaio isolado F08.7 — seis cenários reais aprovados](../backend-phase-8-rehearsal.md)
 - [Continuação F08.7 — MQTT/TLS e pausa Redis, sete cenários reais](../backend-phase-8-mqtt-rehearsal.md)
 - [Contrato incremental de tempo real v1](../../Api/realtime-contract-v1.md)

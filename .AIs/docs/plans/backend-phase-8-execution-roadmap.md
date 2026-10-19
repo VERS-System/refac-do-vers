@@ -1,6 +1,13 @@
 <!-- Planeja contratos e entrega incremental de tempo real sem antecipar conexão ou autorização externa. -->
 # F08 — Redis e tempo real
 
+> **Status reconciliado em 19/10/2026:** F08.7 executado em 16/10 com sete
+> cenários integrados locais aprovados. Referências abaixo a ensaio ainda não
+> executado descrevem etapas históricas. Permanecem integração dos clientes
+> (snapshot/invalidação/recuperação REST) e
+> ativação operacional controlada. F09 ainda planejada. Integração elétrica e
+> ESP32 cancelados, conforme [decisão de simulação](backend-simulacao-19-10-2026.md).
+
 Estado: avanço solicitado pelo programador em 14/10/2026 após entrega do ensaio
 local F07.7. Lote 8.1 autorizado pelo pedido de continuação; demais lotes serão
 implementados em recortes revisáveis. HiveMQ/ESP32 e pendências da F06/F07
@@ -57,7 +64,10 @@ Sem consumidor genérico, integração frontend ou alteração de runtime previs
 Snapshot e invalidação concorrente no cliente continuam critérios de aceite da
 integração futura, sem alegar implementação ou teste de UI neste lote.
 Plano e evidências: [consistência F08.6](backend-phase-8-consistency.md).
-Ensaio real F08.7 e aviso de TEST sem MQTT permanecem pendentes.
+Ensaio real F08.7 aprovado em 16/10; aviso de recálculo TEST independente
+implementado no [lote de 19/10](backend-phase-8-test-summary-notification.md),
+com validação registrada no respectivo plano. Encerramento REST não passa a
+recalcular automaticamente. Integração frontend permanece pendente.
 
 ## Escopo 8.1
 

@@ -11,6 +11,7 @@ const event = { version: 1, type: 'telemetry.processed', messageId, correlationI
 
 describe('ponte de avisos de atualização', () => {
   const events = new EventEmitter();
+  const summaries = { events: new EventEmitter() };
   const prisma = { telemetrySample: { groupBy: jest.fn() } };
   const redis = { publish: jest.fn() }; let service: RealtimeNotificationService;
   /** Aguarda as tarefas do listener sem encerrar a ponte antes de publicar os avisos. */
@@ -20,7 +21,7 @@ describe('ponte de avisos de atualização', () => {
   beforeEach(() => {
     jest.useFakeTimers(); jest.setSystemTime(new Date('2026-10-15T12:00:01.000Z'));
     prisma.telemetrySample.groupBy.mockResolvedValue([]); redis.publish.mockResolvedValue(true);
-    service = new RealtimeNotificationService({ events } as never, prisma as never, redis as never);
+    service = new RealtimeNotificationService({ events } as never, prisma as never, redis as never, summaries as never);
     jest.spyOn(Logger.prototype, 'warn').mockImplementation();
   });
   afterEach(async () => { await service.onModuleDestroy(); jest.restoreAllMocks(); jest.clearAllMocks(); jest.useRealTimers(); });
@@ -47,7 +48,7 @@ describe('ponte de avisos de atualização', () => {
       process: jest.fn(() => new Promise((resolve) => { commit = (): void => { resolve({ outcome: 'PROCESSED', id: messageId }); }; })) };
     const pipeline = new MqttPipelineService({} as never, reception as never, {} as never,
       { onModuleDestroy: async (): Promise<void> => {} } as never);
-    service = new RealtimeNotificationService(pipeline, prisma as never, redis as never);
+    service = new RealtimeNotificationService(pipeline, prisma as never, redis as never, summaries as never);
     prisma.telemetrySample.groupBy.mockResolvedValueOnce([{ installationId, testId }]); service.start();
     const pending = pipeline.handle({} as never, new Date()); await jest.advanceTimersByTimeAsync(0);
     expect(prisma.telemetrySample.groupBy).not.toHaveBeenCalled(); expect(redis.publish).not.toHaveBeenCalled();
@@ -79,5 +80,42 @@ describe('ponte de avisos de atualização', () => {
     await Promise.resolve(); expect(closed).toBe(false); finish([{ installationId, testId }]); await closing;
     expect(redis.publish).not.toHaveBeenCalled(); expect(events.listenerCount('telemetry.processed')).toBe(0);
     expect(() => service.start()).toThrow('REALTIME_NOTIFICATION_STOPPED');
+  });
+  it.each([installationId, null])('recálculo independente avisa somente recursos confirmados: instalação %s', async (id) => {
+    service.start(); service.start();
+    summaries.events.emit('summary.test-recomputed', { version: 1, type: 'summary.test-recomputed', testId, installationId: id });
+    await jest.advanceTimersByTimeAsync(0);
+    expect(prisma.telemetrySample.groupBy).not.toHaveBeenCalled();
+    expect(redis.publish.mock.calls.map(([notice]) => notice.resource)).toEqual([
+      { type: 'test', id: testId }, ...(id ? [{ type: 'installation', id }] : [])]);
+    await service.onModuleDestroy();
+    expect(summaries.events.listenerCount('summary.test-recomputed')).toBe(0);
+    summaries.events.emit('summary.test-recomputed', { version: 1, type: 'summary.test-recomputed', testId, installationId: id });
+    await jest.advanceTimersByTimeAsync(0); expect(redis.publish).toHaveBeenCalledTimes(id ? 2 : 1);
+  });
+  it.each([null, {}, { version: 2, testId, installationId },
+    { version: 1, type: 'summary.test-recomputed', testId: 'CANARY_SECRET', installationId },
+    { version: 1, type: 'summary.test-recomputed', testId, installationId: 'invalid' }])(
+    'recusa evento de resumo inválido %#', async (input) => {
+      service.start(); summaries.events.emit('summary.test-recomputed', input); await jest.advanceTimersByTimeAsync(0);
+      expect(redis.publish).not.toHaveBeenCalled();
+      expect(JSON.stringify(jest.mocked(Logger.prototype.warn).mock.calls)).not.toContain('CANARY_SECRET');
+    });
+  it.each([false, new Error('CANARY_SECRET')])('falha Redis no aviso TEST não bloqueia instalação %#', async (failure) => {
+    if (failure instanceof Error) redis.publish.mockRejectedValueOnce(failure); else redis.publish.mockResolvedValueOnce(false);
+    service.start(); summaries.events.emit('summary.test-recomputed',
+      { version: 1, type: 'summary.test-recomputed', testId, installationId });
+    await jest.advanceTimersByTimeAsync(0); expect(redis.publish).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(jest.mocked(Logger.prototype.warn).mock.calls)).not.toContain('CANARY_SECRET');
+  });
+  it('shutdown aguarda aviso TEST aceito e não inicia publicação da instalação', async () => {
+    let finish!: (result: boolean) => void;
+    redis.publish.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    service.start(); summaries.events.emit('summary.test-recomputed',
+      { version: 1, type: 'summary.test-recomputed', testId, installationId });
+    let closed = false; const closing = service.onModuleDestroy().then(() => { closed = true; });
+    await Promise.resolve(); expect(closed).toBe(false); finish(true); await closing;
+    expect(redis.publish).toHaveBeenCalledTimes(1);
+    expect(summaries.events.listenerCount('summary.test-recomputed')).toBe(0);
   });
 });

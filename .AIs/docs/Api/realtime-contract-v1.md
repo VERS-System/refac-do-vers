@@ -52,8 +52,9 @@ atualização só porque uma captura mais recente já chegou.
   once: uma falha não impede os consumidores seguintes, incluindo a ponte.
 - Crash após commit pode perder evento. Não há outbox, replay ou garantia de
   entrega; PostgreSQL e REST autorizado continuam a fonte de verdade.
-- Recálculo de TEST ao encerrar teste, sem nova mensagem, ainda não produz
-  evento próprio. Essa necessidade deverá ser resolvida no contrato externo.
+- Recálculo TEST independente emite `summary.test-recomputed` após commit
+  próprio, desde o lote de 19/10/2026 descrito abaixo. Encerrar via REST não
+  dispara recálculo imediato; recuperação existente precisa executá-lo.
 
 ## Acesso e recuperação pelo cliente
 
@@ -174,9 +175,9 @@ reconciliação; paginação offset não promete snapshot atômico entre página
 
 Desconexão/perda de aviso não apaga o histórico. UI deve mostrar condição
 desatualizada quando não puder confirmar atualização. Não criar polling
-automático sem decisão. Encerrar teste/recálculo sem mensagem MQTT ainda não
-produz aviso no código atual: implementação futura precisa cobrir essa origem
-ou documentar sua atualização por nova consulta, sem alegar cobertura existente.
+automático sem decisão. Recálculo TEST independente confirmado produz aviso;
+encerramento REST ainda exige nova consulta após mutação e posterior recálculo
+pela recuperação existente, sem garantia de atualização imediata do resumo.
 
 ### Fronteiras de segurança e implementação
 
@@ -205,7 +206,7 @@ do dashboard/mobile. O servidor entrega invalidações, não snapshots ou deltas
 | Perda de aviso sem desconexão observável | Sem detecção garantida nesta versão; nova consulta ao reabrir/reconectar reconcilia o estado. |
 | Troca de recurso/sessão durante consulta | Cancelar ou ignorar a resposta antiga e remover assinatura/listener anterior. |
 | Perda de acesso na consulta | Remover dados protegidos e seguir o tratamento REST de sessão/recurso; não continuar mostrando cache autorizado anteriormente. |
-| Encerramento/recálculo de TEST sem MQTT | Refazer REST após a mutação; outros observadores ainda não recebem aviso dessa origem. |
+| Encerramento/recálculo de TEST sem MQTT | Refazer REST após mutação; recálculo independente posterior avisa TEST/instalação após commit, sem prometer recálculo imediato no encerramento. |
 
 Falha na busca REST mantém o estado desatualizado e o tratamento de erro atual;
 não acrescenta polling automático ou fila durável. Eventos agrupados enquanto
@@ -351,9 +352,35 @@ pipeline/ponte antes de fechar Redis; hooks Nest podem ocorrer simultaneamente,
 portanto não prometer aviso final durante shutdown. Cliente reconcilia pelo REST.
 
 Ensaio local usa mocks e integração em memória com pipeline real. Não comprova
-SQL/Redis reais, retenção de broker ou entrega/autorização Socket.IO. Recálculo
-de TEST sem mensagem nova ainda não possui evento próprio. Plano/evidências em
+SQL/Redis reais, retenção de broker ou entrega/autorização Socket.IO. O evento
+de recálculo TEST foi acrescentado no lote de 19/10/2026 abaixo. Plano/evidências em
 [F08.3.2](../plans/backend-phase-8-notification-bridge.md).
+
+### Recálculo TEST independente — 19/10/2026
+
+EnergySummaryService expõe evento interno `summary.test-recomputed`, contendo
+somente version=1, type, testId e installationId anulável. Os IDs vêm do teste
+reconsultado sob lock; a emissão aguarda a transação própria resolver. Rollback
+e teste sem período elegível não emitem. Remoção de resumo sem delta também
+invalida; recomputação repetida pode gerar novo aviso mesmo sem mudança de valor.
+Listeners síncronos/assíncronos são isolados, com logs seguros e suporte a once.
+
+Transação fornecida pelo caller não emite esse evento: o caller responde por
+emitir após seu commit. A ingestão MQTT já usa telemetry.processed; não há
+duplicação desse caminho. Reparos ALREADY_PROCESSED continuam sem aviso novo.
+
+A ponte assina os dois eventos somente no start explícito. Recálculo TEST
+produz data.updated para o teste e, quando presente, sua instalação, pois a
+consulta da instalação inclui resumos TEST. Nenhum ID interno extra, medição
+ou payload bruto é encaminhado. Gateway reaplica autorização individual por
+recurso; nenhum acesso à instalação é inferido do acesso ao teste.
+
+Falha Redis não desfaz commit nem bloqueia tentativa do próximo recurso.
+Shutdown remove os dois listeners, espera tarefas aceitas e impede iniciar
+novas publicações. Não há replay/outbox nem garantia de aviso final.
+REST permanece a reconciliação após perda de aviso. Sem novo scheduler,
+autostart, rota ou recálculo automático no encerramento REST.
+Plano: [aviso de recálculo TEST](../plans/backend-phase-8-test-summary-notification.md).
 
 ## Sessão e autorização — lote 8.4
 

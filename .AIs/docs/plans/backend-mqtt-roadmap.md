@@ -2,6 +2,11 @@
 
 # Roadmap de Backend e MQTT — VERS
 
+> **Escopo atualizado em 19/10/2026:** integração elétrica cancelada pelo
+> programador; dados serão exclusivamente simulados. ESP32/sensores deixam de
+> bloquear a entrega. Permanecem as garantias do backend e os ensaios de software.
+> Ver [decisão e continuidade com simulação](backend-simulacao-19-10-2026.md).
+
 > A execução detalhada de cada fase está separada no
 > [Roadmap executável do backend](backend-roadmap/README.md). Este documento
 > permanece como fonte estratégica de escopo, arquitetura e marcos.

@@ -1,6 +1,11 @@
 <!-- Define o recorte de consistência F08.6 sem introduzir consumidor sem integração. -->
 # F08.6 — Consistência e recuperação por REST
 
+> Atualização de 19/10/2026: a pendência histórica de aviso de recálculo TEST
+> abaixo foi tratada no [lote independente](backend-phase-8-test-summary-notification.md).
+> Encerramento REST continua sem recálculo imediato; consumidor frontend segue
+> pendente. Ensaio F08.7 foi executado em 16/10, conforme contexto desse dia.
+
 ## Escopo autorizado — 15/10/2026
 
 Pedido de desenvolvimento após F08.5 autoriza este próximo recorte do backend.

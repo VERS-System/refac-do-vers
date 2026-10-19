@@ -3,13 +3,15 @@
  *
  * Garantem a infraestrutura de rotas e o shell: o app abre na Visão geral,
  * cada rota mostra a tela certa, a sidebar navega entre as telas internas e
- * as telas de autenticação ficam fora do shell.
+ * as telas de autenticação ficam fora do shell. "Reduzir movimento" vale em
+ * todas as telas (Fase 5, `.AIs/docs/plans/desktop-frontend-fase-5.md`).
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
+import { usePreferencias } from './stores/preferencias';
 
 /** Abre o app numa rota do HashRouter. */
 function abrirEm(rota: string) {
@@ -121,5 +123,50 @@ describe('App', () => {
     expect(await screen.findByText('Ana Silva')).toBeInTheDocument();
     expect(await screen.findByText('Honda Civic 2026 · ABC1D23')).toBeInTheDocument();
     expect(await screen.findByRole('region', { name: 'ESP32 · VERS-01' })).toBeInTheDocument();
+  });
+
+  /** Cada tela nova entra com a transição curta (o conteúdo é remontado). */
+  it('anima a entrada da tela nova', async () => {
+    abrirEm('/visao-geral');
+    const antes = screen.getByRole('main').querySelector('.entrada-tela');
+    expect(antes).not.toBeNull();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Energia' }));
+    await screen.findByRole('heading', { level: 1, name: 'Energia' });
+
+    const depois = screen.getByRole('main').querySelector('.entrada-tela');
+    expect(depois).not.toBeNull();
+    expect(depois).not.toBe(antes);
+  });
+
+  /**
+   * O primeiro Tab nas telas internas oferece pular a sidebar; Enter leva o
+   * foco para a tela, sem mexer na rota (Fase 5).
+   */
+  it('pula a navegação para o conteúdo', async () => {
+    abrirEm('/energia');
+
+    await userEvent.tab();
+    const pular = screen.getByRole('link', { name: 'Pular para o conteúdo' });
+    expect(pular).toHaveFocus();
+
+    await userEvent.keyboard('{Enter}');
+    expect(screen.getByRole('main')).toHaveFocus();
+    expect(window.location.hash).toBe('#/energia');
+  });
+
+  /**
+   * "Reduzir movimento" vale em todo o app, inclusive no Login aberto direto
+   * (fora do shell), e a marca sai da página quando o app é desmontado.
+   */
+  it('aplica "Reduzir movimento" também fora do shell', () => {
+    usePreferencias.getState().salvar({ reduzirMovimento: true });
+
+    window.location.hash = '/login';
+    const { unmount } = render(<App />);
+
+    expect(document.documentElement.dataset.reduzirMovimento).toBe('true');
+    unmount();
+    expect(document.documentElement.dataset.reduzirMovimento).toBeUndefined();
   });
 });

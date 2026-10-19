@@ -46,3 +46,7 @@ Nenhum Docker consultado/executado após aviso do programador. Rebuild da imagem
 e ensaio real do bootstrap permanecem pendentes antes de usar em container;
 programador avisado dessa necessidade. Sem .env, destino externo, migration,
 escrita de banco, frontend, commit ou push. F08 não encerrada.
+
+Continuação: [preparação do ensaio do bootstrap real](backend-phase-8-bootstrap-rehearsal.md)
+usa executável compilado e bancada existente. Execução aguarda autorização
+específica para Docker e dados sintéticos; não depende de rebuild da imagem.

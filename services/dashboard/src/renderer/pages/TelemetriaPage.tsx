@@ -82,10 +82,7 @@ function BotaoAoVivo({ ativo, onAlternar }: { ativo: boolean; onAlternar: () => 
     <Button variant={ativo ? 'primary' : 'secondary'} aria-pressed={ativo} onClick={onAlternar}>
       <span
         aria-hidden="true"
-        className={cn(
-          'size-2 rounded-full',
-          ativo ? 'animate-pulse bg-fg-on-accent' : 'bg-fg-muted',
-        )}
+        className={cn('size-2 rounded-full', ativo ? 'ponto-vivo bg-fg-on-accent' : 'bg-fg-muted')}
       />
       Ao vivo
     </Button>
@@ -183,7 +180,7 @@ export function TelemetriaPage() {
       }
     >
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-4">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           <CardSinal consulta={sinal} />
           <CardUltimasLeituras consulta={recentes} conexao={conexao} />
         </div>

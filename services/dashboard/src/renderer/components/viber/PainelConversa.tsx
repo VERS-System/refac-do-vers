@@ -121,14 +121,14 @@ export function PainelConversa({ conversaId, contexto }: PainelConversaProps) {
       </div>
       <form
         onSubmit={enviarPergunta}
-        className="flex flex-col gap-2 border-t border-line-subtle px-6 py-4"
+        className="flex flex-col gap-2 border-t border-line-subtle px-4 py-4 sm:px-6"
       >
         {enviar.error && (
           <p role="alert" className="text-[13px] text-warning">
             {enviar.error.message}
           </p>
         )}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <label htmlFor={idCampo} className="sr-only">
             Pergunte ao Viber sobre seus dados
           </label>
@@ -137,14 +137,16 @@ export function PainelConversa({ conversaId, contexto }: PainelConversaProps) {
             value={rascunho}
             onChange={(evento) => setRascunho(evento.target.value)}
             placeholder="Pergunte ao Viber sobre seus dados…"
-            className="h-12 flex-1 rounded-full border border-line bg-inset px-5 text-sm text-fg outline-none placeholder:text-fg-muted focus-visible:border-accent-border"
+            className="h-12 min-w-0 flex-1 rounded-full border border-line bg-inset px-5 text-sm text-fg placeholder:text-fg-muted focus-visible:border-accent-border"
           />
+          {/* No celular só o ícone aparece; o nome "Enviar" continua para o leitor de tela. */}
           <Button
             type="submit"
             icon={SendHorizontal}
             disabled={!rascunho.trim() || enviar.isPending}
+            className="px-4 sm:px-5"
           >
-            Enviar
+            <span className="sr-only sm:not-sr-only">Enviar</span>
           </Button>
         </div>
       </form>

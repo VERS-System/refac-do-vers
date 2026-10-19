@@ -4,6 +4,7 @@
  * Pílula com texto em Public Sans e um ponto colorido à esquerda. Os tons
  * seguem o DESIGN.md: Success (Online), Warning (Manutenção), Danger (Falha),
  * Info (Em teste), Neutral (Offline, "Dados de exemplo") e Accent (Carregando).
+ * Com `pulsar`, o ponto ganha o pulso sutil dos status ao vivo (Fase 5).
  */
 
 import type { HTMLAttributes } from 'react';
@@ -15,6 +16,8 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   tone?: BadgeTone;
   /** Mostra o ponto colorido antes do texto (padrão: sim). */
   dot?: boolean;
+  /** Pulso sutil no ponto, para status ao vivo (DESIGN.md: só o ponto pulsa). */
+  pulsar?: boolean;
 }
 
 const CLASSES_TOM: Record<BadgeTone, { badge: string; ponto: string }> = {
@@ -32,7 +35,14 @@ const CLASSES_TOM: Record<BadgeTone, { badge: string; ponto: string }> = {
  * O ponto é decorativo (`aria-hidden`): o significado está sempre no texto,
  * nunca só na cor. O tom fica exposto em `data-tone` para estilos e testes.
  */
-export function Badge({ tone = 'neutral', dot = true, className, children, ...props }: BadgeProps) {
+export function Badge({
+  tone = 'neutral',
+  dot = true,
+  pulsar = false,
+  className,
+  children,
+  ...props
+}: BadgeProps) {
   const classes = CLASSES_TOM[tone];
   return (
     <span
@@ -48,7 +58,7 @@ export function Badge({ tone = 'neutral', dot = true, className, children, ...pr
         <span
           data-slot="dot"
           aria-hidden="true"
-          className={cn('size-1.5 shrink-0 rounded-full', classes.ponto)}
+          className={cn('size-1.5 shrink-0 rounded-full', classes.ponto, pulsar && 'ponto-vivo')}
         />
       )}
       {children}

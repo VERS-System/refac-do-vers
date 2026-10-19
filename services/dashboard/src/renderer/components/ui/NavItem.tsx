@@ -21,7 +21,8 @@ export interface NavItemProps {
  * Renderiza o link da rota usando o `NavLink` do React Router.
  *
  * O `NavLink` já marca o item ativo com `aria-current="page"`; a mesma
- * informação decide as classes de destaque.
+ * informação decide a cor do texto. O fundo dourado do ativo é o destaque
+ * deslizante da sidebar (Fase 5), que fica atrás do item.
  */
 export function NavItem({ to, label, icon: Icon, className }: NavItemProps) {
   return (
@@ -29,10 +30,8 @@ export function NavItem({ to, label, icon: Icon, className }: NavItemProps) {
       to={to}
       className={({ isActive }) =>
         cn(
-          'flex h-11 items-center gap-3 rounded-control border px-3 text-sm font-medium transition-colors duration-150',
-          isActive
-            ? 'border-accent-border bg-accent-subtle text-accent'
-            : 'border-transparent text-fg-secondary hover:bg-hover hover:text-fg',
+          'relative flex h-11 items-center gap-3 rounded-control border border-transparent px-3 text-sm font-medium transition-colors duration-150',
+          isActive ? 'text-accent' : 'text-fg-secondary hover:bg-hover hover:text-fg',
           className,
         )
       }

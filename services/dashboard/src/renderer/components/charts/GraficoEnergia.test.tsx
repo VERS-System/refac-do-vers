@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { PontoCurva, ResumoDia } from '@/data/tipos';
-import { descreverBarras, descreverCurva, GraficoEnergia } from './GraficoEnergia';
+import { descreverBarras, descreverCurva, GraficoEnergia, pontosDaCurva } from './GraficoEnergia';
 
 const CURVA: PontoCurva[] = [
   { horario: '17:40', recuperadaMw: 300, consumoNoMw: 50 },
@@ -32,6 +32,25 @@ function dia(data: string, p1: number): ResumoDia {
   };
 }
 const DIAS = [dia('2026-09-28', 258), dia('2026-09-29', 178), dia('2026-10-01', 390)];
+
+describe('pontosDaCurva', () => {
+  /**
+   * O desenho usa a média móvel (sem o serrilhado do sensor) e passa pelo pico
+   * medido; o tooltip continua com o valor medido (Fase 5, lote 11).
+   */
+  it('suaviza o desenho e mantém os valores medidos', () => {
+    const pontos = pontosDaCurva(CURVA);
+
+    expect(pontos.map((p) => p.recuperada)).toEqual([300, 360, 386, 250]);
+    expect(pontos.map((p) => p.desenho)).toEqual([
+      (300 + 360 + 386) / 3,
+      (300 + 360 + 386 + 250) / 4,
+      386,
+      (360 + 386 + 250) / 3,
+    ]);
+    expect(pontos[0].minuto).toBe(17 * 60 + 40);
+  });
+});
 
 describe('descreverCurva', () => {
   /** Intervalo da curva e pico, em pt-BR. */

@@ -144,7 +144,11 @@ export function PainelTesteAtivo(props: PainelTesteAtivoProps) {
         <h2 id={idTitulo} className="text-base leading-[22px] font-semibold text-fg">
           Teste em andamento
         </h2>
-        {emAndamento.data?.itens[0] && <Badge tone="accent">Ao vivo</Badge>}
+        {emAndamento.data?.itens[0] && (
+          <Badge tone="accent" pulsar>
+            Ao vivo
+          </Badge>
+        )}
       </header>
       <EstadoConsulta
         consulta={emAndamento}

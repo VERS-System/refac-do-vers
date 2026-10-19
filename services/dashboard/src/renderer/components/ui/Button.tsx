@@ -3,7 +3,8 @@
  *
  * Segue o DESIGN.md: pílula de 44 a 48 px de altura, com as variantes Primary
  * (dourado com texto escuro), Secondary, Ghost e Danger. O dourado é reservado
- * à ação principal de cada tela.
+ * à ação principal de cada tela; no hover, uma faixa de luz atravessa o
+ * primário (GlareHover, Fase 5).
  */
 
 import type { ButtonHTMLAttributes, ComponentType, SVGProps } from 'react';
@@ -23,8 +24,9 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const CLASSES_VARIANTE: Record<ButtonVariant, string> = {
+  // `reflexo`: o GlareHover do DESIGN.md (faixa de luz que atravessa no hover).
   primary:
-    'bg-accent text-fg-on-accent hover:bg-accent-hover hover:shadow-glow active:bg-accent-pressed',
+    'reflexo bg-accent text-fg-on-accent hover:bg-accent-hover hover:shadow-glow active:bg-accent-pressed',
   secondary: 'border border-line bg-surface-raised text-fg hover:bg-hover',
   ghost: 'text-fg-secondary hover:bg-hover hover:text-fg',
   danger:
@@ -35,6 +37,28 @@ const CLASSES_TAMANHO: Record<ButtonSize, string> = {
   md: 'h-11 px-5 text-sm',
   lg: 'h-12 px-6 text-[15px]',
 };
+
+/**
+ * Classes da pílula para a variante e o tamanho pedidos. Exposta para links
+ * que fazem papel de botão (um `<Link>` não pode ser um `<button>`), para que
+ * fiquem iguais ao botão, inclusive no reflexo do primário.
+ */
+export function classesDoBotao({
+  variant = 'primary',
+  size = 'md',
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+} = {}): string {
+  return cn(
+    'inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap',
+    // Afunda levemente ao pressionar (Fase 5).
+    'transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.97]',
+    'disabled:pointer-events-none disabled:opacity-50',
+    CLASSES_VARIANTE[variant],
+    CLASSES_TAMANHO[size],
+  );
+}
 
 /**
  * Renderiza um botão em pílula com a variante e o tamanho pedidos.
@@ -56,14 +80,7 @@ export function Button({
     <button
       type={type}
       data-variant={variant}
-      className={cn(
-        'inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap',
-        'transition-[background-color,color,box-shadow] duration-150',
-        'disabled:pointer-events-none disabled:opacity-50',
-        CLASSES_VARIANTE[variant],
-        CLASSES_TAMANHO[size],
-        className,
-      )}
+      className={cn(classesDoBotao({ variant, size }), className)}
       {...props}
     >
       {Icon && <Icon size={18} aria-hidden="true" className="shrink-0" />}

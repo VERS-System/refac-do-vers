@@ -22,12 +22,13 @@ import {
   type CamposVeiculo,
 } from '@/components/autenticacao/CamposVeiculo';
 import { AuthCard, AuthLayout } from '@/components/layout/AuthLayout';
-import { Button } from '@/components/ui/Button';
+import { Button, classesDoBotao } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { emailValido, nomearVeiculo, normalizarPlaca, senhaValida } from '@/data/calculos';
 import { ErroRepositorio } from '@/data/erros';
 import { guardarVeiculoDoCadastro } from '@/data/veiculoDoCadastro';
 import { useAcoesAutenticacao } from '@/hooks/useDados';
+import { cn } from '@/lib/cn';
 import { ROTAS } from '@/routes/navegacao';
 
 interface Conta {
@@ -144,90 +145,93 @@ export function CriarContaPage() {
           <>
             <Etapas atual={etapa} />
             <form noValidate onSubmit={(e) => void avancar(e)}>
-              {etapa === 0 && (
-                <>
-                  <TituloEtapa descricao="Preencha seus dados de acesso ao ecossistema VERS.">
-                    Sua conta
-                  </TituloEtapa>
-                  <div className="mt-5 flex flex-col gap-4">
-                    <Input
-                      label="Nome completo"
-                      icon={UserRound}
-                      autoComplete="name"
-                      value={conta.nome}
-                      onChange={(e) => setConta({ ...conta, nome: e.target.value })}
-                    />
-                    <Input
-                      label="E-mail"
-                      type="email"
-                      icon={Mail}
-                      autoComplete="email"
-                      value={conta.email}
-                      onChange={(e) => setConta({ ...conta, email: e.target.value })}
-                      error={erros.email}
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <CampoSenha
-                        label="Senha"
-                        autoComplete="new-password"
-                        value={conta.senha}
-                        onChange={(e) => setConta({ ...conta, senha: e.target.value })}
-                        error={erros.senha}
+              {/* Stepper (Fase 5): o conteúdo de cada etapa entra com fade curto. */}
+              <div key={etapa} className="entrada-etapa">
+                {etapa === 0 && (
+                  <>
+                    <TituloEtapa descricao="Preencha seus dados de acesso ao ecossistema VERS.">
+                      Sua conta
+                    </TituloEtapa>
+                    <div className="mt-5 flex flex-col gap-4">
+                      <Input
+                        label="Nome completo"
+                        icon={UserRound}
+                        autoComplete="name"
+                        value={conta.nome}
+                        onChange={(e) => setConta({ ...conta, nome: e.target.value })}
                       />
                       <Input
-                        label="Confirmar senha"
-                        type="password"
-                        icon={Lock}
-                        autoComplete="new-password"
-                        value={conta.confirmacao}
-                        onChange={(e) => setConta({ ...conta, confirmacao: e.target.value })}
-                        error={erros.confirmacao}
+                        label="E-mail"
+                        type="email"
+                        icon={Mail}
+                        autoComplete="email"
+                        value={conta.email}
+                        onChange={(e) => setConta({ ...conta, email: e.target.value })}
+                        error={erros.email}
                       />
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <CampoSenha
+                          label="Senha"
+                          autoComplete="new-password"
+                          value={conta.senha}
+                          onChange={(e) => setConta({ ...conta, senha: e.target.value })}
+                          error={erros.senha}
+                        />
+                        <Input
+                          label="Confirmar senha"
+                          type="password"
+                          icon={Lock}
+                          autoComplete="new-password"
+                          value={conta.confirmacao}
+                          onChange={(e) => setConta({ ...conta, confirmacao: e.target.value })}
+                          error={erros.confirmacao}
+                        />
+                      </div>
+                      <ListaRequisitos senha={conta.senha} />
                     </div>
-                    <ListaRequisitos senha={conta.senha} />
-                  </div>
-                </>
-              )}
-              {etapa === 1 && (
-                <>
-                  <TituloEtapa descricao="O veículo onde o VERS está instalado. Só a placa é obrigatória.">
-                    Seu veículo
-                  </TituloEtapa>
-                  <div className="mt-5">
-                    <CamposDoVeiculo veiculo={veiculo} erros={erros} onVeiculo={setVeiculo} />
-                  </div>
-                </>
-              )}
-              {etapa === 2 && (
-                <>
-                  <TituloEtapa descricao="Confira os dados e veja o que acontece depois.">
-                    Instalação
-                  </TituloEtapa>
-                  <ul
-                    aria-label="Resumo do cadastro"
-                    className="mt-5 flex flex-col gap-2 rounded-control border border-line-subtle bg-inset px-4 py-3 text-[13px]"
-                  >
-                    <li className="flex justify-between gap-3">
-                      <span className="text-fg-muted">Conta</span>
-                      <span className="font-mono text-fg">{conta.email.trim()}</span>
-                    </li>
-                    <li className="flex justify-between gap-3">
-                      <span className="text-fg-muted">Veículo</span>
-                      <span className="font-mono text-fg">{descreverCadastro(veiculo)}</span>
-                    </li>
-                  </ul>
-                  <p className="mt-4 flex items-start gap-2 text-[13px] leading-5 text-fg-secondary">
-                    <Cpu aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-accent" />O ESP32
-                    e os piezos são associados ao veículo depois do primeiro acesso, em Veículo e
-                    instalação, quando a API estiver disponível.
-                  </p>
-                  {recusa && (
-                    <div className="mt-4">
-                      <AvisoErro>{recusa}</AvisoErro>
+                  </>
+                )}
+                {etapa === 1 && (
+                  <>
+                    <TituloEtapa descricao="O veículo onde o VERS está instalado. Só a placa é obrigatória.">
+                      Seu veículo
+                    </TituloEtapa>
+                    <div className="mt-5">
+                      <CamposDoVeiculo veiculo={veiculo} erros={erros} onVeiculo={setVeiculo} />
                     </div>
-                  )}
-                </>
-              )}
+                  </>
+                )}
+                {etapa === 2 && (
+                  <>
+                    <TituloEtapa descricao="Confira os dados e veja o que acontece depois.">
+                      Instalação
+                    </TituloEtapa>
+                    <ul
+                      aria-label="Resumo do cadastro"
+                      className="mt-5 flex flex-col gap-2 rounded-control border border-line-subtle bg-inset px-4 py-3 text-[13px]"
+                    >
+                      <li className="flex justify-between gap-3">
+                        <span className="text-fg-muted">Conta</span>
+                        <span className="font-mono text-fg">{conta.email.trim()}</span>
+                      </li>
+                      <li className="flex justify-between gap-3">
+                        <span className="text-fg-muted">Veículo</span>
+                        <span className="font-mono text-fg">{descreverCadastro(veiculo)}</span>
+                      </li>
+                    </ul>
+                    <p className="mt-4 flex items-start gap-2 text-[13px] leading-5 text-fg-secondary">
+                      <Cpu aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-accent" />O
+                      ESP32 e os piezos são associados ao veículo depois do primeiro acesso, em
+                      Veículo e instalação, quando a API estiver disponível.
+                    </p>
+                    {recusa && (
+                      <div className="mt-4">
+                        <AvisoErro>{recusa}</AvisoErro>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
               <div className="mt-6 flex gap-3">
                 {etapa > 0 && (
                   <Button
@@ -285,10 +289,7 @@ function Concluido({ email, veiculo }: { email: string; veiculo: string }) {
       <p className="mt-3 text-[13px] leading-5 text-fg-muted">
         {`O veículo ${veiculo} fica guardado neste computador e é cadastrado no seu primeiro acesso.`}
       </p>
-      <Link
-        to={ROTAS.login}
-        className="mt-6 flex h-12 items-center justify-center rounded-full bg-accent text-[15px] font-medium text-fg-on-accent hover:bg-accent-hover"
-      >
+      <Link to={ROTAS.login} className={cn(classesDoBotao({ size: 'lg' }), 'mt-6 flex w-full')}>
         Ir para o Login
       </Link>
     </div>

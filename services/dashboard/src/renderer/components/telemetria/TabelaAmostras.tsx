@@ -67,8 +67,12 @@ function Pilula({ icone, children }: { icone: ReactNode; children: ReactNode }) 
   );
 }
 
-/** Campo de seleção dos filtros, com o rótulo antes do valor ("Teste: #023"). */
-function Selecao({
+/**
+ * Campo de seleção dos filtros, com o rótulo antes do valor ("Teste: #023").
+ * O `<select>` não tem contorno próprio; com foco de teclado, o anel aparece
+ * na pílula inteira (`anel-foco-dentro`).
+ */
+export function Selecao({
   rotulo,
   valor,
   onTrocar,
@@ -81,7 +85,7 @@ function Selecao({
 }) {
   const id = useId();
   return (
-    <span className="flex h-9 items-center gap-2 rounded-full border border-line bg-surface-raised pr-2 pl-3 font-mono text-xs text-fg">
+    <span className="anel-foco-dentro flex h-9 items-center gap-2 rounded-full border border-line bg-surface-raised pr-2 pl-3 font-mono text-xs text-fg">
       <label htmlFor={id} className="text-fg-muted">
         {rotulo}
       </label>

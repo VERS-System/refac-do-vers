@@ -6,6 +6,15 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Card } from './Card';
 
+describe('Card — entrada (Fase 5)', () => {
+  /** Os cards aparecem em sequência curta quando a tela abre. */
+  it('entra com a animação da tela', () => {
+    render(<Card>Conteúdo</Card>);
+
+    expect(screen.getByText('Conteúdo')).toHaveClass('entrada-card');
+  });
+});
+
 describe('Card', () => {
   /** Renderiza o conteúdo recebido. */
   it('renderiza os filhos', () => {

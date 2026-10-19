@@ -6,7 +6,34 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Plus } from 'lucide-react';
-import { Button } from './Button';
+import { Button, classesDoBotao } from './Button';
+
+describe('Button — reflexo (Fase 5)', () => {
+  /** Só o botão primário ganha o reflexo que atravessa no hover (GlareHover). */
+  it('dá reflexo só ao primário', () => {
+    render(
+      <>
+        <Button>Salvar</Button>
+        <Button variant="secondary">Voltar</Button>
+      </>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Salvar' })).toHaveClass('reflexo');
+    expect(screen.getByRole('button', { name: 'Voltar' })).not.toHaveClass('reflexo');
+  });
+
+  /** Todo botão afunda levemente ao ser pressionado (Fase 5). */
+  it('afunda ao pressionar', () => {
+    expect(classesDoBotao({ variant: 'secondary' })).toContain('active:scale-[0.97]');
+    expect(classesDoBotao()).toContain('active:scale-[0.97]');
+  });
+
+  /** Um link com cara de botão usa as mesmas classes, com reflexo no primário. */
+  it('expõe as classes para links com cara de botão', () => {
+    expect(classesDoBotao({ variant: 'primary', size: 'lg' })).toContain('reflexo');
+    expect(classesDoBotao({ variant: 'ghost' })).not.toContain('reflexo');
+  });
+});
 
 describe('Button', () => {
   /** Por padrão é um botão primário do tipo "button", para não enviar formulários. */

@@ -6,6 +6,25 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Badge } from './Badge';
 
+describe('Badge — ponto ao vivo (Fase 5)', () => {
+  /** Com `pulsar`, só o ponto ganha o pulso; o texto fica parado. */
+  it('pulsa o ponto quando pedido', () => {
+    render(
+      <>
+        <Badge tone="accent" pulsar>
+          Ao vivo
+        </Badge>
+        <Badge tone="success">Online</Badge>
+      </>,
+    );
+
+    const aoVivo = screen.getByText('Ao vivo').closest('[data-tone]');
+    expect(aoVivo?.querySelector('[data-slot="dot"]')).toHaveClass('ponto-vivo');
+    const online = screen.getByText('Online').closest('[data-tone]');
+    expect(online?.querySelector('[data-slot="dot"]')).not.toHaveClass('ponto-vivo');
+  });
+});
+
 describe('Badge', () => {
   /** Mostra o texto com o tom neutro por padrão. */
   it('renderiza o texto com tom neutro por padrão', () => {

@@ -31,6 +31,21 @@ function ComEstado({ aoMudar }: { aoMudar?: (valor: string) => void }) {
   );
 }
 
+describe('SegmentedControl — destaque deslizante (Fase 5)', () => {
+  /** Um só destaque, decorativo, que acompanha a opção escolhida. */
+  it('leva o destaque até a opção escolhida', async () => {
+    render(<ComEstado />);
+    const destaque = () => document.querySelectorAll('[data-slot="indicador"]');
+    expect(destaque()).toHaveLength(1);
+    expect(destaque()[0]).toHaveAttribute('aria-hidden', 'true');
+    expect(destaque()[0]).toHaveAttribute('data-valor', 'dia');
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Semana' }));
+
+    expect(destaque()[0]).toHaveAttribute('data-valor', 'semana');
+  });
+});
+
 describe('SegmentedControl', () => {
   /** É um grupo de rádios nomeado, com a opção atual marcada. */
   it('marca a opção selecionada', () => {

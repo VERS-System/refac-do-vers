@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Dialog } from './Dialog';
 
@@ -112,5 +112,37 @@ describe('Dialog', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(abrir).toHaveFocus();
+  });
+
+  /**
+   * Com o diálogo aberto, o resto da página fica inerte (fora do Tab e do
+   * leitor de tela) e sem rolagem; ao fechar, volta ao normal (Fase 5).
+   */
+  it('deixa o fundo inerte e trava a rolagem', async () => {
+    const { container } = render(<ComAbertura />);
+    const pagina = container;
+
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir' }));
+    expect(pagina).toHaveAttribute('inert');
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(screen.getByRole('dialog').closest('[inert]')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Voltar' }));
+    expect(pagina).not.toHaveAttribute('inert');
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  /** Esc fecha mesmo com o foco fora do painel (por exemplo, no corpo da página). */
+  it('fecha com Esc com o foco fora do painel', () => {
+    const fechar = vi.fn();
+    render(
+      <Dialog aberto titulo="Cancelar teste" onFechar={fechar}>
+        <input aria-label="Motivo" />
+      </Dialog>,
+    );
+
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+
+    expect(fechar).toHaveBeenCalledTimes(1);
   });
 });

@@ -71,6 +71,16 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: 'Visão geral' })).not.toHaveAttribute('aria-current');
   });
 
+  /** O destaque do item ativo é um só e desliza até a rota atual (Fase 5). */
+  it('leva o destaque até o item da rota', () => {
+    renderizar('/energia');
+
+    const destaques = document.querySelectorAll('[data-slot="indicador-nav"]');
+    expect(destaques).toHaveLength(1);
+    expect(destaques[0]).toHaveAttribute('aria-hidden', 'true');
+    expect(destaques[0]).toHaveAttribute('data-alvo', '/energia');
+  });
+
   /** O card do dispositivo mostra nome, status, firmware e protocolo. */
   it('mostra o status do ESP32', () => {
     renderizar();
@@ -79,13 +89,17 @@ describe('Sidebar', () => {
     expect(within(card).getByText('Online')).toBeInTheDocument();
     expect(within(card).getByText(/Firmware 0\.4\.2/)).toBeInTheDocument();
     expect(within(card).getByText('MQTT')).toBeInTheDocument();
+    // Online, só o ponto pulsa (DESIGN.md: pulso sutil no ponto ao vivo).
+    expect(card.querySelectorAll('.ponto-vivo')).toHaveLength(1);
   });
 
-  /** Dispositivo desconectado aparece como Offline. */
+  /** Dispositivo desconectado aparece como Offline, sem pulso. */
   it('mostra Offline quando o ESP32 está desconectado', () => {
     renderizar('/visao-geral', vi.fn(), { ...DISPOSITIVO, online: false });
 
     expect(screen.getByText('Offline')).toBeInTheDocument();
+    const card = screen.getByRole('region', { name: 'ESP32 · VERS-01' });
+    expect(card.querySelector('.ponto-vivo')).toBeNull();
   });
 
   /** A linha do usuário mostra nome, função e o botão de sair. */

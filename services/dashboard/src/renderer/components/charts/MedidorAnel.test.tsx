@@ -23,6 +23,8 @@ describe('MedidorAnel', () => {
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     expect(fracao(container)).toBeCloseTo(0.535);
     expect(container).toHaveTextContent('η');
+    // O arco se preenche ao aparecer (Fase 5).
+    expect(container.querySelector('[data-slot="progresso"]')).toHaveClass('preencher-anel');
   });
 
   /** Fora de 0 a 100 ou ausente, o arco fica preso nos limites. */

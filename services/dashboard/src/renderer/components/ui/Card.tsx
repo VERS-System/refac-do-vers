@@ -4,6 +4,8 @@
  * Superfície `surface` com borda sutil de 1 px e raio de 20 px, como pede o
  * DESIGN.md (o render do Stitch omitiu a borda; a implementação segue o
  * DESIGN.md). Serve de base para KpiCard, ChartCard e os demais blocos das telas.
+ * Ao aparecer, entra com fade e deslize curto, em sequência com os vizinhos
+ * (`entrada-card`, Fase 5).
  */
 
 import type { HTMLAttributes } from 'react';
@@ -26,7 +28,7 @@ export function Card({ as: Elemento = 'div', padded = true, className, ...props 
   return (
     <Elemento
       className={cn(
-        'rounded-card border border-line-subtle bg-surface shadow-elevation-1',
+        'entrada-card rounded-card border border-line-subtle bg-surface shadow-elevation-1',
         padded && 'p-6',
         className,
       )}

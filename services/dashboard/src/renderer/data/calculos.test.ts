@@ -12,6 +12,7 @@ import {
   descreverVeiculo,
   eficiencia,
   emailValido,
+  suavizarSerie,
   enriquecerCadeia,
   estadoConexao,
   formatarIsoComFuso,
@@ -460,5 +461,30 @@ describe('emailValido', () => {
     expect(emailValido('ana.silva@vers')).toBe(false);
     expect(emailValido('ana silva@vers.com')).toBe(false);
     expect(emailValido('')).toBe(false);
+  });
+});
+
+describe('suavizarSerie', () => {
+  /** Média móvel centrada: tira o serrilhado minuto a minuto do desenho. */
+  it('suaviza o serrilhado', () => {
+    expect(suavizarSerie([12, 20, 12, 20, 12, 30], 3)).toEqual([
+      16,
+      44 / 3,
+      52 / 3,
+      44 / 3,
+      62 / 3,
+      30,
+    ]);
+  });
+
+  /** O pico continua no mesmo ponto e com o valor medido. */
+  it('preserva o pico', () => {
+    expect(suavizarSerie([0, 5, 30, 5, 0], 3)).toEqual([2.5, 35 / 3, 30, 35 / 3, 2.5]);
+  });
+
+  /** Trechos parados (zero) continuam em zero; o tamanho não muda. */
+  it('mantém os trechos parados', () => {
+    expect(suavizarSerie([0, 0, 0, 0], 5)).toEqual([0, 0, 0, 0]);
+    expect(suavizarSerie([], 5)).toEqual([]);
   });
 });

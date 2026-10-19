@@ -97,7 +97,7 @@ function ConteudoDispositivo({ dispositivo }: { dispositivo: Dispositivo }) {
           <Cpu aria-hidden="true" className="size-5 text-accent" />
         </span>
         <p className="flex-1 font-mono text-[15px] font-semibold text-fg">{`${dispositivo.plataforma} · ${dispositivo.id}`}</p>
-        <Badge tone={dispositivo.online ? 'success' : 'neutral'}>
+        <Badge tone={dispositivo.online ? 'success' : 'neutral'} pulsar={dispositivo.online}>
           {dispositivo.online ? 'Online' : 'Offline'}
         </Badge>
       </div>

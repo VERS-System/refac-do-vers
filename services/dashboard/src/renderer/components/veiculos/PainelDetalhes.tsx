@@ -84,7 +84,7 @@ export function PainelDetalhes({
         </p>
       </div>
 
-      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4">
+      <dl className="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
         <Campo rotulo="Placa">
           <span className="font-mono">{veiculo.placa}</span>
         </Campo>

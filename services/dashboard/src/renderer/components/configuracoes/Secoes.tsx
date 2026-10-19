@@ -61,7 +61,7 @@ export function Secao({
       aria-labelledby={idTitulo}
       className={perigo ? 'scroll-mt-6 border-danger/40 bg-danger-subtle/40' : 'scroll-mt-6'}
     >
-      <header className="mb-5 flex items-center justify-between gap-3">
+      <header className="mb-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <h2
           id={idTitulo}
           className="flex items-center gap-2 text-base leading-[22px] font-semibold text-fg"
@@ -112,7 +112,7 @@ export function SecaoPerfil({ usuario, nome, foto, onNome, onFoto }: SecaoPerfil
       icone={UserRound}
       complemento={<span className="font-mono text-xs text-fg-muted">{`ID: ${usuario.id}`}</span>}
     >
-      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-6">
+      <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-[auto_minmax(0,1fr)]">
         <div className="flex flex-col items-center gap-2">
           <Avatar name={nome || usuario.nome} src={foto} size={64} />
           <label
@@ -138,7 +138,7 @@ export function SecaoPerfil({ usuario, nome, foto, onNome, onFoto }: SecaoPerfil
             {erroFoto ?? 'PNG/JPG até 2 MB'}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input label="Nome completo" value={nome} onChange={(e) => onNome(e.target.value)} />
           <div className="flex flex-col gap-1.5">
             <Input label="E-mail" value={usuario.email} readOnly />
@@ -197,7 +197,7 @@ export function SecaoUnidades({
       icone={SlidersHorizontal}
       complemento={<span className="text-xs text-fg-muted">Valem em todas as telas</span>}
     >
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8">
         <div className="flex flex-col gap-4">
           <Grandeza titulo="Potência" descricao="Cards, gráficos e tabelas">
             <SegmentedControl
@@ -275,7 +275,7 @@ export function SecaoAlertas({
         <span className="font-mono text-xs text-fg-muted">{contarAlertas(alertas)}</span>
       }
     >
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {alertas.map((alerta) => (
           <li
             key={alerta.id}
@@ -347,7 +347,7 @@ export function SecaoSessoes() {
       perigo
       complemento={<Badge tone="danger">Ação irreversível</Badge>}
     >
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-start gap-2 text-[13px] text-fg-secondary">
           <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-danger" />
           Ao encerrar todas as sessões, este computador e todos os outros terminais precisarão de
@@ -385,7 +385,7 @@ export function SecaoSobre() {
   const dispositivo = useDispositivo();
   return (
     <Secao id="sobre" titulo="Sobre o VERS" icone={Info}>
-      <dl className="grid grid-cols-3 gap-3 font-mono text-xs">
+      <dl className="grid grid-cols-1 gap-3 font-mono text-xs sm:grid-cols-3">
         <div className="flex flex-col gap-1 rounded-control border border-line-subtle bg-inset px-3 py-2.5">
           <dt className="text-fg-muted">Versão do app</dt>
           <dd className="text-fg">{VERSAO_APP}</dd>

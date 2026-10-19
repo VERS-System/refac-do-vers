@@ -51,7 +51,7 @@ export function ViberIaPage() {
         </Button>
       }
     >
-      <div className="grid grid-cols-[minmax(0,1fr)_300px] items-start gap-4">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <PainelConversa conversaId={conversaId} contexto={contexto} />
         <div className="flex flex-col gap-4">
           <PainelContexto

@@ -46,7 +46,7 @@ export function CamposDoVeiculo({
   onVeiculo: (veiculo: CamposVeiculo) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <Input
         label="Placa"
         icon={Car}
@@ -54,7 +54,7 @@ export function CamposDoVeiculo({
         value={veiculo.placa}
         onChange={(e) => onVeiculo({ ...veiculo, placa: e.target.value })}
         error={erros.placa}
-        className="col-span-2"
+        className="sm:col-span-2"
       />
       <Input
         label="Fabricante"

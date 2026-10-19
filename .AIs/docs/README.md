@@ -40,6 +40,9 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 
 ## Organização
 
+- [Integração Electron com backend](plans/desktop-backend-integration.md): lotes,
+  contratos, sessão, dados, tempo real e critérios de validação ponta a ponta.
+
 - [Ensaio de tempo real F08.7](plans/backend-phase-8-rehearsal.md): alvos,
   comandos e seis cenários iniciais; [continuação MQTT/Redis](plans/backend-phase-8-mqtt-rehearsal.md)
   acrescenta caminho integrado e pausa real, sete cenários aprovados ao todo.

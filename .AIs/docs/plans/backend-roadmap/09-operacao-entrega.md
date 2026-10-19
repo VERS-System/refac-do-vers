@@ -33,6 +33,10 @@ ou pipeline de CI/CD obrigatório.
 
 ## Etapa C — Entrega manual e migrations
 
+[Ensaio local de migration e recuperação](../backend-phase-9-backup-rehearsal.md)
+aprovado em 19/10/2026: deploy repetível, dump/restore e comparação completa de
+schema/dados sintéticos. Guarda de backups e recuperação remota seguem pendentes.
+
 - imagem Docker reproduzível e sem segredos;
 - migrations aplicadas por etapa controlada;
 - backup e restauração testados;

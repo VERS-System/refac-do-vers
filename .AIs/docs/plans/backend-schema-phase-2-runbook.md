@@ -80,6 +80,9 @@ snapshot prévio, portanto esse procedimento vale para mudanças futuras.
 
 ## Referências
 
+- [Ensaio F09 de deploy, backup e restauração locais](backend-phase-9-backup-rehearsal.md):
+  executado em PostgreSQL descartável; não autoriza operação remota.
+
 - [Dicionário de dados](backend-schema-phase-2-data-dictionary.md)
 - [Plano executável da Fase 02](backend-schema-phase-2-execution-roadmap.md)
 - [Ensaio local do lote 10](backend-schema-phase-2-lot10-local-migration.md)

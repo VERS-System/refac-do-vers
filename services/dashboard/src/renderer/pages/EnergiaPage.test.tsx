@@ -59,11 +59,14 @@ describe('EnergiaPage — Semana (referência)', () => {
     const potencia = await regiaoCom('Potência média em movimento', '186');
     expect(within(potencia).getByText('Pico 412 mW · qui 17:42')).toBeInTheDocument();
 
-    const bateria = await regiaoCom('Energia entregue à bateria', '1,47');
-    expect(within(bateria).getByText('76,7% do recuperado')).toBeInTheDocument();
+    const bateria = await regiaoCom('Energia para a bateria', '76,7');
+    expect(within(bateria).getByText('%')).toBeInTheDocument();
+    expect(within(bateria).getByText('do recuperado · 1,47 Wh')).toBeInTheDocument();
 
-    const celular = await regiaoCom('Carga entregue ao celular', '1,03');
-    expect(within(celular).getByText('≈ 7% de uma recarga')).toBeInTheDocument();
+    const celular = await regiaoCom('Energia para o celular', '53,5');
+    expect(within(celular).getByText('%')).toBeInTheDocument();
+    expect(within(celular).getByText('do recuperado · 1,03 Wh')).toBeInTheDocument();
+    expect(within(celular).queryByText(/recarga/)).not.toBeInTheDocument();
   });
 
   /** Barras por dia com média, total e método de integração. */
@@ -85,7 +88,10 @@ describe('EnergiaPage — Semana (referência)', () => {
     expect(within(grafico).getByText('Entregue à bateria (mWh)')).toBeInTheDocument();
   });
 
-  /** Perdas de cada estágio e a eficiência ponta a ponta. */
+  /**
+   * Perdas de cada estágio e a eficiência ponta a ponta. O ponto 1 (gerado)
+   * fica em energia; os pontos 2 a 4 dizem quanto do recuperado chegou até eles.
+   */
   it('mostra as perdas na conversão', async () => {
     renderizar('semana');
 
@@ -95,11 +101,12 @@ describe('EnergiaPage — Semana (referência)', () => {
     expect(linhas[0]).toHaveTextContent('Ponto 1 · Nó piezoelétrico');
     expect(linhas[0]).toHaveTextContent('1,92 Wh');
     expect(linhas[1]).toHaveTextContent('−12,9%');
-    expect(linhas[1]).toHaveTextContent('1,67 Wh');
+    expect(linhas[1]).toHaveTextContent('87,1%');
     expect(linhas[2]).toHaveTextContent('−12,0%');
-    expect(linhas[2]).toHaveTextContent('1,47 Wh');
+    expect(linhas[2]).toHaveTextContent('76,7%');
     expect(linhas[3]).toHaveTextContent('−30,2%');
-    expect(linhas[3]).toHaveTextContent('1,03 Wh');
+    expect(linhas[3]).toHaveTextContent('53,5%');
+    for (const linha of linhas.slice(1)) expect(linha).not.toHaveTextContent('Wh');
     expect(perdas).toHaveTextContent('Eficiência ponta a ponta53,5%');
   });
 
@@ -234,11 +241,11 @@ describe('EnergiaPage — outros períodos', () => {
     await regiaoCom('Energia recuperada hoje', '292');
     const potencia = await regiaoCom('Potência média em movimento', '195');
     expect(within(potencia).getByText('Pico 386 mW · hoje 17:42')).toBeInTheDocument();
-    const bateria = await regiaoCom('Energia entregue à bateria', '224');
-    expect(within(bateria).getByText('mWh')).toBeInTheDocument();
-    expect(within(bateria).getByText('76,7% do recuperado')).toBeInTheDocument();
-    const celular = await regiaoCom('Carga entregue ao celular', '156');
-    expect(within(celular).getByText('≈ 1% de uma recarga')).toBeInTheDocument();
+    const bateria = await regiaoCom('Energia para a bateria', '76,7');
+    expect(within(bateria).getByText('do recuperado · 224 mWh')).toBeInTheDocument();
+    const celular = await regiaoCom('Energia para o celular', '53,5');
+    expect(within(celular).getByText('do recuperado · 156 mWh')).toBeInTheDocument();
+    expect(within(celular).queryByText(/recarga/)).not.toBeInTheDocument();
 
     expect(
       await screen.findByRole('region', { name: 'Energia recuperada x consumo' }),
@@ -267,11 +274,11 @@ describe('EnergiaPage — outros períodos', () => {
 
     await screen.findByRole('region', { name: 'Energia recuperada na última hora' });
     const bateria = await regiaoCom(
-      'Energia entregue à bateria',
+      'Energia para a bateria',
       'Sem detalhe por ponto na última hora.',
     );
     expect(within(bateria).queryByText('Wh')).not.toBeInTheDocument();
-    await regiaoCom('Carga entregue ao celular', 'Sem detalhe por ponto na última hora.');
+    await regiaoCom('Energia para o celular', 'Sem detalhe por ponto na última hora.');
     await regiaoCom('Perdas na conversão', 'Sem detalhe por ponto na última hora.');
 
     const grafico = await screen.findByRole('region', { name: 'Energia recuperada x consumo' });

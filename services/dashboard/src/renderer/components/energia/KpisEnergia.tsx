@@ -1,6 +1,6 @@
 /**
  * KPIs da tela Energia além da energia recuperada: potência média em
- * movimento, energia entregue à bateria e carga entregue ao celular.
+ * movimento e quanto do recuperado foi para a bateria e para o celular (%).
  *
  * Todos seguem o período da barra superior (decisão de 14/10/2026). Na Hora
  * só existe a curva do nó piezoelétrico (P1), então os KPIs que dependem dos
@@ -12,7 +12,6 @@ import type { ReactNode } from 'react';
 import { valorContado } from '@/components/ui/KpiCard';
 import { KpiConsulta, type ConteudoKpi } from '@/components/ui/KpiConsulta';
 import { eficiencia } from '@/data/calculos';
-import { CAPACIDADE_CELULAR_MWH } from '@/data/referencias';
 import type { PicoPotencia, ResumoEnergia } from '@/data/tipos';
 import { useResumoEnergia } from '@/hooks/useDados';
 import {
@@ -89,53 +88,57 @@ export function CardPotenciaMedia() {
   );
 }
 
-/** Energia que chegou à bateria (P3) e a fração do recuperado que ela representa. */
+/**
+ * Conteúdo dos KPIs por dispositivo: quanto da energia recuperada (P1)
+ * chegou ao ponto, em porcentagem, como número principal. O mWh fica no
+ * rodapé, como detalhe para quem precisa da medida física. Decisão de
+ * 19/10/2026: o usuário final entende melhor o "para onde foi" em %, e a
+ * comparação com uma recarga de celular fazia o sistema parecer inútil.
+ */
+export function fracaoDoRecuperado(energiaMwh: number, recuperadaMwh: number): ConteudoKpi {
+  return {
+    ...valorContado(eficiencia(energiaMwh, recuperadaMwh), (n) => formatarPercentual(n).valor),
+    unit: '%',
+    children: (
+      <Rodape destaque>{`do recuperado · ${formatarMedida(formatarEnergia(energiaMwh))}`}</Rodape>
+    ),
+  };
+}
+
+/** Quanto da energia recuperada chegou à bateria (P3 ÷ P1). */
 export function CardEntregueBateria() {
   const resumo = useResumoEnergia();
   return (
     <KpiConsulta
-      label="Energia entregue à bateria"
+      label="Energia para a bateria"
       consulta={resumo}
-      nome="a energia entregue à bateria"
+      nome="a energia para a bateria"
       badge={<Icone icone={BatteryCharging} />}
     >
-      {(dados) => {
-        if (!dados.porPonto)
-          return { children: <p className="text-[13px] text-fg-muted">{SEM_DETALHE_POR_PONTO}</p> };
-        const fracao = eficiencia(dados.porPonto.p3, dados.porPonto.p1);
-        return {
-          ...energiaDoKpi(dados.porPonto.p3),
-          children: (
-            <Rodape destaque>{`${formatarPercentual(fracao).valor}% do recuperado`}</Rodape>
-          ),
-        };
-      }}
+      {(dados) =>
+        dados.porPonto
+          ? fracaoDoRecuperado(dados.porPonto.p3, dados.porPonto.p1)
+          : { children: <p className="text-[13px] text-fg-muted">{SEM_DETALHE_POR_PONTO}</p> }
+      }
     </KpiConsulta>
   );
 }
 
-/**
- * Energia entregue ao celular (P4), comparada a uma recarga completa de um
- * celular de referência (15,4 Wh), em porcentagem inteira aproximada.
- */
+/** Quanto da energia recuperada chegou ao celular (P4 ÷ P1). */
 export function CardEntregueCelular() {
   const resumo = useResumoEnergia();
   return (
     <KpiConsulta
-      label="Carga entregue ao celular"
+      label="Energia para o celular"
       consulta={resumo}
-      nome="a carga entregue ao celular"
+      nome="a energia para o celular"
       badge={<Icone icone={Smartphone} />}
     >
-      {(dados) => {
-        if (!dados.porPonto)
-          return { children: <p className="text-[13px] text-fg-muted">{SEM_DETALHE_POR_PONTO}</p> };
-        const recarga = (dados.porPonto.p4 / CAPACIDADE_CELULAR_MWH) * 100;
-        return {
-          ...energiaDoKpi(dados.porPonto.p4),
-          children: <Rodape>{`≈ ${formatarPercentual(recarga, 0).valor}% de uma recarga`}</Rodape>,
-        };
-      }}
+      {(dados) =>
+        dados.porPonto
+          ? fracaoDoRecuperado(dados.porPonto.p4, dados.porPonto.p1)
+          : { children: <p className="text-[13px] text-fg-muted">{SEM_DETALHE_POR_PONTO}</p> }
+      }
     </KpiConsulta>
   );
 }

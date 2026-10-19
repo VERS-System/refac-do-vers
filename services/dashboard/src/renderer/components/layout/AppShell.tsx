@@ -79,7 +79,8 @@ export function AppShell() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-canvas">
+    // h-dvh: no celular, 100vh conta a barra de endereço escondida e cortava o fim da tela.
+    <div className="flex h-dvh overflow-hidden bg-canvas">
       <a
         href="#conteudo"
         onClick={pularParaConteudo}

@@ -24,6 +24,19 @@ describe('App', () => {
     window.location.hash = '';
   });
 
+  /**
+   * No navegador do celular, `100vh` conta a barra de endereço escondida: com
+   * ela à mostra, o fim da tela ficava atrás dela e a página ganhava rolagem.
+   * O shell usa a altura visível de verdade (`100dvh`).
+   */
+  it('ocupa a altura visível da janela, também no celular', () => {
+    abrirEm('/visao-geral');
+
+    const shell = document.getElementById('conteudo')?.parentElement;
+    expect(shell).toHaveClass('h-dvh');
+    expect(shell).not.toHaveClass('h-screen');
+  });
+
   /** Ao abrir sem rota, o app deve redirecionar para a Visão geral. */
   it('abre na tela Visão geral', () => {
     render(<App />);

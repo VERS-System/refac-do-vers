@@ -6,7 +6,6 @@
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
-    "dev:web": "vite --config vite.web.config.ts",
     "build": "tsc --noEmit && electron-vite build",
     "build:electron": "npm run build && electron-builder",
     "preview": "electron-vite preview",

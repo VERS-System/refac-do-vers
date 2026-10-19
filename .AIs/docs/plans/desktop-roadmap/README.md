@@ -2,6 +2,11 @@
 
 # Roadmap de telas do dashboard web VERS
 
+> **Histórico substituído:** desde a decisão de 16/10/2026 o dashboard é um
+> aplicativo Electron. Usar o [roadmap desktop vigente](../desktop-frontend-roadmap.md)
+> e o [guia de execução Electron](../dashboard-electron-execucao-19-10-2026.md).
+> As instruções web abaixo ficam preservadas como histórico.
+
 Este diretório organiza a interface React/Vite/Tailwind servida no navegador. Cada
 task representa uma tela ou fluxo visual. Regras de negócio, segurança,
 autorização, persistência, MQTT e cálculos permanecem no backend.

@@ -2,6 +2,10 @@
 
 # Arquitetura do sistema
 
+> **Dashboard em 19/10/2026:** aplicativo Electron executado no host, com
+> React/Vite/Tailwind no renderer. Não integra o Docker Compose. Decisão e
+> comandos em [execução Electron](plans/dashboard-electron-execucao-19-10-2026.md).
+
 > **Estado em 13/08/2026:** a implementação digital usa um monorepo com NestJS,
 > Prisma/PostgreSQL (Neon), React/Vite/Tailwind, React Native e FastAPI. MQTT e
 > WebSocket possuem scaffolds dentro do backend, mas sua integração funcional

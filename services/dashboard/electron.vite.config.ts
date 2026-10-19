@@ -54,6 +54,9 @@ export default defineConfig({
     plugins: [react(), tailwindcss(), politicaDeConteudo()],
     // O cliente HTTP usa a URL relativa /api/v1; em desenvolvimento ela vai para a API local.
     server: {
+      host: 'localhost',
+      port: 5174,
+      strictPort: true,
       proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } },
     },
     build: {

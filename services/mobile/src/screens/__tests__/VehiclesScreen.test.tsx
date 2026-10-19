@@ -400,3 +400,61 @@ describe('VehiclesScreen acessibilidade (10g)', () => {
     ).toEqual(expect.objectContaining({ selected: true }));
   });
 });
+
+describe('VehiclesScreen indisponibilidade (13a)', () => {
+  const ITEM = { id: 'v1', isPrimary: true, licensePlate: 'ABC1D23', model: 'Modelo X' };
+
+  /** Exibe aviso neutro no lugar da lista quando indisponível. */
+  it('exibe aviso neutro quando indisponível', () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <VehiclesScreen items={[ITEM]} status="unavailable" />,
+    );
+
+    expect(getByTestId('vehicles-unavailable')).toBeTruthy();
+    expect(getByText('Veículos indisponíveis no momento.')).toBeTruthy();
+    expect(queryByTestId('vehicles-list')).toBeNull();
+  });
+
+  /** Exibe o aviso mesmo sem itens, sem o vazio. */
+  it('exibe o aviso sem itens', () => {
+    const { getByTestId, queryByTestId } = render(
+      <VehiclesScreen items={[]} status="unavailable" />,
+    );
+
+    expect(getByTestId('vehicles-unavailable')).toBeTruthy();
+    expect(queryByTestId('vehicles-empty')).toBeNull();
+  });
+});
+
+describe('VehiclesScreen sessão expirada (13b)', () => {
+  const ITEM = { id: 'v1', isPrimary: true, licensePlate: 'ABC1D23', model: 'Modelo X' };
+
+  /** Exibe expirada com volta ao login, sem conteúdo. */
+  it('exibe expirada com volta ao login', () => {
+    const onOpenLogin = jest.fn();
+    const { getByRole, getByTestId, getByText, queryByTestId } = render(
+      <VehiclesScreen items={[ITEM]} onOpenLogin={onOpenLogin} status="sessionExpired" />,
+    );
+
+    expect(getByTestId('vehicles-session-expired')).toBeTruthy();
+    expect(getByText('Sessão expirada. Entre novamente para continuar.')).toBeTruthy();
+    expect(queryByTestId('vehicles-list')).toBeNull();
+
+    fireEvent.press(getByRole('button', { name: 'Ir para o Login' }));
+
+    expect(onOpenLogin).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('VehiclesScreen alvos de toque (13f)', () => {
+  /** Garante alvo de toque nas linhas. */
+  it('garante alvo de toque nas linhas', () => {
+    const { getByLabelText } = render(
+      <VehiclesScreen
+        items={[{ id: 'v1', isPrimary: false, licensePlate: 'ABC1D23', model: 'Modelo X' }]}
+      />,
+    );
+
+    expect(getByLabelText('ABC1D23 Modelo X').props.hitSlop).toBeTruthy();
+  });
+});

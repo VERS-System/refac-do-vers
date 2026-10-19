@@ -194,3 +194,16 @@ describe('BatteryScreen', () => {
     expect(getByText('cobertura 5 de 6 horas')).toBeTruthy();
   });
 });
+
+describe('BatteryScreen selo de amostra (13c)', () => {
+  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
+  it('exibe selo de amostra e omite com dados reais', () => {
+    const { getByTestId, queryByTestId, rerender } = render(<BatteryScreen />);
+
+    expect(getByTestId('battery-sample-seal')).toBeTruthy();
+
+    rerender(<BatteryScreen isSampleData={false} />);
+
+    expect(queryByTestId('battery-sample-seal')).toBeNull();
+  });
+});

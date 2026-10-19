@@ -14,6 +14,10 @@ import { Dimensions, ScrollView } from 'react-native';
 import { HomeScreen } from '../HomeScreen';
 import { LoginScreen } from '../LoginScreen';
 import { SplashScreen } from '../SplashScreen';
+import { SupportScreen } from '../SupportScreen';
+import { TestsScreen } from '../TestsScreen';
+import { VehiclesScreen } from '../VehiclesScreen';
+import { ViberScreen } from '../ViberScreen';
 
 const NARROW = { fontScale: 3, height: 568, scale: 2, width: 320 };
 
@@ -57,5 +61,41 @@ describe('responsividade (Task 00 - Item 6b)', () => {
     const flat = Array.isArray(style) ? Object.assign({}, ...style) : style;
 
     expect(flat.width).toBeCloseTo(Math.min(140, 320 * 0.36), 5);
+  });
+
+  /** O Viber mantém a conversa e o composer em tela estreita. */
+  it('exibe o Viber em 320px com rolagem ativa', () => {
+    mockNarrowScreen();
+    const { getByTestId, UNSAFE_getByType } = render(<ViberScreen />);
+
+    expect(getByTestId('viber-screen')).toBeTruthy();
+    expect(UNSAFE_getByType(ScrollView).props.scrollEnabled).toBe(true);
+  });
+
+  /** Os Veículos mantêm lista e ações em tela estreita. */
+  it('exibe os Veículos em 320px com rolagem ativa', () => {
+    mockNarrowScreen();
+    const { getByTestId, UNSAFE_getByType } = render(<VehiclesScreen />);
+
+    expect(getByTestId('vehicles-screen')).toBeTruthy();
+    expect(UNSAFE_getByType(ScrollView).props.scrollEnabled).toBe(true);
+  });
+
+  /** Os Testes mantêm filtros e lista em tela estreita. */
+  it('exibe os Testes em 320px com rolagem ativa', () => {
+    mockNarrowScreen();
+    const { getByTestId, UNSAFE_getByType } = render(<TestsScreen />);
+
+    expect(getByTestId('tests-screen')).toBeTruthy();
+    expect(UNSAFE_getByType(ScrollView).props.scrollEnabled).toBe(true);
+  });
+
+  /** O Suporte mantém o conteúdo em tela estreita. */
+  it('exibe o Suporte em 320px com rolagem ativa', () => {
+    mockNarrowScreen();
+    const { getByTestId, UNSAFE_getByType } = render(<SupportScreen />);
+
+    expect(getByTestId('support-screen')).toBeTruthy();
+    expect(UNSAFE_getByType(ScrollView).props.scrollEnabled).toBe(true);
   });
 });

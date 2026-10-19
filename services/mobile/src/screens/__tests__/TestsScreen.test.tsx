@@ -336,3 +336,36 @@ describe('TestsScreen acessibilidade (08g)', () => {
     ).toEqual(expect.objectContaining({ selected: false }));
   });
 });
+
+describe('TestsScreen selo de amostra (13c)', () => {
+  /** Exibe o selo enquanto houver fixtures e omite com dados reais. */
+  it('exibe selo de amostra e omite com dados reais', () => {
+    const { getByTestId, queryByTestId, rerender } = render(<TestsScreen />);
+
+    expect(getByTestId('tests-sample-seal')).toBeTruthy();
+
+    rerender(<TestsScreen isSampleData={false} />);
+
+    expect(queryByTestId('tests-sample-seal')).toBeNull();
+  });
+});
+
+describe('TestsScreen alvos de toque (13f)', () => {
+  /** Garante alvo de toque nas linhas. */
+  it('garante alvo de toque nas linhas', () => {
+    const { getByLabelText } = render(
+      <TestsScreen
+        items={[
+          {
+            id: 't1',
+            name: 'Asfalto seco',
+            periodLabel: '14/03/2026 12:00 UTC',
+            status: 'COMPLETED',
+          },
+        ]}
+      />,
+    );
+
+    expect(getByLabelText('Asfalto seco').props.hitSlop).toBeTruthy();
+  });
+});

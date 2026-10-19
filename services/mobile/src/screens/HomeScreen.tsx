@@ -176,6 +176,7 @@ export function HomeScreen({
         <Pressable
           accessibilityLabel="Conversar com o Viber"
           accessibilityRole="button"
+          hitSlop={8}
           onPress={onOpenViber}
           style={styles.viberLink}
         >
@@ -219,6 +220,7 @@ export function HomeScreen({
         <Pressable
           accessibilityLabel="Abrir sistema VERS"
           accessibilityRole="button"
+          hitSlop={8}
           onPress={onOpenVersSystem}
           style={styles.donutSection}
         >

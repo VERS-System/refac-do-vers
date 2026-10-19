@@ -1,0 +1,236 @@
+<!DOCTYPE html><html class="dark" lang="pt-BR" style=""><head></head><body class="bg-surface text-on-surface antialiased select-none min-h-screen"><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>VERS · Visão geral</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Fonts: Zen Dots, Geist (Inter/Sans-serif fallback), Geist Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&amp;family=Geist:wght@300;400;500;600;700&amp;family=Zen+Dots&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container-low": "#1b1c1b",
+            "inverse-on-surface": "#30302f",
+            "surface-dim": "#131313",
+            "inverse-primary": "#6b5f00",
+            "secondary": "#a7cce2",
+            "on-secondary-fixed": "#001e2c",
+            "on-error-container": "#ffdad6",
+            "surface": "#131313",
+            "on-error": "#690005",
+            "on-secondary-container": "#96bad0",
+            "primary-fixed": "#f6e47e",
+            "secondary-container": "#264b5e",
+            "outline-variant": "#4a4738",
+            "on-secondary": "#0b3446",
+            "on-background": "#e5e2e0",
+            "surface-container-high": "#2a2a29",
+            "primary": "#f2e07b",
+            "surface-variant": "#353534",
+            "secondary-fixed": "#c3e8ff",
+            "primary-fixed-dim": "#d9c765",
+            "on-tertiary-fixed-variant": "#00531c",
+            "surface-container-highest": "#353534",
+            "on-primary-fixed-variant": "#514700",
+            "primary-container": "#d5c462",
+            "on-secondary-fixed-variant": "#264b5e",
+            "on-surface-variant": "#cdc6b2",
+            "background": "#131313",
+            "error-container": "#93000a",
+            "error": "#ffb4ab",
+            "tertiary-container": "#8ad48d",
+            "surface-bright": "#393938",
+            "surface-container-lowest": "#0e0e0d",
+            "on-surface": "#e5e2e0",
+            "on-primary": "#383100",
+            "tertiary": "#a5f1a7",
+            "on-primary-container": "#5b5000",
+            "surface-container": "#20201f",
+            "on-tertiary-fixed": "#002107",
+            "tertiary-fixed": "#a9f4ab",
+            "on-tertiary": "#003911",
+            "secondary-fixed-dim": "#a7cce2",
+            "outline": "#96917e",
+            "on-primary-fixed": "#201c00",
+            "surface-tint": "#d9c765",
+            "tertiary-fixed-dim": "#8ed891",
+            "inverse-surface": "#e5e2e0",
+            "on-tertiary-container": "#115d24"
+          },
+          fontFamily: {
+            headline: ["Geist", "sans-serif"],
+            display: ["Zen Dots", "sans-serif"],
+            body: ["Geist", "sans-serif"],
+            mono: ["Geist Mono", "monospace"],
+            label: ["Geist", "sans-serif"]
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px"
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #131313;
+      color: #e5e2e0;
+      font-family: 'Geist', sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .font-zendots {
+      font-family: 'Zen Dots', cursive, sans-serif;
+    }
+    .font-mono-numbers {
+      font-family: 'Geist Mono', monospace;
+      font-feature-settings: "tnum" 1;
+    }
+  </style>
+<meta content="web_dashboard" name="shell-type">
+
+<div class="flex h-screen w-full overflow-hidden bg-surface">
+<!-- ASIDE: Left SideNavBar from Shared Components JSON -->
+<aside class="fixed top-0 left-0 h-screen w-64 border-r border-outline-variant dark:border-outline-variant bg-surface-container-low dark:bg-surface-container-low z-30 flex flex-col justify-between p-4">
+<!-- Top Brand Lockup -->
+<div class="flex flex-col gap-6">
+<div class="px-2 pt-1" style="display: flex; align-items: center; gap: 10px;"><svg height="28" style="flex-shrink: 0;" viewBox="0 0 140 93" width="42" xmlns="http://www.w3.org/2000/svg"><polygon fill="#D9D9D9" points="41.9,0.1 65.6,0.6 43.6,47.9 12.1,92.9 0.1,92.9"></polygon><polygon fill="#D9D9D9" points="115.9,0.1 139.9,0.6 117.6,47.9 86.1,92.9 74.1,92.9"></polygon><polygon fill="#D5C462" points="79.9,0.1 103.6,0.6 81.6,47.9 50.1,92.9 38.1,92.9"></polygon></svg><span style="font-family: 'Zen Dots', sans-serif; font-size: 22px; color: #D9D9D9; letter-spacing: 1px; line-height: 1;" class="">VERS</span><span style="font-size: 11px; color: #737373; margin-left: 2px;" class="">v0.4</span></div>
+<!-- Navigation Tabs: Visão geral is ACTIVE -->
+<nav class="flex flex-col gap-1.5 font-body text-sm font-medium tracking-normal">
+<!-- 1. Visão geral [ACTIVE] -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#"><span class="material-symbols-outlined text-[19px]" data-icon="dashboard">dashboard</span><span class="">Visão geral</span></a>
+<!-- 2. Telemetria -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined text-[19px]" data-icon="monitoring">monitoring</span>
+<span class="">Telemetria</span>
+</a>
+<!-- 3. Energia -->
+<a class="font-semibold px-3 py-2.5 flex items-center gap-3" href="#" style="background-color: rgb(46, 42, 22); border: 1px solid rgb(117, 105, 44); border-radius: 10px; color: rgb(213, 196, 98);"><span class="material-symbols-outlined text-[19px]" data-icon="bolt" style="color: #D5C462;">bolt</span><span style="color: #D5C462;" class="">Energia</span></a>
+<!-- 4. Testes -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined text-[19px]" data-icon="science">science</span>
+<span class="">Testes</span>
+</a>
+<!-- 5. Veículo e instalação -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined text-[19px]" data-icon="directions_car">directions_car</span>
+<span class="">Veículo e instalação</span>
+</a>
+<!-- 6. Viber IA -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#"><svg height="20" style="flex-shrink:0;" viewBox="0 0 108 84" width="26" xmlns="http://www.w3.org/2000/svg"><polygon fill="#D5C462" points="0.1,0.1 15.9,0.1 39.1,67.4 33.4,82.9 29.1,82.9 28.4,82.1"></polygon><polygon fill="#D5C462" points="64.4,1.4 80.1,1.4 79.9,3.6 63.9,46.6 44.6,81.9 42.9,83.9 36.4,83.9 36.1,81.6"></polygon><polygon fill="#D5C462" points="92.4,1.4 107.9,1.6 101.6,19.1 86.1,18.9 91.1,2.4"></polygon><polygon fill="#D5C462" points="83.6,25.4 99.1,25.9 93.9,42.1 71.1,83.9 63.1,83.9"></polygon></svg><span class="">Viber IA</span></a>
+<!-- 7. Configurações -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined text-[19px]" data-icon="settings">settings</span>
+<span class="">Configurações</span>
+</a>
+</nav>
+</div>
+<!-- Bottom Hardware Status & User Cluster -->
+<div class="flex flex-col gap-3">
+<!-- Device telemetry card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-3 flex flex-col gap-2"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary-container opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span></span><span class="font-mono-numbers text-xs font-semibold text-on-surface">ESP32 · VERS-01</span></div><span class="text-[10px] font-medium uppercase tracking-wider text-tertiary bg-on-tertiary-fixed-variant/40 px-1.5 py-0.5 rounded">Online</span></div><div class="flex items-center justify-between text-[11px] text-outline font-mono-numbers"><span class="">Firmware 0.4.2 · visto há 3 s</span><span class="text-[10px] px-1 py-0.2 rounded bg-surface-container-high text-primary font-semibold">MQTT</span></div></div>
+<!-- User profile row -->
+<div class="flex items-center justify-between pt-2 border-t border-outline-variant/60 px-1">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary font-mono-numbers font-semibold text-xs border border-outline-variant">
+              AS
+            </div>
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-on-surface">Ana Silva</span>
+<span class="text-[10px] text-outline">Administradora</span>
+</div>
+</div>
+<button class="text-outline hover:text-on-surface transition-colors p-1 rounded hover:bg-surface-container" title="Encerrar Sessão">
+<span class="material-symbols-outlined text-[18px]" data-icon="logout">logout</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- MAIN WRAPPER (Top bar + Dashboard Content) -->
+<div class="flex-1 flex flex-col ml-64 overflow-hidden h-screen bg-surface"><header class="flex justify-between items-center h-14 px-8 sticky top-0 z-20 bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline-variant"><div class="flex items-baseline gap-3"><h1 class="font-headline text-lg font-semibold text-on-surface dark:text-on-surface tracking-tight">Energia</h1><span class="text-xs font-mono-numbers text-outline">Honda Civic 2026 · ABC1D23</span></div><div class="flex items-center gap-4"><div class="bg-surface-container-lowest border border-outline-variant p-1 rounded-full flex items-center gap-1"><button class="text-on-surface-variant hover:text-on-surface px-3 py-1 text-xs rounded-full transition-colors">Hora</button><button class="text-on-surface-variant hover:text-on-surface px-3 py-1 text-xs rounded-full transition-colors">Dia</button><button class="bg-primary-container text-on-primary font-semibold rounded-full px-3 py-1 text-xs transition-colors">Semana</button><button class="text-on-surface-variant hover:text-on-surface px-3 py-1 text-xs rounded-full transition-colors">Mês</button></div><div class="bg-surface-container-high border border-outline-variant text-on-surface-variant text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-outline"></span><span class="">Dados de exemplo</span></div><div class="flex items-center gap-1.5"><button class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors" title="Buscar registros"><span class="material-symbols-outlined text-[18px]" data-icon="search">search</span></button><button class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors relative" title="Notificações"><span class="material-symbols-outlined text-[18px]" data-icon="notifications">notifications</span><span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary"></span></button></div></div></header><main class="px-8 py-4 flex flex-col gap-4 max-w-[1400px] w-full"><div class="flex flex-col w-full gap-5 pb-8">
+<!-- ROW 1: 4 KPI CARDS -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+<!-- Card 1 -->
+<div class="bg-surface-container rounded-[20px] p-5 flex flex-col justify-between shadow-sm hover:bg-surface-container-high transition-colors"><div class="flex items-center justify-between text-on-surface-variant"><span class="text-[11px] font-mono uppercase tracking-wider">Energia recuperada na semana</span><span class="material-symbols-outlined text-[18px] text-primary" data-icon="bolt">bolt</span></div><div class="my-3 flex items-baseline gap-2"><span class="text-3xl font-semibold font-mono tracking-tight text-on-surface">1,92</span><span class="text-sm font-mono text-outline">Wh</span></div><div class="flex items-center justify-between pt-2"><div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container-low text-primary text-[11px] font-mono"><span class="">+8,4% vs semana anterior</span></div><svg class="w-14 h-4 text-primary" fill="none" viewBox="0 0 60 16"><polyline points="0,12 12,10 24,13 36,6 48,8 60,2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"></polyline></svg></div></div>
+<!-- Card 2 -->
+<div class="bg-surface-container rounded-[20px] p-5 flex flex-col justify-between shadow-sm hover:bg-surface-container-high transition-colors"><div class="flex items-center justify-between text-on-surface-variant"><span class="text-[11px] font-mono uppercase tracking-wider">Potência média em movimento</span><span class="material-symbols-outlined text-[18px] text-outline" data-icon="speed">speed</span></div><div class="my-3 flex items-baseline gap-2"><span class="text-3xl font-semibold font-mono tracking-tight text-on-surface">186</span><span class="text-sm font-mono text-outline">mW</span></div><div class="flex items-center gap-1.5 text-xs text-outline font-mono"><span class="w-1.5 h-1.5 rounded-full bg-outline"></span><span class="">Pico 412 mW · qui 17:42</span></div></div>
+<!-- Card 3 -->
+<div class="bg-surface-container rounded-[20px] p-5 flex flex-col justify-between shadow-sm hover:bg-surface-container-high transition-colors"><div class="flex items-center justify-between text-on-surface-variant"><span class="text-[11px] font-mono uppercase tracking-wider">Energia entregue à bateria</span><span class="material-symbols-outlined text-[18px] text-secondary" data-icon="battery_charging_full">battery_charging_full</span></div><div class="my-3 flex items-baseline gap-2"><span class="text-3xl font-semibold font-mono tracking-tight text-on-surface">1,47</span><span class="text-sm font-mono text-outline">Wh</span></div><div class="flex items-center gap-1.5 text-xs text-secondary font-mono"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span><span class="">76,7% do recuperado</span></div></div>
+<!-- Card 4 -->
+<div class="bg-surface-container rounded-[20px] p-5 flex flex-col justify-between shadow-sm hover:bg-surface-container-high transition-colors"><div class="flex items-center justify-between text-on-surface-variant"><span class="text-[11px] font-mono uppercase tracking-wider">Carga entregue ao celular</span><span class="material-symbols-outlined text-[18px] text-outline" data-icon="smartphone">smartphone</span></div><div class="my-3 flex items-baseline gap-2"><span class="text-3xl font-semibold font-mono tracking-tight text-on-surface">1,03</span><span class="text-sm font-mono text-outline">Wh</span></div><div class="flex items-center gap-1.5 text-xs text-outline font-mono"><span class="w-1.5 h-1.5 rounded-full bg-outline"></span><span class="">≈ 7% de uma recarga</span></div></div>
+</div>
+<!-- ROW 2: GROUPED BARS (8 COLS) + PIPELINE LOSSES (4 COLS) -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+<!-- Grouped Bar Chart -->
+<div class="xl:col-span-8 bg-surface-container rounded-[20px] p-6 flex flex-col justify-between shadow-sm"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6"><div><h2 class="text-base font-semibold text-on-surface tracking-tight">Energia recuperada por dia</h2><p class="text-xs text-outline font-mono mt-0.5">Semana de 28/09 a 04/10 · 10,3 h em movimento</p></div><div class="flex items-center gap-4 text-xs font-mono"><div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-primary"></span><span class="text-on-surface-variant">Recuperada (mWh)</span></div><div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-secondary"></span><span class="text-on-surface-variant">Entregue à bateria (mWh)</span></div></div></div><div class="w-full h-64 relative"><svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 680 200"><line stroke="#2A2A29" stroke-width="1" x1="50" x2="680" y1="20" y2="20"></line><line stroke="#2A2A29" stroke-width="1" x1="50" x2="680" y1="61" y2="61"></line><line stroke="#2A2A29" stroke-width="1" x1="50" x2="680" y1="102" y2="102"></line><line stroke="#2A2A29" stroke-width="1" x1="50" x2="680" y1="143" y2="143"></line><line stroke="#353534" stroke-width="1" x1="50" x2="680" y1="185" y2="185"></line><text fill="#96917E" font-family="Geist Mono" font-size="10" text-anchor="end" x="42" y="24">400</text><text fill="#96917E" font-family="Geist Mono" font-size="10" text-anchor="end" x="42" y="65">300</text><text fill="#96917E" font-family="Geist Mono" font-size="10" text-anchor="end" x="42" y="106">200</text><text fill="#96917E" font-family="Geist Mono" font-size="10" text-anchor="end" x="42" y="147">100</text><text fill="#96917E" font-family="Geist Mono" font-size="10" text-anchor="end" x="42" y="188">0</text><line opacity="0.65" stroke="#D5C462" stroke-dasharray="3 3" stroke-width="1.2" x1="50" x2="680" y1="72" y2="72"></line><text fill="#D5C462" font-family="Geist Mono" font-size="9" text-anchor="end" x="675" y="67">Média 274 mWh</text><g><text fill="#E5E2E0" font-family="Geist Mono" font-size="9" text-anchor="middle" x="92" y="73">258</text><rect fill="#D5C462" height="106" rx="3" width="18" x="83" y="79"></rect><text fill="#A7CCE2" font-family="Geist Mono" font-size="9" text-anchor="middle" x="114" y="98">198</text><rect fill="#8FB3C9" height="82" rx="3" width="18" x="105" y="103"></rect><text fill="#CDC6B2" font-family="Geist" font-size="10" text-anchor="middle" x="103" y="198">Seg</text></g><g><text fill="#E5E2E0" font-family="Geist Mono" font-size="9" text-anchor="middle" x="182" y="106">178</text><rect fill="#D5C462" height="73" rx="3" width="18" x="173" y="112"></rect><text fill="#A7CCE2" font-family="Geist Mono" font-size="9" text-anchor="middle" x="204" y="123">136</text><rect fill="#8FB3C9" height="56" rx="3" width="18" x="195" y="129"></rect><text fill="#CDC6B2" font-family="Geist" font-size="10" text-anchor="middle" x="193" y="198">Ter</text></g><g><text fill="#E5E2E0" font-family="Geist Mono" font-size="9" text-anchor="middle" x="272" y="53">306</text><rect fill="#D5C462" height="126" rx="3" width="18" x="263" y="59"></rect><text fill="#A7CCE2" font-family="Geist Mono" font-size="9" text-anchor="middle" x="294" y="82">236</text><rect fill="#8FB3C9" height="97" rx="3" width="18" x="285" y="88"></rect><text fill="#CDC6B2" font-family="Geist" font-size="10" text-anchor="middle" x="283" y="198">Qua</text></g><g><text fill="#E5E2E0" font-family="Geist Mono" font-size="9" text-anchor="middle" x="362" y="19">390</text><rect fill="#D5C462" height="161" rx="3" width="18" x="353" y="24"></rect><text fill="#A7CCE2" font-family="Geist Mono" font-size="9" text-anchor="middle" x="384" y="55">301</text><rect fill="#8FB3C9" height="124" rx="3" width="18" x="375" y="61"></rect><text fill="#CDC6B2" font-family="Geist" font-size="10" text-anchor="middle" x="373" y="198">Qui</text></g><g><text fill="#E5E2E0" font-family="Geist Mono" font-size="9" text-anchor="middle" x="452" y="69">267</text><rect fill="#D5C462" height="110" rx="3" width="18" x="443" y="75"></rect><text fill="#A7CCE2" font-family="Geist Mono" font-size="9" text-anchor="middle" x="474" y="95">204</text><rect fill="#8FB3C9" height="84" rx="3" width="18" x="465" y="101"></rect><text fill="#CDC6B2" font-family="Geist" font-size="10" text-anchor="middle" x="463" y="198">Sex</text></g><g><text fill="#E5E2E0" font-family="Geist Mono" font-size="9" text-anchor="middle" x="542" y="34">353</text><rect fill="#D5C462" height="146" rx="3" width="18" x="533" y="39"></rect><text fill="#A7CCE2" font-family="Geist Mono" font-size="9" text-anchor="middle" x="574" y="68">270</text><rect fill="#8FB3C9" height="111" rx="3" width="18" x="565" y="74"></rect><text fill="#CDC6B2" font-family="Geist" font-size="10" text-anchor="middle" x="553" y="198">Sáb</text></g><g><text fill="#E5E2E0" font-family="Geist Mono" font-size="9" text-anchor="middle" x="632" y="110">168</text><rect fill="#D5C462" height="69" rx="3" width="18" x="623" y="116"></rect><text fill="#A7CCE2" font-family="Geist Mono" font-size="9" text-anchor="middle" x="654" y="127">127</text><rect fill="#8FB3C9" height="52" rx="3" width="18" x="645" y="133"></rect><text fill="#CDC6B2" font-family="Geist" font-size="10" text-anchor="middle" x="643" y="198">Dom</text></g></svg></div><div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-outline font-mono pt-4 mt-2"><span class="">Integração trapezoidal de P = V × I · amostragem 10 Hz</span><span class="text-on-surface font-semibold">Total: 1.920 mWh recuperados</span></div></div>
+<!-- Right Card: Perdas na Conversão -->
+<div class="xl:col-span-4 bg-surface-container rounded-[20px] p-6 flex flex-col justify-between shadow-sm"><div><div class="mb-5"><h2 class="text-base font-semibold text-on-surface tracking-tight">Perdas na conversão</h2><p class="text-xs text-outline font-mono mt-0.5">Rendimento através dos 4 nós do sistema</p></div><div class="flex flex-col gap-4"><div><div class="flex justify-between items-center text-xs mb-1.5 font-mono"><span class="text-on-surface font-medium">Ponto 1 · Nó piezoelétrico</span><span class="text-primary font-semibold">1,92 Wh</span></div><div class="h-2 w-full bg-surface-container-low rounded-full overflow-hidden"><div class="h-full bg-primary rounded-full" style="width: 100%;"></div></div></div><div><div class="flex justify-between items-center text-xs mb-1.5 font-mono"><div class="flex items-center gap-2"><span class="text-on-surface-variant">Ponto 2 · Saída LTC3588</span><span class="text-[10px] text-error bg-surface-container-low px-1.5 py-0.2 rounded">−12,9%</span></div><span class="text-on-surface font-medium">1,67 Wh</span></div><div class="h-2 w-full bg-surface-container-low rounded-full overflow-hidden"><div class="h-full bg-primary/75 rounded-full" style="width: 87%;"></div></div></div><div><div class="flex justify-between items-center text-xs mb-1.5 font-mono"><div class="flex items-center gap-2"><span class="text-on-surface-variant">Ponto 3 · Bateria TP4056</span><span class="text-[10px] text-error bg-surface-container-low px-1.5 py-0.2 rounded">−12,0%</span></div><span class="text-on-surface font-medium">1,47 Wh</span></div><div class="h-2 w-full bg-surface-container-low rounded-full overflow-hidden"><div class="h-full bg-secondary rounded-full" style="width: 77%;"></div></div></div><div><div class="flex justify-between items-center text-xs mb-1.5 font-mono"><div class="flex items-center gap-2"><span class="text-on-surface-variant">Ponto 4 · Celular</span><span class="text-[10px] text-error bg-surface-container-low px-1.5 py-0.2 rounded">−30,2%</span></div><span class="text-on-surface font-medium">1,03 Wh</span></div><div class="h-2 w-full bg-surface-container-low rounded-full overflow-hidden"><div class="h-full bg-outline rounded-full" style="width: 54%;"></div></div></div></div></div><div class="mt-6 p-3.5 rounded-xl bg-surface-container-low flex items-center justify-between"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-tertiary text-[18px]" data-icon="check_circle">check_circle</span><span class="text-xs font-medium text-on-surface">Eficiência ponta a ponta</span></div><span class="text-base font-semibold font-mono text-tertiary">53,5%</span></div></div>
+</div>
+<!-- ROW 3: BATTERY STATE (5) + SAVINGS ESTIMATE (3) + VIBRATION DISPERSION (4) -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-5">
+<!-- Left Card: Estado da bateria (5 cols) -->
+<div class="xl:col-span-5 bg-surface-container rounded-[20px] p-6 flex flex-col justify-between shadow-sm"><div><div class="flex items-center justify-between mb-4"><div><h2 class="text-base font-semibold text-on-surface tracking-tight">Estado da bateria</h2><p class="text-xs text-outline font-mono mt-0.5">Li-ion 3,7 V · 2200 mAh</p></div><span class="text-xs font-mono px-2 py-0.5 rounded-full" style="color: #D5C462; background-color: #2E2A16; border: 1px solid #75692C;">Carregando</span></div><div class="flex items-baseline gap-3 my-2"><span class="text-4xl font-semibold font-mono text-on-surface tracking-tight">68 %</span><span class="text-sm font-mono text-outline">3,92 V</span></div><div class="grid grid-cols-10 gap-1 my-3"><div class="h-2.5 rounded-sm bg-tertiary"></div><div class="h-2.5 rounded-sm bg-tertiary"></div><div class="h-2.5 rounded-sm bg-tertiary"></div><div class="h-2.5 rounded-sm bg-tertiary"></div><div class="h-2.5 rounded-sm bg-tertiary"></div><div class="h-2.5 rounded-sm bg-tertiary"></div><div class="h-2.5 rounded-sm bg-tertiary/70"></div><div class="h-2.5 rounded-sm bg-surface-container-high"></div><div class="h-2.5 rounded-sm bg-surface-container-high"></div><div class="h-2.5 rounded-sm bg-surface-container-high"></div></div><div class="w-full h-16 my-2"><svg class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 260 50"><defs><linearGradient id="socGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#8FB3C9" stop-opacity="0.25"></stop><stop offset="100%" stop-color="#8FB3C9" stop-opacity="0"></stop></linearGradient></defs><polygon fill="url(#socGrad)" points="0,30 40,28 80,32 120,27 160,29 200,26 230,28 260,27 260,50 0,50"></polygon><polyline fill="none" points="0,30 40,28 80,32 120,27 160,29 200,26 230,28 260,27" stroke="#8FB3C9" stroke-linecap="round" stroke-width="2"></polyline></svg></div></div><div class="flex items-center gap-2 pt-2"><div class="flex items-center gap-1.5 bg-surface-container-low px-3 py-1 rounded-full text-xs font-mono text-on-surface-variant"><span class="material-symbols-outlined text-[15px] text-outline" data-icon="autorenew">autorenew</span><span class="">Ciclos 3</span></div><div class="flex items-center gap-1.5 bg-surface-container-low px-3 py-1 rounded-full text-xs font-mono text-on-surface-variant"><span class="material-symbols-outlined text-[15px] text-outline" data-icon="device_thermostat">device_thermostat</span><span class="">Temperatura 31,4 °C</span></div></div></div>
+<!-- Middle Card: Estimativa de economia (3 cols) -->
+<div class="xl:col-span-3 bg-surface-container rounded-[20px] p-6 flex flex-col justify-between items-center text-center shadow-sm">
+<div class="w-full text-left">
+<h2 class="text-base font-semibold text-on-surface tracking-tight">Estimativa de economia</h2>
+<p class="text-xs text-outline font-mono mt-0.5">Métrica financeira de retorno</p>
+</div>
+<div class="flex flex-col items-center max-w-[240px] my-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-low flex items-center justify-center text-outline mb-3">
+<span class="material-symbols-outlined text-2xl" data-icon="lock">lock</span>
+</div>
+<p class="text-xs text-outline leading-relaxed">
+          Cadastre uma tarifa de energia para estimar a economia. Nenhum valor é calculado sem premissas registradas.
+        </p>
+</div>
+<button class="w-full max-w-[220px] py-2.5 px-4 rounded-full bg-surface-container-high hover:bg-surface-variant text-on-surface text-xs font-medium flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-[16px] text-outline" data-icon="tune">tune</span>
+<span class="">Configurar tarifa</span>
+</button>
+</div>
+<!-- Right Card: Energia x Vibração (4 cols) -->
+<div class="xl:col-span-4 bg-surface-container rounded-[20px] p-6 flex flex-col justify-between shadow-sm"><div><div class="flex items-center justify-between mb-4"><div><h2 class="text-base font-semibold text-on-surface tracking-tight">Energia × vibração</h2><p class="text-xs text-outline font-mono mt-0.5">Dispersão de potência vs vibração RMS</p></div><span class="text-xs font-mono px-2 py-0.5 rounded-full" style="color: #D5C462; background-color: #2E2A16; border: 1px solid #75692C;">r = 0,82</span></div><div class="w-full h-52 relative my-1"><svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 320 180"><line stroke="#2A2A29" stroke-width="1" x1="45" x2="310" y1="20" y2="20"></line><line stroke="#2A2A29" stroke-width="1" x1="45" x2="310" y1="80" y2="80"></line><line stroke="#353534" stroke-width="1" x1="45" x2="310" y1="140" y2="140"></line><text fill="#96917E" font-family="Geist Mono" font-size="9" text-anchor="end" x="38" y="23">450</text><text fill="#96917E" font-family="Geist Mono" font-size="9" text-anchor="end" x="38" y="83">225</text><text fill="#96917E" font-family="Geist Mono" font-size="9" text-anchor="end" x="38" y="143">0</text><line stroke="#353534" stroke-width="1" x1="45" x2="45" y1="20" y2="140"></line><text fill="#96917E" font-family="Geist Mono" font-size="9" text-anchor="middle" x="45" y="156">0</text><text fill="#96917E" font-family="Geist Mono" font-size="9" text-anchor="middle" x="133" y="156">2</text><text fill="#96917E" font-family="Geist Mono" font-size="9" text-anchor="middle" x="221" y="156">4</text><text fill="#96917E" font-family="Geist Mono" font-size="9" text-anchor="middle" x="310" y="156">6</text><text fill="#96917E" font-family="Geist Mono" font-size="9" text-anchor="middle" x="177" y="172">Vibração RMS (m/s²)</text><line opacity="0.6" stroke="#D5C462" stroke-dasharray="3 3" stroke-width="1.5" x1="55" x2="305" y1="135" y2="25"></line><circle cx="65" cy="130" fill="#D5C462" r="3.5"></circle><circle cx="80" cy="124" fill="#D5C462" r="3.5"></circle><circle cx="100" cy="118" fill="#D5C462" r="3.5"></circle><circle cx="120" cy="112" fill="#D5C462" r="3.5"></circle><circle cx="138" cy="96" fill="#D5C462" r="3.5"></circle><circle cx="155" cy="92" fill="#D5C462" r="3.5"></circle><circle cx="175" cy="82" fill="#D5C462" r="3.5"></circle><circle cx="195" cy="70" fill="#D5C462" r="3.5"></circle><circle cx="218" cy="62" fill="#D5C462" r="3.5"></circle><circle cx="238" cy="52" fill="#D5C462" r="3.5"></circle><circle cx="258" cy="44" fill="#D5C462" r="3.5"></circle><circle cx="280" cy="35" fill="#D5C462" r="3.5"></circle><circle cx="298" cy="28" fill="#D5C462" r="3.5"></circle></svg></div></div><div class="flex items-center justify-between text-xs text-outline font-mono pt-3 border-t border-outline-variant/60"><span class="">Frequência dominante 42,8 Hz</span><span class="text-primary font-semibold">Alta correlação</span></div></div>
+</div>
+<!-- ROW 4: CONSOLIDATED PERIOD TABLE (12 COLS) -->
+<div class="bg-surface-container rounded-[20px] p-6 shadow-sm">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+<div>
+<h2 class="text-base font-semibold text-on-surface tracking-tight">Resumo por dia</h2>
+<p class="text-xs text-outline font-mono mt-0.5">Métricas consolidadas de captação e eficiência por ciclo diário</p>
+</div>
+<button class="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-variant text-on-surface text-xs font-mono flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[16px] text-outline" data-icon="download">download</span>
+<span class="">Exportar CSV</span>
+</button>
+</div>
+<!-- Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left font-mono text-xs"><thead><tr class="text-outline uppercase text-[10px] tracking-wider border-b border-surface-container-highest"><th class="py-3 px-3">Data</th><th class="py-3 px-3 text-right">Em movimento (h)</th><th class="py-3 px-3 text-right">Energia recuperada (mWh)</th><th class="py-3 px-3 text-right">Potência média (mW)</th><th class="py-3 px-3 text-right">Pico (mW)</th><th class="py-3 px-3 text-right">Eficiência (%)</th><th class="py-3 px-3 text-center">Qualidade dos dados</th></tr></thead><tbody class="divide-y divide-surface-container-high/40"><tr class="hover:bg-surface-container-high/40 transition-colors"><td class="py-3 px-3 font-semibold text-on-surface"><div class="flex items-center gap-1.5"><span class="">04/10</span><span class="text-outline text-[11px] font-normal">Dom</span></div></td><td class="py-3 px-3 text-right text-on-surface">1,0</td><td class="py-3 px-3 text-right text-primary font-bold">168</td><td class="py-3 px-3 text-right text-on-surface">168</td><td class="py-3 px-3 text-right text-outline">334</td><td class="py-3 px-3 text-right font-medium text-tertiary">52,4%</td><td class="py-3 px-3 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-low text-tertiary text-[11px]"><span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span><span class="">Completa</span></span></td></tr><tr class="hover:bg-surface-container-high/40 transition-colors"><td class="py-3 px-3 font-semibold text-on-surface"><div class="flex items-center gap-1.5"><span class="">03/10</span><span class="text-outline text-[11px] font-normal">Sáb</span></div></td><td class="py-3 px-3 text-right text-on-surface">1,8</td><td class="py-3 px-3 text-right text-primary font-bold">353</td><td class="py-3 px-3 text-right text-on-surface">196</td><td class="py-3 px-3 text-right text-outline">398</td><td class="py-3 px-3 text-right font-medium text-tertiary">53,3%</td><td class="py-3 px-3 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-low text-tertiary text-[11px]"><span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span><span class="">Completa</span></span></td></tr><tr class="hover:bg-surface-container-high/40 transition-colors"><td class="py-3 px-3 font-semibold text-on-surface"><div class="flex items-center gap-1.5"><span class="">02/10</span><span class="text-outline text-[11px] font-normal">Sex</span></div></td><td class="py-3 px-3 text-right text-on-surface">1,5</td><td class="py-3 px-3 text-right text-primary font-bold">267</td><td class="py-3 px-3 text-right text-on-surface">178</td><td class="py-3 px-3 text-right text-outline">356</td><td class="py-3 px-3 text-right font-medium text-tertiary">53,2%</td><td class="py-3 px-3 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]" style="background-color: #2E2414; color: #E8A33D; border: 1px solid #5A3E1B;"><span class="w-1.5 h-1.5 rounded-full" style="background-color: #E8A33D;"></span><span class="">Lacunas 4%</span></span></td></tr><tr class="hover:bg-surface-container-high/40 transition-colors"><td class="py-3 px-3 font-semibold text-on-surface"><div class="flex items-center gap-1.5"><span class="">01/10</span><span class="text-outline text-[11px] font-normal">Qui</span></div></td><td class="py-3 px-3 text-right text-on-surface">1,9</td><td class="py-3 px-3 text-right text-primary font-bold">390</td><td class="py-3 px-3 text-right text-on-surface">205</td><td class="py-3 px-3 text-right text-outline">412</td><td class="py-3 px-3 text-right font-medium text-tertiary">54,1%</td><td class="py-3 px-3 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-low text-tertiary text-[11px]"><span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span><span class="">Completa</span></span></td></tr><tr class="hover:bg-surface-container-high/40 transition-colors"><td class="py-3 px-3 font-semibold text-on-surface"><div class="flex items-center gap-1.5"><span class="">30/09</span><span class="text-outline text-[11px] font-normal">Qua</span></div></td><td class="py-3 px-3 text-right text-on-surface">1,6</td><td class="py-3 px-3 text-right text-primary font-bold">306</td><td class="py-3 px-3 text-right text-on-surface">191</td><td class="py-3 px-3 text-right text-outline">389</td><td class="py-3 px-3 text-right font-medium text-tertiary">53,9%</td><td class="py-3 px-3 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-low text-tertiary text-[11px]"><span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span><span class="">Completa</span></span></td></tr><tr class="hover:bg-surface-container-high/40 transition-colors"><td class="py-3 px-3 font-semibold text-on-surface"><div class="flex items-center gap-1.5"><span class="">29/09</span><span class="text-outline text-[11px] font-normal">Ter</span></div></td><td class="py-3 px-3 text-right text-on-surface">1,1</td><td class="py-3 px-3 text-right text-primary font-bold">178</td><td class="py-3 px-3 text-right text-on-surface">162</td><td class="py-3 px-3 text-right text-outline">318</td><td class="py-3 px-3 text-right font-medium text-tertiary">53,4%</td><td class="py-3 px-3 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-low text-tertiary text-[11px]"><span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span><span class="">Completa</span></span></td></tr><tr class="hover:bg-surface-container-high/40 transition-colors"><td class="py-3 px-3 font-semibold text-on-surface"><div class="flex items-center gap-1.5"><span class="">28/09</span><span class="text-outline text-[11px] font-normal">Seg</span></div></td><td class="py-3 px-3 text-right text-on-surface">1,4</td><td class="py-3 px-3 text-right text-primary font-bold">258</td><td class="py-3 px-3 text-right text-on-surface">184</td><td class="py-3 px-3 text-right text-outline">371</td><td class="py-3 px-3 text-right font-medium text-tertiary">53,5%</td><td class="py-3 px-3 text-center"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-low text-tertiary text-[11px]"><span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span><span class="">Completa</span></span></td></tr></tbody></table>
+</div>
+</div>
+</div></main></div>
+</div>
+
+
+
+
+</body></html>

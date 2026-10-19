@@ -92,6 +92,36 @@ describe('TestesPage — histórico', () => {
     );
   });
 
+  /**
+   * Abas pelo teclado (padrão WAI-ARIA, Fase 5): só a aba escolhida entra no
+   * Tab; setas, Home e End trocam de aba; o painel é nomeado pela aba.
+   */
+  it('troca de aba pelo teclado', async () => {
+    renderizar();
+    const abas = screen.getByRole('tablist', { name: 'Status dos testes' });
+    const todos = await within(abas).findByRole('tab', { name: 'Todos (17)' });
+    for (const aba of within(abas).getAllByRole('tab')) {
+      expect(aba).toHaveAttribute('tabindex', aba === todos ? '0' : '-1');
+    }
+    expect(screen.getByRole('tabpanel', { name: 'Todos (17)' })).toBeInTheDocument();
+
+    todos.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    const emAndamento = within(abas).getByRole('tab', { name: /^Em andamento/ });
+    expect(emAndamento).toHaveFocus();
+    expect(emAndamento).toHaveAttribute('aria-selected', 'true');
+    expect(emAndamento).toHaveAttribute('tabindex', '0');
+
+    await userEvent.keyboard('{End}');
+    expect(within(abas).getByRole('tab', { name: /^Cancelados/ })).toHaveFocus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(within(abas).getByRole('tab', { name: /^Todos/ })).toHaveFocus();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(within(abas).getByRole('tab', { name: /^Cancelados/ })).toHaveFocus();
+    await userEvent.keyboard('{Home}');
+    expect(within(abas).getByRole('tab', { name: /^Todos/ })).toHaveFocus();
+  });
+
   /** Lista do mais recente ao mais antigo, com energia e potência de cada teste. */
   it('lista os testes', async () => {
     const repositorio = renderizar();

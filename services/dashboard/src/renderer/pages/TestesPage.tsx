@@ -19,11 +19,12 @@ import {
   DialogoNovoTeste,
 } from '@/components/testes/Dialogos';
 import { PainelTesteAtivo } from '@/components/testes/PainelTesteAtivo';
-import { TabelaHistorico } from '@/components/testes/TabelaHistorico';
+import { TabelaHistorico, TAMANHO_PAGINA_HISTORICO } from '@/components/testes/TabelaHistorico';
 import { Button } from '@/components/ui/Button';
 import { formatarIsoComFuso } from '@/data/calculos';
 import { useRepositorio } from '@/data/repositorio';
 import type { StatusTeste, TesteCampo } from '@/data/tipos';
+import { consumirDestino } from '@/stores/destinoBusca';
 
 /** Mínimo de testes para comparar (contrato do backend). */
 const MINIMO_COMPARACAO = 2;
@@ -37,8 +38,13 @@ type DialogoAberto =
 /** Renderiza a tela Testes de campo. */
 export function TestesPage() {
   const repositorio = useRepositorio();
+  // Aberta pela busca geral, a tela começa em "Todos", na página do teste
+  // escolhido, com a linha dele destacada.
+  const [destino] = useState(() => consumirDestino('teste'));
   const [aba, setAba] = useState<StatusTeste | 'todos'>('todos');
-  const [pagina, setPagina] = useState(1);
+  const [pagina, setPagina] = useState(
+    destino?.tipo === 'teste' ? Math.floor(destino.indice / TAMANHO_PAGINA_HISTORICO) + 1 : 1,
+  );
   const [selecionados, setSelecionados] = useState<Map<string, TesteCampo>>(new Map());
   const [comparados, setComparados] = useState<TesteCampo[] | null>(null);
   const [dialogo, setDialogo] = useState<DialogoAberto>(null);
@@ -84,7 +90,7 @@ export function TestesPage() {
         </>
       }
     >
-      <div className="grid grid-cols-[minmax(0,1fr)_300px] items-start gap-4">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <TabelaHistorico
           aba={aba}
           onTrocarAba={trocarAba}
@@ -93,6 +99,7 @@ export function TestesPage() {
           selecionados={selecionados}
           onAlternarSelecao={alternarSelecao}
           agora={agora}
+          destacadoId={destino?.id ?? null}
         />
         <div className="flex flex-col gap-4">
           <PainelTesteAtivo

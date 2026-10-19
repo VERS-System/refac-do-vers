@@ -19,6 +19,7 @@ import {
   SecaoTarifa,
   SecaoUnidades,
 } from '@/components/configuracoes/Secoes';
+import { SECOES_CONFIGURACOES } from '@/components/configuracoes/listaSecoes';
 import { Page } from '@/components/layout/Page';
 import { Button } from '@/components/ui/Button';
 import { EstadoConsulta } from '@/components/ui/EstadoConsulta';
@@ -26,6 +27,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useAcoesPerfil, useUsuarioAtual } from '@/hooks/useDados';
 import { cn } from '@/lib/cn';
 import { formatarNumero } from '@/lib/format';
+import { consumirDestino } from '@/stores/destinoBusca';
 import { usePreferencias, type Alerta, type Unidades } from '@/stores/preferencias';
 
 /** Tudo o que a tela edita antes de salvar. */
@@ -40,14 +42,7 @@ interface Rascunho {
 }
 
 /** Seções do painel de ajustes, na ordem da tela. */
-const SECOES = [
-  { id: 'perfil', rotulo: 'Perfil' },
-  { id: 'unidades', rotulo: 'Unidades e exibição' },
-  { id: 'alertas', rotulo: 'Alertas' },
-  { id: 'tarifa', rotulo: 'Tarifa de energia' },
-  { id: 'sessoes', rotulo: 'Sessões e segurança' },
-  { id: 'sobre', rotulo: 'Sobre o VERS' },
-];
+const SECOES = SECOES_CONFIGURACOES;
 
 /**
  * Lê a tarifa digitada (aceita vírgula). Vazio vira `null` (sem tarifa);
@@ -81,7 +76,17 @@ export function ConfiguracoesPage() {
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
   const [erroTarifa, setErroTarifa] = useState<string | undefined>();
   const [mensagem, setMensagem] = useState<string | null>(null);
-  const [secaoAtiva, setSecaoAtiva] = useState('perfil');
+  // Seção escolhida na busca geral (barra superior), se a tela abriu por ela.
+  const [destino] = useState(() => consumirDestino('secao'));
+  const [secaoAtiva, setSecaoAtiva] = useState<string>(destino?.id ?? 'perfil');
+  const carregado = rascunho !== null;
+
+  // Aberta pela busca, a tela rola até a seção quando o conteúdo chega.
+  useEffect(() => {
+    if (destino && carregado) {
+      document.getElementById(destino.id)?.scrollIntoView?.({ block: 'start' });
+    }
+  }, [destino, carregado]);
 
   // Quando o perfil chega, o rascunho começa igual ao salvo.
   useEffect(() => {
@@ -162,9 +167,12 @@ export function ConfiguracoesPage() {
         </>
       }
     >
-      <div className="grid grid-cols-[220px_minmax(0,1fr)] items-start gap-6">
-        <nav aria-label="Painel de ajustes" className="sticky top-0 flex flex-col gap-1">
-          <span className="mb-2 px-3 font-label text-[11px] tracking-[0.08em] text-fg-muted uppercase">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6">
+        <nav
+          aria-label="Painel de ajustes"
+          className="-mx-4 flex gap-1 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:sticky lg:top-0 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
+        >
+          <span className="mb-2 hidden px-3 font-label text-[11px] tracking-[0.08em] text-fg-muted uppercase lg:block">
             Painel de ajustes
           </span>
           {SECOES.map((secao) => (
@@ -174,7 +182,7 @@ export function ConfiguracoesPage() {
               aria-current={secaoAtiva === secao.id ? 'true' : undefined}
               onClick={() => irParaSecao(secao.id)}
               className={cn(
-                'rounded-control border px-3 py-2.5 text-left text-sm transition-colors',
+                'shrink-0 rounded-control border px-3 py-2.5 text-left text-sm whitespace-nowrap transition-colors',
                 secaoAtiva === secao.id
                   ? 'border-accent-border bg-accent-subtle text-accent'
                   : 'border-transparent text-fg-secondary hover:bg-hover hover:text-fg',

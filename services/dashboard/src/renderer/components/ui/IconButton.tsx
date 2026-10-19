@@ -5,7 +5,7 @@
  * a dica exibida ao passar o mouse.
  */
 
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, Ref } from 'react';
 import { cn } from '@/lib/cn';
 import type { IconComponent } from './Button';
 
@@ -15,6 +15,8 @@ export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
   label: string;
   /** Mostra um ponto dourado de novidade (ex.: notificações não lidas). */
   indicator?: boolean;
+  /** Referência ao botão (no React 19, `ref` chega como prop), para devolver o foco. */
+  ref?: Ref<HTMLButtonElement>;
 }
 
 /**

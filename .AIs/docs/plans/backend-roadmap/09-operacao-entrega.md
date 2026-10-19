@@ -13,6 +13,12 @@ Tornar o backend reproduzível, implantável, observável e recuperável.
 
 ## Etapa A — Testes ponta a ponta
 
+[Recorte integrado do backend](../backend-phase-9-integrated-flow.md) aprovado
+em 19/10/2026: login HTTP/CSRF/cookies, MQTT/TLS, persistência, aviso Socket.IO,
+série/resumo REST, duplicata e recusa após retirada do vínculo. Conta ativa e
+recursos de domínio são fixtures; criação/ciclo pela API e cliente Electron
+seguem pendentes. Não equivale ao fechamento desta etapa.
+
 - usuário cria sessão, veículo, instalação e teste;
 - dispositivo autorizado envia telemetria;
 - backend persiste, calcula e publica atualização;

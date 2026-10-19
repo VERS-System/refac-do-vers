@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { resolve } from 'node:path';
 import { JwtService } from '@nestjs/jwt';
+import { hash } from 'bcrypt';
 import { connectAsync, MqttClient } from 'mqtt';
 import { io, Socket } from 'socket.io-client';
 import { PrismaService } from '../../src/prisma/prisma.service';
@@ -14,6 +15,7 @@ const port = 53000;
 const url = `http://127.0.0.1:${port}`;
 const origin = 'https://dashboard.vers.test';
 const secret = 'segredo-bootstrap-access-somente-sintetico';
+const password = 'Bootstrap-Sintetico-123!';
 const backend = resolve(__dirname, '../..');
 const certificate = resolve(backend, '../../output/realtime-rehearsal/server.crt');
 
@@ -45,6 +47,31 @@ describe('F08 — bootstrap compilado com bancada local', () => {
   let cookie: string;
   let publisher: MqttClient | undefined;
   let socket: Socket | undefined;
+
+  /** Usa CSRF e cookies reais para provar login HTTP sem fabricar JWT no cenário integrado. */
+  async function login(): Promise<void> {
+    const cookies = new Map<string, string>();
+    /** Retém somente os pares de cookies recebidos para enviar na próxima requisição local. */
+    function retain(response: Response): void {
+      for (const value of response.headers.getSetCookie()) {
+        const pair = value.split(';')[0]; const separator = pair.indexOf('=');
+        cookies.set(pair.slice(0, separator), pair.slice(separator + 1));
+      }
+      cookie = [...cookies].map(([name, value]) => `${name}=${value}`).join('; ');
+    }
+    const csrf = await fetch(`${url}/api/v1/auth/csrf`, { signal: AbortSignal.timeout(3000) });
+    expect(csrf.status).toBe(200); retain(csrf);
+    const body = await csrf.json() as { data: { csrfToken: string } };
+    const response = await fetch(`${url}/api/v1/auth/login`, {
+      method: 'POST', headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json', 'X-Request-Id': userId!,
+        'X-CSRF-Token': body.data.csrfToken },
+      body: JSON.stringify({ email: `${userId}@bootstrap.invalid`, password }), signal: AbortSignal.timeout(5000),
+    });
+    expect(response.status).toBe(200); retain(response);
+    expect(cookies.has('vers_access')).toBe(true); expect(cookies.has('vers_refresh')).toBe(true);
+    const result = await response.json() as { data: { user: { id: string } } };
+    expect(result.data.user.id).toBe(userId);
+  }
 
   /** Inicia somente o processo criado pela suíte, com destinos fixos e sem herdar segredos da sessão. */
   async function start(enabled: boolean): Promise<ChildProcess> {
@@ -79,7 +106,7 @@ describe('F08 — bootstrap compilado com bancada local', () => {
     await requireFreePort();
     f = await createFixture(prisma, 'vers-sim-001'); userId = randomUUID(); const sessionId = randomUUID();
     await prisma.user.create({ data: { id: userId, email: `${userId}@bootstrap.invalid`,
-      passwordHash: 'synthetic-unusable-hash', status: 'ACTIVE',
+      passwordHash: await hash(password, 10), status: 'ACTIVE',
       refreshSessions: { create: { id: sessionId, tokenHash: randomUUID(), expiresAt: new Date(Date.now() + 600000) } },
       vehicles: { create: { vehicleId: f.vehicleId, relationship: 'OWNER' } } } });
     cookie = `vers_access=${await new JwtService().signAsync({ sub: userId, sid: sessionId, typ: 'access' },
@@ -96,6 +123,7 @@ describe('F08 — bootstrap compilado com bancada local', () => {
       });
     }
     if (userId) {
+      await prisma.auditEvent.deleteMany({ where: { requestId: userId, action: 'auth.login' } });
       await prisma.userVehicle.deleteMany({ where: { userId } });
       await prisma.user.deleteMany({ where: { id: userId } });
     }
@@ -116,6 +144,7 @@ describe('F08 — bootstrap compilado com bancada local', () => {
 
   it('habilitado recebe MQTT, avisa cliente e retorna resumo REST sem start manual', async () => {
     const running = await start(true); const fixture = f!;
+    await login();
     socket = io(`${url}/realtime`, { transports: ['websocket'], extraHeaders: { Origin: origin, Cookie: cookie },
       reconnection: false, autoConnect: false, timeout: 3000 });
     const connection = socket;
@@ -131,7 +160,9 @@ describe('F08 — bootstrap compilado com bancada local', () => {
     publisher = await connectAsync('mqtts://localhost:58883', { username: fixture.deviceUid,
       password: 'synthetic-one-only', ca: readFileSync(certificate), rejectUnauthorized: true,
       reconnectPeriod: 0, connectTimeout: 3000 });
-    await publisher.publishAsync(`vers/v1/devices/${fixture.deviceUid}/telemetry`, JSON.stringify(envelope(fixture)), { qos: 1 });
+    const topic = `vers/v1/devices/${fixture.deviceUid}/telemetry`;
+    const first = envelope(fixture);
+    await publisher.publishAsync(topic, JSON.stringify(first), { qos: 1 });
     await until(async () => notices.length >= 1, running);
     expect(notices).toContainEqual(expect.objectContaining({ type: 'data.updated', resource: { type: 'test', id: fixture.testId } }));
     expect(await prisma.telemetrySample.count({ where: { deviceId: fixture.deviceId } })).toBe(3);
@@ -140,5 +171,38 @@ describe('F08 — bootstrap compilado com bancada local', () => {
     const body = await response.json() as { data: { recoveredEnergyWh: number }[] };
     expect(response.status).toBe(200); expect(body.data).toHaveLength(1);
     expect(body.data[0].recoveredEnergyWh).toBeCloseTo(4 / 3600, 12);
+
+    await publisher.publishAsync(topic, JSON.stringify(first), { qos: 1 });
+    // O próximo lote processado serve de barreira observável após o reenvio, sem espera arbitrária.
+    const next = envelope({ ...fixture, startedAt: new Date(fixture.startedAt.getTime() + 3000) }, 2);
+    // Mantém o contador acumulado contínuo entre lotes, sem simular reset do dispositivo.
+    next.samples.forEach((sample, index) => { sample.measurements.accumulatedEnergyWh = 10 + (index + 3) / 1800; });
+    await publisher.publishAsync(topic, JSON.stringify(next), { qos: 1 });
+    await until(async () => (await prisma.mqttMessage.findUnique({ where: { messageId: next.messageId } }))?.status === 'PROCESSED', running);
+    expect(await prisma.mqttMessage.count({ where: { deviceId: fixture.deviceId } })).toBe(2);
+    expect(await prisma.telemetrySample.count({ where: { deviceId: fixture.deviceId } })).toBe(6);
+    const summary = await fetch(`${url}/api/v1/tests/${fixture.testId}/energy-summaries`,
+      { headers: { Cookie: cookie }, signal: AbortSignal.timeout(3000) });
+    expect(summary.status).toBe(200);
+    const updated = await summary.json() as { data: { recoveredEnergyWh: number }[] };
+    expect(updated.data).toHaveLength(1);
+    expect(updated.data[0].recoveredEnergyWh).toBeCloseTo(10 / 3600, 12);
+    const series = await fetch(`${url}/api/v1/tests/${fixture.testId}/telemetry`,
+      { headers: { Cookie: cookie }, signal: AbortSignal.timeout(3000) });
+    expect(series.status).toBe(200);
+    const samples = await series.json() as { data: unknown[]; meta: { totalItems: number } };
+    expect(samples.data).toHaveLength(6); expect(samples.meta.totalItems).toBe(6);
+
+    await prisma.userVehicle.deleteMany({ where: { userId, vehicleId: fixture.vehicleId } });
+    for (const resource of ['telemetry', 'energy-summaries']) {
+      const denied = await fetch(`${url}/api/v1/tests/${fixture.testId}/${resource}`,
+        { headers: { Cookie: cookie }, signal: AbortSignal.timeout(3000) });
+      expect(denied.status).toBe(404);
+    }
+    const deniedAck = await new Promise<unknown>((done, reject) => {
+      connection.timeout(3000).emit('subscribe', { version: 1, resource: { type: 'test', id: fixture.testId } },
+        (error: Error | null, value: unknown) => { if (error) reject(error); else done(value); });
+    });
+    expect(deniedAck).toEqual({ ok: false, version: 1, code: 'RESOURCE_UNAVAILABLE' });
   }, 60000);
 });

@@ -17,6 +17,9 @@ export class MqttService implements OnModuleDestroy {
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
   private subscriptionTimer: ReturnType<typeof setTimeout> | undefined;
   private closing: Promise<void> | undefined;
+  private paused = false;
+  private pausing: Promise<void> | undefined;
+  private readonly active = new Set<Promise<void>>();
 
   /** Recebe apenas configuração validada, sem iniciar rede no bootstrap do REST. */
   constructor(private readonly config: ConfigService) {}
@@ -31,6 +34,7 @@ export class MqttService implements OnModuleDestroy {
     if (!this.config.get<boolean>('MQTT_ENABLED', false)) return;
     if (typeof processor !== 'function') throw new Error('MQTT_PROCESSOR_REQUIRED');
     if (this.stopping) throw new Error('MQTT_STOPPED');
+    if (this.paused) throw new Error('MQTT_PAUSED');
     if (this.client) throw new Error('MQTT_ALREADY_STARTED');
     const endpoint = parseMqttUrl(this.config.getOrThrow<string>('MQTT_URL'));
     const client = connect({ protocol: 'mqtts', hostname: endpoint.hostname.replace(/^\[|\]$/g, ''),
@@ -40,17 +44,20 @@ export class MqttService implements OnModuleDestroy {
       reconnectPeriod: 0, resubscribe: false, connectTimeout: 10000, log: (): void => {} });
     this.client = client;
     client.handleMessage = (packet, done): void => {
-      if (this.stopping || this.client !== client) { done(new Error('MQTT_STOPPED')); return; }
+      if (this.stopping) { done(new Error('MQTT_STOPPED')); return; }
+      if (this.paused || this.client !== client) { done(new Error('MQTT_PAUSED')); return; }
       const receivedAt = new Date();
-      void Promise.resolve().then(() => processor(packet, receivedAt)).then(() => { done(); }, () => {
+      const work = Promise.resolve().then(() => processor(packet, receivedAt)).then(() => { done(); }, () => {
         this.subscribed = false;
         this.logger.error('mqtt_processing_failed');
         done(new Error('MQTT_PROCESSING_FAILED'));
         client.stream.destroy();
-      });
+      }).catch(() => { this.logger.error('mqtt_processing_failed'); client.stream.destroy(); })
+        .finally(() => { this.active.delete(work); });
+      this.active.add(work);
     };
     client.on('connect', () => {
-      if (this.stopping || this.client !== client) return;
+      if (this.stopping || this.paused || this.client !== client) return;
       this.subscribed = false;
       const generation = ++this.generation;
       clearTimeout(this.subscriptionTimer);
@@ -74,6 +81,7 @@ export class MqttService implements OnModuleDestroy {
       });
     });
     client.on('error', () => {
+      if (this.stopping || this.paused || this.client !== client) return;
       this.subscribed = false;
       this.generation++;
       clearTimeout(this.subscriptionTimer);
@@ -82,6 +90,7 @@ export class MqttService implements OnModuleDestroy {
       client.stream.destroy();
     });
     client.on('close', () => {
+      if (this.stopping || this.paused || this.client !== client) return;
       this.subscribed = false;
       this.generation++;
       clearTimeout(this.subscriptionTimer);
@@ -93,30 +102,45 @@ export class MqttService implements OnModuleDestroy {
 
   /** Mantém uma retentativa exponencial limitada e evita reconectar depois do shutdown. */
   private scheduleReconnect(client: MqttClient): void {
-    if (this.stopping || this.client !== client || this.retryTimer) return;
+    if (this.stopping || this.paused || this.client !== client || this.retryTimer) return;
     const delay = this.retryDelay;
     this.retryDelay = Math.min(delay * 2, 30000);
     this.retryTimer = setTimeout(() => {
       this.retryTimer = undefined;
-      if (this.stopping || this.client !== client) return;
+      if (this.stopping || this.paused || this.client !== client) return;
       try { client.reconnect(); }
       catch { this.logger.warn('mqtt_connection_failed'); this.scheduleReconnect(client); }
     }, delay);
   }
 
-  /** Cancela retentativas e compartilha uma única finalização mesmo em chamadas repetidas. */
-  onModuleDestroy(): Promise<void> {
-    if (this.closing) return this.closing;
-    this.stopping = true;
-    this.subscribed = false;
+  /** Bloqueia novas recepções/reconexões e espera ACKs aceitos antes de fechar a sessão reversivelmente. */
+  pause(): Promise<void> {
+    this.paused = true; this.subscribed = false; this.generation++;
     clearTimeout(this.retryTimer);
     this.retryTimer = undefined;
     clearTimeout(this.subscriptionTimer);
     this.subscriptionTimer = undefined;
-    const client = this.client;
-    this.client = undefined;
-    if (!client) return Promise.resolve();
-    this.closing = this.close(client);
+    if (this.pausing) return this.pausing;
+    const client = this.client; this.client = undefined;
+    this.pausing = Promise.allSettled([...this.active]).then(async () => {
+      if (client) await this.close(client);
+    }).finally(() => { this.pausing = undefined; });
+    return this.pausing;
+  }
+
+  /** Reabre com configuração/sessão existentes somente se nenhuma nova pausa ou shutdown interveio. */
+  async resume(processor: (packet: IPublishPacket, receivedAt: Date) => Promise<void>): Promise<void> {
+    if (this.stopping) throw new Error('MQTT_STOPPED');
+    const generation = this.generation; await this.pausing;
+    if (this.stopping) throw new Error('MQTT_STOPPED');
+    if (generation !== this.generation) return;
+    this.paused = false; this.start(processor);
+  }
+
+  /** Reutiliza drenagem da pausa e torna o encerramento definitivo e idempotente. */
+  onModuleDestroy(): Promise<void> {
+    if (this.closing) return this.closing;
+    this.stopping = true; this.closing = this.pause();
     return this.closing;
   }
 

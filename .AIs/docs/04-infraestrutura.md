@@ -21,6 +21,10 @@ continua no Neon. A IA atual expõe health e documentação FastAPI.
 
 - Backend: `http://localhost:3000/api/v1/health/live`.
 - Readiness: `http://localhost:3000/api/v1/health/ready` (exige banco e Redis).
+- Pipeline: `MQTT_ENABLED=false` mantém ingestão/tempo real passivos. Com true,
+  o bootstrap inicia o coordenador após HTTP pronto; só habilitar com broker TLS,
+  credenciais consumidoras e banco autorizados. Exemplo na raiz/backend; nenhuma
+  configuração real é alterada pelo código. Ver [plano de ativação](plans/backend-phase-8-bootstrap-activation.md).
 - IA: `http://localhost:8000/health` e `http://localhost:8000/docs`.
 - Logs: `docker compose logs -f backend ai-service`.
 - Parar: `docker compose stop backend ai-service redis` (preserva volumes).
@@ -39,7 +43,6 @@ O arquivo `docker-compose.yml` na raiz define os serviços:
 | Redis      | 6379 → 6379              | Redis 7 Alpine           |
 | Backend    | 3000 → 3000              | NestJS (Node 22)         |
 | Web        | 3001 → 5173              | Vite + React + Tailwind  |
-| Dashboard  | 3050 → 5174              | Vite + React + Tailwind  |
 | Mobile     | 8080 → 8081              | Expo + React Native      |
 | AI Service | 8000 → 8000              | FastAPI (Python 3.14)    |
 
@@ -66,7 +69,10 @@ docker compose down
 
 - **PostgreSQL não está no Docker.** O banco usado é Neon (nuvem), configurado via `DATABASE_URL` no `.env`.
 - **Redis** roda localmente via Docker para suportar Socket.IO e ioredis.
-- **Dashboard** é servido pelo Vite em `localhost:3050` no Docker ou `localhost:5174` no host. A API usa `/api/v1` pelo proxy Vite em desenvolvimento.
+- **Dashboard** é aplicativo Electron no host, iniciado com `pnpm --filter
+  @vers/dashboard dev`. Não integra o Compose. Renderer interno de desenvolvimento
+  usa `localhost:5174` com porta fixa; `/api/v1` passa pelo proxy local. Build e
+  distribuição em [services/dashboard/README.md](../../services/dashboard/README.md).
 - **Mobile** (Expo) precisa da variável `EXPO_HOST` com o IP da máquina na rede local para o dispositivo físico conectar.
 
 ---

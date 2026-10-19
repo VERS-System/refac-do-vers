@@ -19,7 +19,9 @@ services:
     entrypoint: ["sh", "-ec"]
     command:
       - |
-        mosquitto_passwd -b -c /auth/passwords backend-test backend-test-only
+        # Atualiza credenciais também no volume preservado, sem tentar recriar arquivo existente.
+        touch /auth/passwords
+        mosquitto_passwd -b /auth/passwords backend-test backend-test-only
         mosquitto_passwd -b /auth/passwords vers-sim-001 synthetic-one-only
         mosquitto_passwd -b /auth/passwords vers-sim-002 synthetic-two-only
         chown -R 1883:1883 /auth

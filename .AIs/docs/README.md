@@ -15,8 +15,9 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [Contratos REST](Api/endpoints.md)                                 | Rotas, regras de acesso, estados e erros da API.                        |
 | [OpenAPI 3.1](Api/openapi.yaml)                                     | Especificação dos contratos REST.                                       |
 | [Roadmap MQTT/ESP32](plans/mqtt-esp-roadmap/README.md)            | Firmware, sensores, contrato MQTT, conectividade e testes do ESP32.     |
-| [Roadmap do dashboard web](plans/desktop-roadmap/README.md)       | Telas, navegação, estados visuais e entrega do dashboard Vite.          |
-| [Migração do dashboard web](plans/dashboard-vite-sem-electron-26-09-2026.md) | Plano e verificação da retirada do empacotamento nativo. |
+| [Roadmap do dashboard Electron](plans/desktop-frontend-roadmap.md) | Telas, navegação e entrega do aplicativo desktop. |
+| [Execução do dashboard Electron](plans/dashboard-electron-execucao-19-10-2026.md) | Execução no host e retirada do dashboard do Compose. |
+| [Migração web histórica](plans/dashboard-vite-sem-electron-26-09-2026.md) | Plano substituído pela decisão de manter Electron. |
 | [Roadmap do core](plans/core-roadmap.md)                          | Fases, dependências, critérios de aceite e ordem de implementação.      |
 | [Roadmap do frontend desktop](plans/desktop-frontend-roadmap.md)  | Fases para implementar em React as telas desktop desenhadas no Stitch.  |
 | [Roadmap de Backend e MQTT](plans/backend-mqtt-roadmap.md)        | Fonte de verdade para ingestão, tratamento, APIs e segurança do backend. |
@@ -38,6 +39,22 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [Roadmap de telas do mobile](plans/mobile-roadmap/README.md)      | Tasks por tela, navegação, estados visuais e encaixe com o backend.     |
 
 ## Organização
+
+- [Ensaio de tempo real F08.7](plans/backend-phase-8-rehearsal.md): alvos,
+  comandos e seis cenários iniciais; [continuação MQTT/Redis](plans/backend-phase-8-mqtt-rehearsal.md)
+  acrescenta caminho integrado e pausa real, sete cenários aprovados ao todo.
+
+- [Consistência F08.6](plans/backend-phase-8-consistency.md): contrato de
+  recuperação REST e limites da cobertura local, sem integração frontend.
+
+- [Aviso de recálculo TEST independente](plans/backend-phase-8-test-summary-notification.md):
+  evento pós-commit e invalidação autorizada sem nova mensagem MQTT.
+
+- [Ativação opt-in do pipeline](plans/backend-phase-8-bootstrap-activation.md):
+  MQTT_ENABLED inicia coordenação após HTTP pronto; padrão continua false.
+
+- [Ensaio do bootstrap real](plans/backend-phase-8-bootstrap-rehearsal.md):
+  dois cenários reais aprovados do backend compilado, sem start manual.
 
 - `contexts/`: registros resumidos de cada sessão de trabalho com IA.
 - `plans/`: planos aprovados para evolução do projeto.

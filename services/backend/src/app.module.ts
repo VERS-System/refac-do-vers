@@ -22,6 +22,7 @@ import { InstallationsModule } from './modules/installations/installations.modul
 import { TestsModule } from './modules/tests/tests.module';
 import { SupportModule } from './modules/support/support.module';
 import { DataModule } from './modules/data/data.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { DataModule } from './modules/data/data.module';
     TestsModule,
     SupportModule,
     DataModule,
+    RealtimeModule,
   ],
   providers: [
     AuditPolicyService,

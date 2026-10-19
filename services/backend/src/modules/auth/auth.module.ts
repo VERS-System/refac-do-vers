@@ -18,6 +18,6 @@ import { AuthAuditInterceptor } from './auth-audit.interceptor';
   imports: [JwtModule.register({}), PassportModule.register({ session: false })],
   controllers: [AuthController],
   providers: [AuthService, LoginAttemptsService, JwtStrategy, JwtAuthGuard, RolesGuard, ResourceAccessService, AuditPolicyService, AuditWriterService, AuthAuditInterceptor],
-  exports: [JwtAuthGuard, RolesGuard, ResourceAccessService],
+  exports: [JwtAuthGuard, RolesGuard, ResourceAccessService, AuthService, JwtModule],
 })
 export class AuthModule {}

@@ -12,7 +12,6 @@
  * exceto a bateria e a tarifa, que são o estado atual do sistema.
  */
 
-import { Bell, Search } from 'lucide-react';
 import { CardEconomia } from '@/components/energia/CardEconomia';
 import { CardEnergia } from '@/components/energia/CardEnergia';
 import { CardEnergiaVibracao } from '@/components/energia/CardEnergiaVibracao';
@@ -27,36 +26,25 @@ import {
 import { TabelaResumoDias } from '@/components/energia/TabelaResumoDias';
 import { Page } from '@/components/layout/Page';
 import { PeriodSelector } from '@/components/layout/PeriodSelector';
-import { IconButton } from '@/components/ui/IconButton';
 import { useVeiculoAtivo } from '@/hooks/useDados';
 
 /** Renderiza a tela Energia. */
 export function EnergiaPage() {
   const { data: veiculo } = useVeiculoAtivo();
   return (
-    <Page
-      title="Energia"
-      subtitle={veiculo?.descricao}
-      controls={<PeriodSelector />}
-      actions={
-        <>
-          <IconButton icon={Search} label="Buscar registros" />
-          <IconButton icon={Bell} label="Notificações" />
-        </>
-      }
-    >
+    <Page title="Energia" subtitle={veiculo?.descricao} controls={<PeriodSelector />}>
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <CardEnergia variante="energia" />
           <CardPotenciaMedia />
           <CardEntregueBateria />
           <CardEntregueCelular />
         </div>
-        <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-4">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
           <CardGraficoEnergia detalhado />
           <CardPerdas />
         </div>
-        <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,0.85fr)_minmax(0,1fr)] gap-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:[&>*:last-child]:col-span-2 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.85fr)_minmax(0,1fr)] xl:[&>*:last-child]:col-span-1">
           <CardEstadoBateria />
           <CardEconomia />
           <CardEnergiaVibracao />

@@ -61,7 +61,7 @@ export function ListaRequisitos({ senha, id }: { senha: string; id?: string }) {
     <ul
       id={id}
       aria-label="Requisitos da senha"
-      className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-control border border-line-subtle bg-inset px-4 py-3"
+      className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-control sm:grid-cols-2 border border-line-subtle bg-inset px-4 py-3"
     >
       {REQUISITOS.map(({ chave, texto }) => {
         const ok = atendidos[chave];
@@ -86,7 +86,8 @@ export const ETAPAS = ['Conta', 'Veículo', 'Instalação'] as const;
 
 /**
  * Indicador das etapas do cadastro: número (ou check, se concluída), nome e
- * a linha entre elas. A atual tem `aria-current="step"`.
+ * a linha entre elas. A atual tem `aria-current="step"`. A linha de uma etapa
+ * concluída preenche em dourado (Stepper do DESIGN.md).
  */
 export function Etapas({ atual }: { atual: number }) {
   return (
@@ -120,7 +121,20 @@ export function Etapas({ atual }: { atual: number }) {
               {concluida && <span className="sr-only"> (concluída)</span>}
             </span>
             {i < ETAPAS.length - 1 && (
-              <span aria-hidden="true" className="h-px min-w-4 flex-1 bg-line" />
+              <span
+                aria-hidden="true"
+                data-slot="linha-etapa"
+                data-preenchida={concluida}
+                className="relative h-px min-w-4 flex-1 overflow-hidden bg-line"
+              >
+                {/* Stepper (Fase 5): o dourado corre da esquerda ao concluir a etapa. */}
+                <span
+                  className={cn(
+                    'absolute inset-0 origin-left bg-accent-border transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                    concluida ? 'scale-x-100' : 'scale-x-0',
+                  )}
+                />
+              </span>
             )}
           </li>
         );

@@ -9,6 +9,7 @@
 
 import { BatteryCharging, Gauge, Smartphone } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { valorContado } from '@/components/ui/KpiCard';
 import { KpiConsulta, type ConteudoKpi } from '@/components/ui/KpiConsulta';
 import { eficiencia } from '@/data/calculos';
 import { CAPACIDADE_CELULAR_MWH } from '@/data/referencias';
@@ -54,10 +55,17 @@ export function quandoFoiOPico(pico: PicoPotencia, resumo: ResumoEnergia): strin
   return `${dia} ${pico.horario ?? formatarDataCurta(pico.data)}`;
 }
 
-/** Valor e unidade de uma energia, para o KPI. */
-function energiaDoKpi(mWh: number): Pick<ConteudoKpi, 'value' | 'unit'> {
+/**
+ * Valor contado e unidade de uma energia, para o KPI. A escala (mWh ou Wh,
+ * J ou kJ) é a do valor final: a contagem não troca de unidade no meio.
+ */
+export function energiaDoKpi(mWh: number): Pick<ConteudoKpi, 'contagem' | 'unit'> {
   const energia = formatarEnergia(mWh);
-  return { value: energia.valor, unit: energia.unidade };
+  const escala = energia.unidade === 'Wh' || energia.unidade === 'kJ' ? 'Wh' : 'mWh';
+  return {
+    contagem: { numero: mWh, formatar: (n) => formatarEnergia(n, { unidade: escala }).valor },
+    unit: energia.unidade,
+  };
 }
 
 /** Potência média em movimento do período, com o pico e quando ele ocorreu. */
@@ -71,7 +79,7 @@ export function CardPotenciaMedia() {
       badge={<Icone icone={Gauge} />}
     >
       {(dados) => ({
-        value: formatarPotencia(dados.potenciaMediaMw).valor,
+        ...valorContado(dados.potenciaMediaMw, (n) => formatarPotencia(n).valor),
         unit: formatarPotencia(dados.potenciaMediaMw).unidade,
         children: dados.pico && (
           <Rodape>{`Pico ${formatarMedida(formatarPotencia(dados.pico.potenciaMw))} · ${quandoFoiOPico(dados.pico, dados)}`}</Rodape>

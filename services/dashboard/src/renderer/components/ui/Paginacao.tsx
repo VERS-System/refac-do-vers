@@ -28,9 +28,9 @@ export function Paginacao({ pagina, tamanho, total, unidade, onTrocar }: Paginac
   const primeiro = total === 0 ? 0 : (pagina - 1) * tamanho + 1;
   const ultimo = Math.min(pagina * tamanho, total);
   return (
-    <div className="mt-4 flex items-center justify-between gap-4 border-t border-line-subtle pt-4 font-mono text-xs text-fg-muted">
+    <div className="mt-4 flex flex-col gap-3 border-t border-line-subtle pt-4 font-mono text-xs text-fg-muted sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <p>{`Mostrando ${formatarNumero(primeiro)} a ${formatarNumero(ultimo)} de ${formatarNumero(total)} ${unidade}`}</p>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2 sm:justify-start sm:gap-3">
         <Button
           variant="secondary"
           icon={ChevronLeft}
@@ -39,7 +39,7 @@ export function Paginacao({ pagina, tamanho, total, unidade, onTrocar }: Paginac
         >
           Anterior
         </Button>
-        <span className="text-fg">{`${pagina} de ${paginas}`}</span>
+        <span className="whitespace-nowrap text-fg">{`${pagina} de ${paginas}`}</span>
         <Button
           variant="secondary"
           icon={ChevronRight}

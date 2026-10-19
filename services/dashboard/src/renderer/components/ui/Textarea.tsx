@@ -47,7 +47,7 @@ export function Textarea({
         aria-describedby={apoio ? idApoio : undefined}
         className={cn(
           'w-full resize-y rounded-control border bg-inset px-4 py-3 text-sm text-fg placeholder:text-fg-muted',
-          'transition-colors duration-150 outline-none focus-visible:border-accent-border',
+          'transition-colors duration-150 focus-visible:border-accent-border',
           error ? 'border-danger' : 'border-line',
         )}
         {...props}

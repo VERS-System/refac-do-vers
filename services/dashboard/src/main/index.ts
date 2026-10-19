@@ -2,14 +2,16 @@
  * Processo principal do Electron do app desktop do VERS.
  *
  * Cria a janela principal no tamanho de referência do design (1512 × 982,
- * MacBook Pro 14"), com largura mínima de 1280 px, e carrega a interface:
+ * MacBook Pro 14"), com mínimo de 800 × 600 (o layout é responsivo), e carrega a interface:
  * em desenvolvimento a partir do servidor do electron-vite; em produção a
- * partir dos arquivos gerados em `out/renderer`.
+ * partir dos arquivos gerados em `out/renderer`. A janela não abre outras
+ * janelas nem navega para fora do app (`seguranca.ts`).
  */
 
 import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { navegacaoPermitida } from './seguranca';
 
 /** Pasta deste arquivo compilado; substitui `__dirname`, que não existe em ESM. */
 const diretorioAtual = fileURLToPath(new URL('.', import.meta.url));
@@ -28,8 +30,10 @@ function criarJanelaPrincipal(): void {
   janelaPrincipal = new BrowserWindow({
     width: 1512,
     height: 982,
-    minWidth: 1280,
-    minHeight: 720,
+    // O layout é responsivo (de 360 px a telas grandes); a janela pode ficar
+    // menor que a referência, até 800 × 600 (por exemplo, com a tela dividida).
+    minWidth: 800,
+    minHeight: 600,
     backgroundColor: '#242423',
     show: false,
     autoHideMenuBar: true,
@@ -40,6 +44,14 @@ function criarJanelaPrincipal(): void {
       nodeIntegration: false,
       sandbox: true,
     },
+  });
+
+  // Nada de janelas novas nem navegação para fora do app (links externos,
+  // arquivos locais): só a troca de tela, que muda apenas o hash.
+  janelaPrincipal.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  janelaPrincipal.webContents.on('will-navigate', (evento, destino) => {
+    const atual = janelaPrincipal?.webContents.getURL() ?? '';
+    if (!navegacaoPermitida(destino, atual)) evento.preventDefault();
   });
 
   // Mostra a janela só quando a interface está pronta, evitando o flash branco.

@@ -11,6 +11,7 @@ import { BarraSegmentos } from '@/components/charts/BarraSegmentos';
 import { MedidorAnel } from '@/components/charts/MedidorAnel';
 import { ESTADOS_BATERIA } from '@/components/energia/estadoBateria';
 import { Badge } from '@/components/ui/Badge';
+import { valorContado } from '@/components/ui/KpiCard';
 import { KpiConsulta } from '@/components/ui/KpiConsulta';
 import { useBateria, useCadeiaAoVivo, useResumoEnergia } from '@/hooks/useDados';
 import { formatarNumero, formatarPercentual, formatarPotencia } from '@/lib/format';
@@ -26,12 +27,16 @@ export function CardPotencia() {
       label="Potência instantânea"
       consulta={cadeia}
       nome="a potência ao vivo"
-      badge={<Badge tone="accent">Ao vivo</Badge>}
+      badge={
+        <Badge tone="accent" pulsar>
+          Ao vivo
+        </Badge>
+      }
     >
       {(dados) => {
         const potenciaMw = dados.pontos[0]?.potenciaMw ?? 0;
         return {
-          value: formatarPotencia(potenciaMw).valor,
+          contagem: { numero: potenciaMw, formatar: (n) => formatarPotencia(n).valor },
           unit: formatarPotencia(potenciaMw).unidade,
           children: (
             <BarraSegmentos
@@ -57,7 +62,7 @@ export function CardEficiencia() {
   return (
     <KpiConsulta label="Eficiência ponta a ponta" consulta={hoje} nome="a eficiência de hoje">
       {(dados) => ({
-        value: formatarPercentual(dados.eficienciaPercentual).valor,
+        ...valorContado(dados.eficienciaPercentual, (n) => formatarPercentual(n).valor),
         unit: '%',
         badge: <MedidorAnel percentual={dados.eficienciaPercentual} simbolo="η" />,
         children: <p className="font-mono text-xs text-fg-muted">Piezo → USB · hoje</p>,
@@ -74,7 +79,7 @@ export function CardBateria() {
       {(dados) => {
         const estado = ESTADOS_BATERIA[dados.estado];
         return {
-          value: formatarNumero(dados.cargaPercentual),
+          contagem: { numero: dados.cargaPercentual, formatar: (n) => formatarNumero(n) },
           unit: '%',
           badge: (
             <Badge tone={estado.tom} dot={false}>
@@ -85,7 +90,7 @@ export function CardBateria() {
           children: (
             <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-surface-raised">
               <div
-                className="h-full rounded-full bg-accent"
+                className="preencher-barra h-full rounded-full bg-accent"
                 style={{ width: `${dados.cargaPercentual}%` }}
               />
             </div>

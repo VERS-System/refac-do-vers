@@ -85,6 +85,26 @@ describe('CriarContaPage — etapa Conta', () => {
   });
 });
 
+describe('CriarContaPage — etapas em movimento (Fase 5)', () => {
+  /** Ao avançar, a linha da etapa concluída preenche e o conteúdo novo entra. */
+  it('preenche a linha da etapa concluída', async () => {
+    abrirCriarConta();
+    const linhas = () =>
+      screen
+        .getByRole('list', { name: 'Etapas do cadastro' })
+        .querySelectorAll('[data-slot="linha-etapa"]');
+    expect([...linhas()].map((l) => l.getAttribute('data-preenchida'))).toEqual(['false', 'false']);
+
+    await preencherConta();
+    await continuar();
+
+    expect([...linhas()].map((l) => l.getAttribute('data-preenchida'))).toEqual(['true', 'false']);
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Seu veículo' }).closest('.entrada-etapa'),
+    ).not.toBeNull();
+  });
+});
+
 describe('CriarContaPage — fluxo completo', () => {
   /** Conta → Veículo → Instalação → confirmação, voltando sem perder dados. */
   it('cria a conta em três etapas', async () => {
@@ -136,6 +156,8 @@ describe('CriarContaPage — fluxo completo', () => {
       ano: '',
     });
 
+    // O link da tela final é a ação principal: mesma pílula dourada, com reflexo.
+    expect(screen.getByRole('link', { name: 'Ir para o Login' })).toHaveClass('reflexo');
     await userEvent.click(screen.getByRole('link', { name: 'Ir para o Login' }));
     expect(
       screen.getByRole('heading', { level: 1, name: 'Bem-vindo de volta' }),

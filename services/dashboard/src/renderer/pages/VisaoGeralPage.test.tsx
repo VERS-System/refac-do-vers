@@ -76,6 +76,8 @@ describe('VisaoGeralPage — Dia (padrão)', () => {
 
     const card = await regiaoCom('Bateria do sistema', '68');
     expect(within(card).getByText('Carregando')).toBeInTheDocument();
+    // A barra de nível se preenche ao aparecer (Fase 5).
+    expect(card.querySelector('.preencher-barra')).not.toBeNull();
   });
 
   /** Gráfico do dia com movimento, intervalo e pico no resumo acessível. */

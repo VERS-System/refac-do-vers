@@ -44,4 +44,18 @@ describe('AuthLayout', () => {
     expect(screen.getByText(/can be/)).toHaveTextContent('every vibration can be VERS');
     expect(screen.getByText(/Protótipo acadêmico/)).toBeInTheDocument();
   });
+
+  /** O painel da marca tem as ondas douradas atrás do conteúdo (Waves, Fase 5). */
+  it('mostra as ondas no painel da marca', () => {
+    render(
+      <AuthLayout title="Bem-vindo de volta">
+        <p>Formulário</p>
+      </AuthLayout>,
+    );
+
+    const painel = screen
+      .getByRole('heading', { level: 1, name: 'Bem-vindo de volta' })
+      .closest('aside');
+    expect(painel?.querySelector('canvas[aria-hidden="true"]')).not.toBeNull();
+  });
 });

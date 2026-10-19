@@ -4,13 +4,34 @@
  * Compila em conjunto os três alvos do Electron:
  * - main: processo principal (janela, ciclo de vida do app);
  * - preload: ponte segura entre o processo principal e a interface;
- * - renderer: a interface React, com Tailwind v4.
+ * - renderer: a interface React, com Tailwind v4. No build, o `index.html`
+ *   ganha a política de conteúdo (CSP) de `src/main/seguranca.ts`.
  */
 
 import { resolve } from 'node:path';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { POLITICA_CSP } from './src/main/seguranca';
+
+/**
+ * Injeta a CSP no `index.html` só no build: no desenvolvimento o Vite usa
+ * script inline (React Refresh) e websocket, que a política bloquearia.
+ */
+function politicaDeConteudo(): Plugin {
+  return {
+    name: 'vers-politica-de-conteudo',
+    apply: 'build',
+    transformIndexHtml: () => [
+      {
+        tag: 'meta',
+        attrs: { 'http-equiv': 'Content-Security-Policy', content: POLITICA_CSP },
+        injectTo: 'head-prepend',
+      },
+    ],
+  };
+}
 
 export default defineConfig({
   main: {
@@ -30,7 +51,7 @@ export default defineConfig({
     resolve: {
       alias: { '@': resolve(__dirname, 'src/renderer') },
     },
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), politicaDeConteudo()],
     // O cliente HTTP usa a URL relativa /api/v1; em desenvolvimento ela vai para a API local.
     server: {
       proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } },

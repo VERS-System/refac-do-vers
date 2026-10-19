@@ -424,3 +424,22 @@ const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function emailValido(email: string): boolean {
   return FORMATO_EMAIL.test(email.trim());
 }
+
+/**
+ * Média móvel centrada de uma série, para desenhar a curva do dia sem o
+ * serrilhado minuto a minuto do sensor. Nas pontas usa só os vizinhos que
+ * existem. O ponto mais alto (o pico, que o gráfico rotula) volta ao valor
+ * medido, para a curva passar pelo pico real. Só para o desenho: o tooltip e
+ * os cálculos continuam com os valores medidos.
+ */
+export function suavizarSerie(valores: readonly number[], janela = 5): number[] {
+  if (valores.length === 0) return [];
+  const raio = Math.floor(janela / 2);
+  const suavizada = valores.map((_, i) => {
+    const trecho = valores.slice(Math.max(0, i - raio), i + raio + 1);
+    return trecho.reduce((soma, valor) => soma + valor, 0) / trecho.length;
+  });
+  const pico = valores.indexOf(Math.max(...valores));
+  suavizada[pico] = valores[pico];
+  return suavizada;
+}

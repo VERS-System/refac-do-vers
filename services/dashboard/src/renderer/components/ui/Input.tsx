@@ -66,7 +66,7 @@ export function Input({
           aria-describedby={apoio ? idApoio : undefined}
           className={cn(
             'h-11 w-full rounded-full border bg-inset text-sm text-fg placeholder:text-fg-muted',
-            'transition-colors duration-150 outline-none focus-visible:border-accent-border',
+            'transition-colors duration-150 focus-visible:border-accent-border',
             Icon ? 'pl-11' : 'pl-4',
             trailing ? 'pr-12' : 'pr-4',
             error ? 'border-danger' : 'border-line',

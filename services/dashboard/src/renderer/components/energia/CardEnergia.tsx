@@ -16,7 +16,8 @@ import { Badge } from '@/components/ui/Badge';
 import { KpiConsulta } from '@/components/ui/KpiConsulta';
 import { Sparkline } from '@/components/charts/Sparkline';
 import type { ComparacaoEnergia } from '@/data/tipos';
-import { formatarEnergia, formatarVariacao } from '@/lib/format';
+import { formatarVariacao } from '@/lib/format';
+import { energiaDoKpi } from './KpisEnergia';
 import { periodoEmBarras, ROTULOS_ENERGIA, useEnergiaDoPeriodo } from './useEnergiaDoPeriodo';
 
 /** Texto da referência da comparação. */
@@ -52,8 +53,9 @@ export interface CardEnergiaProps {
 /**
  * Renderiza o card com o resumo do período global.
  *
- * Usa `formatarEnergia`, que troca de mWh para Wh a partir de 1.000 mWh
- * (292 mWh hoje, 1,92 Wh na semana).
+ * Usa `energiaDoKpi`: o valor é contado até o resumo do período e a escala
+ * troca de mWh para Wh a partir de 1.000 mWh (292 mWh hoje, 1,92 Wh na
+ * semana).
  */
 export function CardEnergia({ variante = 'visao-geral' }: CardEnergiaProps) {
   const { periodo, resumo, pontosCurva, dias } = useEnergiaDoPeriodo();
@@ -73,13 +75,12 @@ export function CardEnergia({ variante = 'visao-geral' }: CardEnergiaProps) {
       badge={icone}
     >
       {(dados) => {
-        const energia = formatarEnergia(dados.energiaRecuperadaMwh);
+        const energia = energiaDoKpi(dados.energiaRecuperadaMwh);
         const comparacao = dados.comparacao && <BadgeComparacao comparacao={dados.comparacao} />;
         const minicurva = serie && <Sparkline valores={serie} />;
         if (variante === 'energia') {
           return {
-            value: energia.valor,
-            unit: energia.unidade,
+            ...energia,
             children: (
               <div className="flex items-center justify-between gap-3">
                 {comparacao}
@@ -89,8 +90,7 @@ export function CardEnergia({ variante = 'visao-geral' }: CardEnergiaProps) {
           };
         }
         return {
-          value: energia.valor,
-          unit: energia.unidade,
+          ...energia,
           badge: comparacao,
           children: minicurva,
         };

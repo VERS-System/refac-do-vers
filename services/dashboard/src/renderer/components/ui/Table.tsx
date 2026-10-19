@@ -34,6 +34,8 @@ export interface TableProps<T> {
   /** Menos espaço lateral nas células, para tabelas com muitas colunas (ex.: amostras). */
   densa?: boolean;
   className?: string;
+  /** Marca a linha atual (`aria-current` e fundo dourado suave), como o item aberto pela busca. */
+  isRowCurrent?: (row: T) => boolean;
 }
 
 const CLASSES_ALINHAMENTO = {
@@ -76,6 +78,7 @@ export function Table<T>({
   emptyMessage = 'Nenhum registro encontrado',
   densa = false,
   className,
+  isRowCurrent,
 }: TableProps<T>) {
   const espacamento = densa ? 'px-2.5' : 'px-4';
   return (
@@ -112,7 +115,11 @@ export function Table<T>({
             rows.map((linha) => (
               <tr
                 key={getRowKey(linha)}
-                className="h-12 border-b border-line-subtle transition-colors last:border-0 hover:bg-hover/40"
+                aria-current={isRowCurrent?.(linha) ? 'true' : undefined}
+                className={cn(
+                  'h-12 border-b border-line-subtle transition-colors last:border-0 hover:bg-hover/40',
+                  isRowCurrent?.(linha) && 'bg-accent-subtle/60',
+                )}
               >
                 {columns.map((coluna) => (
                   <td

@@ -3,9 +3,48 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
-import { KpiCard } from './KpiCard';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { KpiCard, valorContado } from './KpiCard';
 import { Badge } from './Badge';
+
+describe('KpiCard — movimento (Fase 5)', () => {
+  /** O brilho dourado (SpotlightCard) acompanha o cursor dentro do card. */
+  it('leva o brilho até o cursor', () => {
+    render(<KpiCard label="Potência instantânea" value="212" unit="mW" />);
+    const regiao = screen.getByRole('region', { name: 'Potência instantânea' });
+
+    fireEvent.pointerMove(regiao, { clientX: 40, clientY: 24 });
+
+    expect(regiao).toHaveClass('spotlight');
+    // No hover o card sobe 2 px (Fase 5).
+    expect(regiao).toHaveClass('hover:-translate-y-0.5');
+    expect(regiao.style.getPropertyValue('--spot-x')).toBe('40px');
+    expect(regiao.style.getPropertyValue('--spot-y')).toBe('24px');
+  });
+
+  /** Com `contagem`, o valor é um número contado e formatado pelo próprio card. */
+  it('conta o valor numérico', () => {
+    render(
+      <KpiCard
+        label="Bateria do sistema"
+        contagem={{ numero: 68, formatar: (n) => String(Math.round(n)) }}
+        unit="%"
+      />,
+    );
+
+    const regiao = screen.getByRole('region', { name: 'Bateria do sistema' });
+    expect(within(regiao).getByText('68')).toBeInTheDocument();
+    expect(within(regiao).getByText('%')).toBeInTheDocument();
+  });
+
+  /** Sem número (dado ausente), o card mostra o traço em vez de contar. */
+  it('não conta valor ausente', () => {
+    const formatar = (n: number) => String(n);
+
+    expect(valorContado(null, formatar)).toEqual({ value: '–' });
+    expect(valorContado(53.5, formatar)).toEqual({ contagem: { numero: 53.5, formatar } });
+  });
+});
 
 describe('KpiCard', () => {
   /** O card é uma região nomeada pelo rótulo, com valor e unidade dentro. */

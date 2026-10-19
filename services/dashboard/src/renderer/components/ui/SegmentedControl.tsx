@@ -3,10 +3,11 @@
  *
  * Implementado como um grupo de rádios acessível: a opção marcada fica
  * destacada em dourado, só ela entra na ordem de tabulação e as setas
- * esquerda/direita mudam a seleção, como nos controles nativos.
+ * esquerda/direita mudam a seleção, como nos controles nativos. O fundo
+ * dourado da opção marcada desliza até a nova opção (Fase 5).
  */
 
-import { useRef, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { cn } from '@/lib/cn';
 
 export interface SegmentedOption<T extends string> {
@@ -38,6 +39,26 @@ export function SegmentedControl<T extends string>({
   className,
 }: SegmentedControlProps<T>) {
   const botoes = useRef<(HTMLButtonElement | null)[]>([]);
+  const [destaque, setDestaque] = useState<{ esquerda: number; largura: number } | null>(null);
+  const posicionado = useRef(false);
+  const indiceMarcado = options.findIndex((opcao) => opcao.value === value);
+
+  // Destaque deslizante (Fase 5): mede a opção marcada e leva o fundo até ela.
+  // A primeira posição entra sem transição.
+  // Mede de novo se o tamanho mudar (por exemplo, quando a fonte termina de carregar).
+  useLayoutEffect(() => {
+    const medir = () => {
+      const botao = botoes.current[indiceMarcado];
+      setDestaque(botao ? { esquerda: botao.offsetLeft, largura: botao.offsetWidth } : null);
+    };
+    medir();
+    const observador = new ResizeObserver(medir);
+    for (const botao of botoes.current) if (botao) observador.observe(botao);
+    return () => observador.disconnect();
+  }, [indiceMarcado]);
+  useLayoutEffect(() => {
+    if (destaque) posicionado.current = true;
+  }, [destaque]);
 
   /** Trata as setas: seleciona e foca a opção vizinha. */
   function aoPressionarTecla(evento: KeyboardEvent<HTMLButtonElement>, indice: number) {
@@ -54,10 +75,23 @@ export function SegmentedControl<T extends string>({
       role="radiogroup"
       aria-label={rotulo}
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border border-line p-1',
+        'relative inline-flex items-center gap-1 rounded-full border border-line p-1',
         className,
       )}
     >
+      {destaque && (
+        <span
+          data-slot="indicador"
+          data-valor={value}
+          aria-hidden="true"
+          style={{ transform: `translateX(${destaque.esquerda}px)`, width: destaque.largura }}
+          className={cn(
+            'absolute top-1 bottom-1 left-0 rounded-full bg-accent',
+            posicionado.current &&
+              'transition-[transform,width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+          )}
+        />
+      )}
       {options.map((opcao, indice) => {
         const marcada = opcao.value === value;
         return (
@@ -73,9 +107,9 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(opcao.value)}
             onKeyDown={(evento) => aoPressionarTecla(evento, indice)}
             className={cn(
-              'h-8 rounded-full px-4 text-sm transition-colors duration-150',
+              'relative h-8 rounded-full px-4 text-sm transition-colors duration-150',
               marcada
-                ? 'bg-accent font-medium text-fg-on-accent'
+                ? 'font-medium text-fg-on-accent'
                 : 'text-fg-secondary hover:bg-hover hover:text-fg',
             )}
           >

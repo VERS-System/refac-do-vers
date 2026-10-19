@@ -5,7 +5,8 @@
  * status do ESP32 e linha do usuário com o botão de sair.
  */
 
-import { useId } from 'react';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
@@ -25,6 +26,7 @@ export interface SidebarProps {
   /** Dispositivo de coleta; ausente enquanto carrega. */
   dispositivo?: DispositivoResumo;
   onSair: () => void;
+  className?: string;
 }
 
 /**
@@ -45,7 +47,7 @@ function CardDispositivo({ dispositivo }: { dispositivo: DispositivoResumo }) {
           aria-hidden="true"
           className={cn(
             'size-2 shrink-0 rounded-full',
-            dispositivo.online ? 'bg-success' : 'bg-fg-muted',
+            dispositivo.online ? 'ponto-vivo bg-success' : 'bg-fg-muted',
           )}
         />
         <h2 id={idNome} className="min-w-0 flex-1 truncate font-mono text-xs font-semibold text-fg">
@@ -81,6 +83,63 @@ function CardDispositivoCarregando() {
   );
 }
 
+/** Posição do destaque do item ativo, medida do próprio item. */
+interface Destaque {
+  alvo: string;
+  topo: number;
+  altura: number;
+}
+
+/**
+ * Navegação com o destaque deslizante (Fase 5): um único fundo dourado que
+ * desliza até o item da rota atual. A primeira posição entra sem transição,
+ * para o destaque não "voar" do topo ao abrir o app.
+ */
+function NavegacaoPrincipal() {
+  const local = useLocation();
+  const nav = useRef<HTMLElement>(null);
+  const [destaque, setDestaque] = useState<Destaque | null>(null);
+  const posicionado = useRef(false);
+
+  useLayoutEffect(() => {
+    const ativo = nav.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!ativo) {
+      setDestaque(null);
+      return;
+    }
+    setDestaque({
+      alvo: ativo.getAttribute('href')?.replace(/^#/, '') ?? local.pathname,
+      topo: ativo.offsetTop,
+      altura: ativo.offsetHeight,
+    });
+  }, [local.pathname]);
+
+  useLayoutEffect(() => {
+    if (destaque) posicionado.current = true;
+  }, [destaque]);
+
+  return (
+    <nav ref={nav} aria-label="Navegação principal" className="relative mt-8 flex flex-col gap-1">
+      {destaque && (
+        <span
+          data-slot="indicador-nav"
+          data-alvo={destaque.alvo}
+          aria-hidden="true"
+          style={{ transform: `translateY(${destaque.topo}px)`, height: destaque.altura }}
+          className={cn(
+            'absolute top-0 right-0 left-0 rounded-control border border-accent-border bg-accent-subtle',
+            posicionado.current &&
+              'transition-[transform,height] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+          )}
+        />
+      )}
+      {NAVEGACAO_PRINCIPAL.map((item) => (
+        <NavItem key={item.path} to={item.path} label={item.label} icon={item.icon} />
+      ))}
+    </nav>
+  );
+}
+
 /**
  * Renderiza a sidebar completa; a navegação usa a lista de `routes/navegacao`.
  *
@@ -88,15 +147,16 @@ function CardDispositivoCarregando() {
  * dispositivo e a linha do usuário mostram espaços reservados até os dados
  * chegarem, sem deslocar o layout.
  */
-export function Sidebar({ usuario, dispositivo, onSair }: SidebarProps) {
+export function Sidebar({ usuario, dispositivo, onSair, className }: SidebarProps) {
   return (
-    <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line-subtle bg-sidebar px-4 pt-6 pb-4">
+    <aside
+      className={cn(
+        'flex h-full w-[248px] shrink-0 flex-col overflow-y-auto border-r border-line-subtle bg-sidebar px-4 pt-6 pb-4',
+        className,
+      )}
+    >
       <VersLogo version={VERSAO_APP} className="px-2" />
-      <nav aria-label="Navegação principal" className="mt-8 flex flex-col gap-1">
-        {NAVEGACAO_PRINCIPAL.map((item) => (
-          <NavItem key={item.path} to={item.path} label={item.label} icon={item.icon} />
-        ))}
-      </nav>
+      <NavegacaoPrincipal />
       <div className="mt-auto flex flex-col gap-4">
         {dispositivo ? (
           <CardDispositivo dispositivo={dispositivo} />

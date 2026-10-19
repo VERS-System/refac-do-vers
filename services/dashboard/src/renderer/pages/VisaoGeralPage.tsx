@@ -11,10 +11,8 @@
  * mostram o estado atual do sistema (decisão de 14/10/2026).
  */
 
-import { Bell, Search } from 'lucide-react';
 import { Page } from '@/components/layout/Page';
 import { PeriodSelector } from '@/components/layout/PeriodSelector';
-import { IconButton } from '@/components/ui/IconButton';
 import { CadeiaConversao } from '@/components/visao-geral/CadeiaConversao';
 import { CardEnergia } from '@/components/energia/CardEnergia';
 import { CardGraficoEnergia } from '@/components/energia/CardGraficoEnergia';
@@ -26,25 +24,15 @@ import { useVeiculoAtivo } from '@/hooks/useDados';
 export function VisaoGeralPage() {
   const { data: veiculo } = useVeiculoAtivo();
   return (
-    <Page
-      title="Visão geral"
-      subtitle={veiculo?.descricao}
-      controls={<PeriodSelector />}
-      actions={
-        <>
-          <IconButton icon={Search} label="Buscar registros" />
-          <IconButton icon={Bell} label="Notificações" />
-        </>
-      }
-    >
+    <Page title="Visão geral" subtitle={veiculo?.descricao} controls={<PeriodSelector />}>
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <CardEnergia />
           <CardPotencia />
           <CardEficiencia />
           <CardBateria />
         </div>
-        <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-4">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
           <CardGraficoEnergia />
           <CardVibracao />
         </div>

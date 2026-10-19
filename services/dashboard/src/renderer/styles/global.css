@@ -94,9 +94,15 @@
   }
 
   /* Anel de foco dourado (3 px, 45%) definido no DESIGN.md. */
-  :focus-visible {
+  :focus-visible,
+  .anel-foco-dentro:has(:focus-visible) {
     outline: 3px solid rgb(213 196 98 / 0.45);
     outline-offset: 2px;
+  }
+
+  /* Dentro de uma pílula que já mostra o anel, o controle não repete o seu. */
+  .anel-foco-dentro :focus-visible {
+    outline: none;
   }
 }
 
@@ -104,6 +110,249 @@
   /* Algarismos de largura fixa para valores numéricos alinhados. */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * SpotlightCard (DESIGN.md): brilho dourado suave que segue o cursor sobre
+   * o card. O KpiCard escreve a posição em --spot-x/--spot-y; o brilho fica
+   * atrás do conteúdo (isolation + z-index negativo) e só acende no hover.
+   */
+  .spotlight {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .spotlight::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      260px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      rgb(213 196 98 / 0.09),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .spotlight:hover::before {
+    opacity: 1;
+  }
+
+  /*
+   * GlareHover (DESIGN.md) do botão primário: uma faixa de luz inclinada
+   * atravessa a pílula uma vez quando o cursor entra. Fica recortada pela
+   * pílula e não intercepta o clique. Sem movimento, a faixa não aparece.
+   */
+  .reflexo {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .reflexo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgb(255 255 255 / 0.32) 50%,
+      transparent 65%
+    );
+    transform: translateX(-120%);
+  }
+
+  .reflexo:hover::after {
+    transform: translateX(120%);
+    transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /*
+   * Pulso do ponto ao vivo (DESIGN.md: "subtle pulse on the live dot only").
+   * Um anel da cor do ponto cresce e some a cada 2,4 s; o ponto em si não
+   * muda. Sem movimento, fica só o ponto parado.
+   */
+  .ponto-vivo {
+    position: relative;
+  }
+
+  .ponto-vivo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    pointer-events: none;
+    animation: ponto-vivo 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+}
+
+/*
+ * AnimatedList (DESIGN.md) das Últimas leituras: a leitura nova surge no
+ * topo com fade e um deslize curto de cima, sem empurrar as outras aos saltos.
+ */
+.entrada-leitura {
+  animation: entrada-leitura 320ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes entrada-leitura {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* Menu lateral das telas estreitas: o painel desliza da esquerda. */
+.entrada-menu {
+  animation: entrada-menu 220ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes entrada-menu {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+/* Troca de tela (Fase 5): o conteúdo da tela nova entra com fade curto. */
+.entrada-tela {
+  animation: entrada-tela 200ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes entrada-tela {
+  from {
+    opacity: 0;
+  }
+}
+
+/*
+ * Entrada dos cards (Fase 5): fade e deslize curto de baixo, em sequência
+ * com os vizinhos (40 ms entre eles, até o 6º do grupo), para a tela se
+ * montar em menos de meio segundo.
+ */
+.entrada-card {
+  animation: entrada-card 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.entrada-card:nth-child(2) {
+  animation-delay: 40ms;
+}
+.entrada-card:nth-child(3) {
+  animation-delay: 80ms;
+}
+.entrada-card:nth-child(4) {
+  animation-delay: 120ms;
+}
+.entrada-card:nth-child(5) {
+  animation-delay: 160ms;
+}
+.entrada-card:nth-child(n + 6) {
+  animation-delay: 200ms;
+}
+
+@keyframes entrada-card {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Onda da Vibração RMS (Fase 5): corre um ciclo por volta, devagar e sem emenda. */
+.onda-correndo {
+  animation: onda-correndo 1.6s linear infinite;
+}
+
+@keyframes onda-correndo {
+  to {
+    transform: translateX(calc(var(--ciclo) * -1));
+  }
+}
+
+/* Medidor de anel e barra de nível se preenchem do zero ao aparecer (Fase 5). */
+.preencher-anel {
+  animation: preencher-anel 700ms cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
+}
+
+@keyframes preencher-anel {
+  from {
+    stroke-dasharray: 0 var(--circ);
+  }
+}
+
+.preencher-barra {
+  transform-origin: left;
+  animation: preencher-barra 700ms cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
+}
+
+@keyframes preencher-barra {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Stepper (DESIGN.md) do Criar conta: o conteúdo da etapa nova entra com fade curto. */
+.entrada-etapa {
+  animation: entrada-etapa 260ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes entrada-etapa {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+
+/*
+ * Fluxo da Cadeia de conversão (Fase 5): luzes douradas correm pelo trilho,
+ * do Ponto 1 ao Ponto 4, em --duracao, e terminam com a opacidade --fim (a
+ * fração da energia que chega ao celular). A largura do trilho vem do
+ * container (100cqw).
+ */
+.fluxo-trilho {
+  container-type: inline-size;
+}
+
+.fluxo-luz {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 9999px;
+  background: var(--color-accent);
+  box-shadow: 0 0 10px rgb(213 196 98 / 0.7);
+  animation: fluxo-energia var(--duracao, 3s) linear infinite;
+}
+
+@keyframes fluxo-energia {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100cqw);
+    opacity: var(--fim, 0.5);
+  }
+}
+
+@keyframes ponto-vivo {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
   }
 }
 
@@ -119,6 +368,11 @@
   scroll-behavior: auto !important;
 }
 
+/* Parada, a luz do fluxo seria só um ponto solto no trilho: some. */
+:root[data-reduzir-movimento] .fluxo-luz {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -126,5 +380,9 @@
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+
+  .fluxo-luz {
+    display: none;
   }
 }

@@ -5,6 +5,7 @@
  * símbolo opcional no centro (η, de eficiência).
  */
 
+import type { CSSProperties } from 'react';
 import { cn } from '@/lib/cn';
 
 export interface MedidorAnelProps {
@@ -24,7 +25,8 @@ const CIRCUNFERENCIA = 2 * Math.PI * RAIO;
  *
  * O arco usa `stroke-dasharray` ("preenchido total"): o traço cobre só a
  * fração do percentual e o resto fica vazio. A rotação de -90° faz o arco
- * começar no topo. É decorativo; o valor está no texto do card.
+ * começar no topo. É decorativo; o valor está no texto do card. Ao aparecer,
+ * o arco se preenche do zero até o percentual (`preencher-anel`, Fase 5).
  */
 export function MedidorAnel({ percentual, simbolo, className }: MedidorAnelProps) {
   const fracao = Math.min(Math.max((percentual ?? 0) / 100, 0), 1);
@@ -53,7 +55,8 @@ export function MedidorAnel({ percentual, simbolo, className }: MedidorAnelProps
           strokeWidth={ESPESSURA}
           strokeLinecap="round"
           strokeDasharray={`${fracao * CIRCUNFERENCIA} ${CIRCUNFERENCIA}`}
-          className="stroke-accent"
+          style={{ '--circ': CIRCUNFERENCIA } as CSSProperties}
+          className="preencher-anel stroke-accent"
         />
       </svg>
       {simbolo && (

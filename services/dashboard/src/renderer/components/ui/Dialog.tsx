@@ -5,7 +5,10 @@
  * Acessível como pede a WAI-ARIA: `role="dialog"` com `aria-modal`, nome
  * pelo título e descrição pelo texto de apoio; o foco entra no primeiro
  * elemento interativo, fica preso dentro (Tab e Shift+Tab dão a volta) e
- * volta para quem abriu ao fechar. Esc e o clique no fundo fecham.
+ * volta para quem abriu ao fechar. Esc e o clique no fundo fecham. Aberto,
+ * o resto da página fica inerte e sem rolagem, e o Esc vale mesmo com o foco
+ * fora do painel (Fase 5). A variante `lateral` abre um painel na altura
+ * toda, à esquerda: o menu das telas estreitas (app responsivo).
  */
 
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
@@ -20,6 +23,12 @@ export interface DialogProps {
   onFechar: () => void;
   children?: ReactNode;
   className?: string;
+  /**
+   * `centro` (padrão): painel no meio da tela. `lateral`: painel na altura
+   * toda, à esquerda (o menu das telas estreitas), com o título só para o
+   * leitor de tela.
+   */
+  variante?: 'centro' | 'lateral';
 }
 
 /** Elementos que recebem foco pelo teclado. */
@@ -37,7 +46,16 @@ function focaveis(painel: HTMLElement | null): HTMLElement[] {
  * Ao abrir, guarda o elemento que tinha o foco e foca o primeiro elemento
  * interativo do painel (ou o próprio painel); ao fechar, devolve o foco.
  */
-export function Dialog({ aberto, titulo, descricao, onFechar, children, className }: DialogProps) {
+export function Dialog({
+  aberto,
+  titulo,
+  descricao,
+  onFechar,
+  children,
+  className,
+  variante = 'centro',
+}: DialogProps) {
+  const lateral = variante === 'lateral';
   const idTitulo = useId();
   const idDescricao = useId();
   const painel = useRef<HTMLDivElement>(null);
@@ -47,9 +65,34 @@ export function Dialog({ aberto, titulo, descricao, onFechar, children, classNam
   useEffect(() => {
     if (!aberto) return undefined;
     const anterior = document.activeElement as HTMLElement | null;
+
+    // O resto da página fica inerte (fora do Tab, do clique e do leitor de
+    // tela) e sem rolagem enquanto o diálogo está aberto.
+    const raiz = painel.current?.closest('[data-slot="raiz-dialogo"]');
+    const fundo = Array.from(document.body.children).filter(
+      (elemento) => elemento !== raiz && !elemento.hasAttribute('inert'),
+    );
+    for (const elemento of fundo) elemento.setAttribute('inert', '');
+    const rolagem = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    /** Esc fecha mesmo com o foco fora do painel (ex.: no corpo da página). */
+    const escapar = (evento: globalThis.KeyboardEvent) => {
+      if (evento.key === 'Escape' && !painel.current?.contains(evento.target as Node)) {
+        fechar.current();
+      }
+    };
+    document.addEventListener('keydown', escapar);
+
     const [primeiro] = focaveis(painel.current);
     (primeiro ?? painel.current)?.focus();
-    return () => anterior?.focus?.();
+    return () => {
+      document.removeEventListener('keydown', escapar);
+      for (const elemento of fundo) elemento.removeAttribute('inert');
+      document.body.style.overflow = rolagem;
+      // Só depois de sair do inerte quem abriu o diálogo pode receber o foco.
+      anterior?.focus?.();
+    };
   }, [aberto]);
 
   if (!aberto) return null;
@@ -76,7 +119,10 @@ export function Dialog({ aberto, titulo, descricao, onFechar, children, classNam
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 grid place-items-center p-6">
+    <div
+      data-slot="raiz-dialogo"
+      className={cn('fixed inset-0 z-50', lateral ? 'flex' : 'grid place-items-center p-4 sm:p-6')}
+    >
       <div
         data-slot="fundo"
         aria-hidden="true"
@@ -87,16 +133,19 @@ export function Dialog({ aberto, titulo, descricao, onFechar, children, classNam
         ref={painel}
         role="dialog"
         aria-modal="true"
+        data-variante={variante}
         aria-labelledby={idTitulo}
         aria-describedby={descricao ? idDescricao : undefined}
         tabIndex={-1}
         onKeyDown={aoPressionarTecla}
         className={cn(
-          'relative flex max-h-[90vh] w-full max-w-lg flex-col gap-5 overflow-y-auto rounded-card border border-line bg-surface p-6 shadow-elevation-1 outline-none',
+          lateral
+            ? 'entrada-menu relative flex h-full max-w-[85vw] flex-col overflow-y-auto shadow-elevation-1 outline-none'
+            : 'relative flex max-h-[90vh] w-full max-w-lg flex-col gap-5 overflow-y-auto rounded-card border border-line bg-surface p-5 shadow-elevation-1 outline-none sm:p-6',
           className,
         )}
       >
-        <header className="flex flex-col gap-1">
+        <header className={cn('flex flex-col gap-1', lateral && 'sr-only')}>
           <h2 id={idTitulo} className="text-lg leading-6 font-semibold text-fg">
             {titulo}
           </h2>

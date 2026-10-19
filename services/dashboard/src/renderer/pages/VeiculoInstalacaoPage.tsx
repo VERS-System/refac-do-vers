@@ -56,7 +56,7 @@ export function VeiculoInstalacaoPage() {
         </>
       }
     >
-      <div className="grid grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)_minmax(0,0.9fr)] items-start gap-4">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:[&>*:last-child]:col-span-2 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)_minmax(0,0.9fr)] xl:[&>*:last-child]:col-span-1">
         <div className="flex flex-col gap-4">
           <CardVeiculo onEditar={setEditando} />
           <CardOutrosVeiculos onTornarPrincipal={setTornandoPrincipal} />

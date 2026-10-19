@@ -26,7 +26,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { horarioParaMinutos, minutosParaHorario } from '@/data/calculos';
+import { horarioParaMinutos, minutosParaHorario, suavizarSerie } from '@/data/calculos';
+import { useAnimacaoGrafico } from '@/hooks/useAnimacaoGrafico';
 import type { Horario, PontoCurva, ResumoDia } from '@/data/tipos';
 import {
   formatarDataCurta,
@@ -153,8 +154,26 @@ interface TamanhoInjetado {
 /** Formato de um ponto da curva para o Recharts (x em minutos desde 00:00). */
 interface PontoGrafico {
   minuto: number;
+  /** Potência recuperada medida (tooltip). */
   recuperada: number;
+  /** Potência recuperada suavizada, só para o desenho da área. */
+  desenho: number;
   consumo: number;
+}
+
+/**
+ * Pontos da curva para o Recharts. A área é desenhada com a média móvel de
+ * 5 min (`suavizarSerie`), sem o serrilhado minuto a minuto do sensor, e
+ * passa pelo pico medido; o tooltip mostra o valor medido (Fase 5).
+ */
+export function pontosDaCurva(pontos: readonly PontoCurva[]): PontoGrafico[] {
+  const desenho = suavizarSerie(pontos.map((p) => p.recuperadaMw));
+  return pontos.map((p, i) => ({
+    minuto: horarioParaMinutos(p.horario),
+    recuperada: p.recuperadaMw,
+    desenho: desenho[i],
+    consumo: p.consumoNoMw,
+  }));
 }
 
 /**
@@ -169,11 +188,8 @@ function Curva({
   width,
   height,
 }: Extract<GraficoEnergiaProps, { tipo: 'curva' }> & TamanhoInjetado) {
-  const dados: PontoGrafico[] = pontos.map((p) => ({
-    minuto: horarioParaMinutos(p.horario),
-    recuperada: p.recuperadaMw,
-    consumo: p.consumoNoMw,
-  }));
+  const animacao = useAnimacaoGrafico();
+  const dados = pontosDaCurva(pontos);
   const inicio = escala === 'dia' ? 0 : dados[0].minuto;
   const fim = escala === 'dia' ? MINUTOS_NO_DIA : dados[dados.length - 1].minuto;
   const topo = topoDoEixo(Math.max(...dados.map((d) => Math.max(d.recuperada, d.consumo))));
@@ -233,15 +249,16 @@ function Curva({
         strokeDasharray="4 4"
         strokeWidth={1.5}
         dot={false}
-        isAnimationActive={false}
+        {...animacao}
       />
       <Area
-        dataKey="recuperada"
+        dataKey="desenho"
+        type="monotone"
         stroke={COR.recuperada}
         strokeWidth={2}
         fill="url(#vers-gradiente-recuperada)"
         dot={false}
-        isAnimationActive={false}
+        {...animacao}
       />
       {pico?.horario && (
         <ReferenceDot
@@ -297,6 +314,7 @@ function Barras({
   width,
   height,
 }: Extract<GraficoEnergiaProps, { tipo: 'barras' }> & TamanhoInjetado) {
+  const animacao = useAnimacaoGrafico();
   const dados: BarraGrafico[] = dias.map((dia) => ({
     rotulo: rotulo === 'data' ? formatarDataCurta(dia.data) : formatarDiaSemanaCurto(dia.data),
     data: dia.data,
@@ -356,7 +374,7 @@ function Barras({
         fill={COR.recuperada}
         radius={[6, 6, 0, 0]}
         maxBarSize={serieBateria ? 18 : 36}
-        isAnimationActive={false}
+        {...animacao}
       >
         {rotuloValor}
       </Bar>
@@ -366,7 +384,7 @@ function Barras({
           fill={COR.bateria}
           radius={[6, 6, 0, 0]}
           maxBarSize={18}
-          isAnimationActive={false}
+          {...animacao}
         >
           {rotuloValor}
         </Bar>

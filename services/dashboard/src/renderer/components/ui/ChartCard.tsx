@@ -42,7 +42,7 @@ export function ChartCard({
   const idTitulo = useId();
   return (
     <Card as="section" aria-labelledby={idTitulo} className={cn('flex flex-col', className)}>
-      <header className="flex items-start justify-between gap-4">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="flex min-w-0 flex-col gap-1">
           <h2 id={idTitulo} className="text-base leading-[22px] font-semibold text-fg">
             {title}
@@ -50,9 +50,9 @@ export function ChartCard({
           {subtitle && <p className="text-[13px] leading-[18px] text-fg-muted">{subtitle}</p>}
         </div>
         {(legend?.length || actions) && (
-          <div className="flex shrink-0 items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4 sm:shrink-0">
             {legend && legend.length > 0 && (
-              <ul aria-label="Legenda" className="flex items-center gap-4">
+              <ul aria-label="Legenda" className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 {legend.map((serie) => (
                   <li
                     key={serie.label}

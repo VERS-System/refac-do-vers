@@ -7,9 +7,13 @@
  * resumo do teste encerrado ou, no teste em andamento, da última amostra da
  * telemetria. Busca por texto e terreno não existem no contrato e ficaram
  * como pedido ao backend.
+ *
+ * As abas seguem o padrão de abas do WAI-ARIA (Fase 5): só a escolhida entra
+ * na ordem do Tab, setas, Home e End trocam de aba e a tabela fica num
+ * painel nomeado pela aba escolhida.
  */
 
-import { useId } from 'react';
+import { useId, type KeyboardEvent } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { EstadoConsulta } from '@/components/ui/EstadoConsulta';
@@ -43,15 +47,21 @@ export interface TabelaHistoricoProps {
   onAlternarSelecao: (teste: TesteCampo) => void;
   /** Relógio do repositório, para a duração do teste em andamento. */
   agora: string;
+  /** Teste aberto pela busca geral, destacado na tabela. */
+  destacadoId?: string | null;
 }
 
 /** Aba com a contagem do status (consulta só o total, com página de 1 item). */
 function Aba({
+  id,
+  idPainel,
   valor,
   rotulo,
   ativa,
   onEscolher,
 }: {
+  id: string;
+  idPainel: string;
   valor: StatusTeste | 'todos';
   rotulo: string;
   ativa: boolean;
@@ -63,7 +73,10 @@ function Aba({
     <button
       type="button"
       role="tab"
+      id={id}
       aria-selected={ativa}
+      aria-controls={idPainel}
+      tabIndex={ativa ? 0 : -1}
       onClick={onEscolher}
       className={cn(
         'flex h-7 items-center rounded-full px-2.5 text-xs whitespace-nowrap transition-colors',
@@ -224,6 +237,25 @@ export function TabelaHistorico(props: TabelaHistoricoProps) {
     tamanhoPagina: TAMANHO_PAGINA_HISTORICO,
   });
   const todos = useTestes({ tamanhoPagina: 1 });
+  const idAbas = useId();
+  const idPainel = `${idAbas}-painel`;
+  const idDaAba = (valor: StatusTeste | 'todos') => `${idAbas}-aba-${valor}`;
+
+  /** Setas andam em roda; Home e End vão às pontas. A aba nova é escolhida e focada. */
+  function navegarAbas(evento: KeyboardEvent<HTMLDivElement>) {
+    const atual = ABAS.findIndex((aba) => aba.valor === props.aba);
+    const destinos: Record<string, number> = {
+      ArrowRight: (atual + 1) % ABAS.length,
+      ArrowLeft: (atual - 1 + ABAS.length) % ABAS.length,
+      Home: 0,
+      End: ABAS.length - 1,
+    };
+    const destino = destinos[evento.key];
+    if (destino === undefined) return;
+    evento.preventDefault();
+    props.onTrocarAba(ABAS[destino].valor);
+    document.getElementById(idDaAba(ABAS[destino].valor))?.focus();
+  }
 
   return (
     <Card as="section" aria-labelledby={idTitulo} className="flex flex-col">
@@ -237,11 +269,14 @@ export function TabelaHistorico(props: TabelaHistoricoProps) {
         <div
           role="tablist"
           aria-label="Status dos testes"
+          onKeyDown={navegarAbas}
           className="flex flex-wrap items-center gap-0.5 rounded-full border border-line p-1"
         >
           {ABAS.map((aba) => (
             <Aba
               key={aba.valor}
+              id={idDaAba(aba.valor)}
+              idPainel={idPainel}
               valor={aba.valor}
               rotulo={aba.rotulo}
               ativa={props.aba === aba.valor}
@@ -250,7 +285,12 @@ export function TabelaHistorico(props: TabelaHistoricoProps) {
           ))}
         </div>
       </header>
-      <div className="mt-4 flex-1">
+      <div
+        role="tabpanel"
+        id={idPainel}
+        aria-labelledby={idDaAba(props.aba)}
+        className="mt-4 flex-1"
+      >
         <EstadoConsulta
           consulta={lista}
           nome="os testes"
@@ -265,6 +305,7 @@ export function TabelaHistorico(props: TabelaHistoricoProps) {
                 getRowKey={(teste) => teste.id}
                 emptyMessage="Nenhum teste neste status."
                 densa
+                isRowCurrent={(teste) => teste.id === props.destacadoId}
               />
               <Paginacao
                 pagina={pagina.pagina}

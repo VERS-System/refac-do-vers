@@ -51,7 +51,7 @@ export function Select({ label, opcoes, helper, error, id, className, ...props }
           aria-describedby={apoio ? idApoio : undefined}
           className={cn(
             'h-11 w-full cursor-pointer appearance-none rounded-full border bg-inset pr-10 pl-4 text-sm text-fg',
-            'transition-colors duration-150 outline-none focus-visible:border-accent-border',
+            'transition-colors duration-150 focus-visible:border-accent-border',
             error ? 'border-danger' : 'border-line',
           )}
           {...props}

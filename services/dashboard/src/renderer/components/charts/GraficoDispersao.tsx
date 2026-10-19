@@ -20,6 +20,7 @@ import {
 } from 'recharts';
 import type { ParXY, Reta } from '@/data/calculos';
 import { formatarAceleracao, formatarMedida, formatarPotencia } from '@/lib/format';
+import { useAnimacaoGrafico } from '@/hooks/useAnimacaoGrafico';
 
 export interface GraficoDispersaoProps {
   pontos: readonly ParXY[];
@@ -67,6 +68,7 @@ function Dispersao({
   width,
   height,
 }: GraficoDispersaoProps & TamanhoInjetado) {
+  const animacao = useAnimacaoGrafico();
   const xs = pontos.map((p) => p.x);
   const topoX = topo(Math.max(...xs), 2);
   const topoY = topo(Math.max(...pontos.map((p) => p.y)), 50);
@@ -132,7 +134,7 @@ function Dispersao({
           )}
         />
       )}
-      <Scatter data={[...pontos]} fill="var(--color-chart-1)" isAnimationActive={false} />
+      <Scatter data={[...pontos]} fill="var(--color-chart-1)" {...animacao} />
     </ScatterChart>
   );
 }

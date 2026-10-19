@@ -21,6 +21,7 @@ import { ListaVeiculos } from '@/components/veiculos/ListaVeiculos';
 import { DialogoRemoverVeiculo, PainelDetalhes } from '@/components/veiculos/PainelDetalhes';
 import type { Veiculo } from '@/data/tipos';
 import { useVeiculos } from '@/hooks/useDados';
+import { consumirDestino } from '@/stores/destinoBusca';
 
 /** O que ocupa o lado direito da tela. */
 type Modo = 'detalhes' | 'novo' | 'editar';
@@ -28,7 +29,10 @@ type Modo = 'detalhes' | 'novo' | 'editar';
 /** Renderiza a tela Veículos. */
 export function VeiculosPage() {
   const veiculos = useVeiculos();
-  const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+  // Aberta pela busca geral, a tela começa no veículo escolhido.
+  const [selecionadoId, setSelecionadoId] = useState<string | null>(
+    () => consumirDestino('veiculo')?.id ?? null,
+  );
   const [modo, setModo] = useState<Modo>('detalhes');
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [tornandoPrincipal, setTornandoPrincipal] = useState<Veiculo | null>(null);
@@ -62,7 +66,7 @@ export function VeiculosPage() {
         </Button>
       }
     >
-      <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] items-start gap-6">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-6">
         <ListaVeiculos selecionadoId={selecionado?.id ?? null} onSelecionar={selecionar} />
         <div className="flex flex-col gap-4">
           {mensagem && (

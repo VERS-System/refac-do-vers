@@ -22,6 +22,18 @@ describe('AuthLayout', () => {
     expect(screen.getByText('Entre com suas credenciais')).toBeInTheDocument();
   });
 
+  /** Ocupa ao menos a altura visível da janela (`100dvh`), também no celular. */
+  it('ocupa ao menos a altura visível da janela', () => {
+    const { container } = render(
+      <AuthLayout title="Bem-vindo de volta">
+        <form aria-label="Entrar" />
+      </AuthLayout>,
+    );
+
+    expect(container.firstElementChild).toHaveClass('min-h-dvh');
+    expect(container.firstElementChild).not.toHaveClass('min-h-screen');
+  });
+
   /** O conteúdo (formulário) fica na área principal. */
   it('renderiza o formulário na área principal', () => {
     render(

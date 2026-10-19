@@ -64,7 +64,8 @@ export function AuthLayout({ title, description, brandSide = 'left', children }:
   return (
     <div
       className={cn(
-        'flex min-h-screen flex-col bg-canvas lg:flex-row',
+        // min-h-dvh: a altura visível de verdade no celular (100vh conta a barra escondida).
+        'flex min-h-dvh flex-col bg-canvas lg:flex-row',
         brandSide === 'right' && 'lg:flex-row-reverse',
       )}
     >

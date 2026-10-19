@@ -57,6 +57,9 @@ ou pipeline de CI/CD obrigatório.
 
 ## Etapa F — Runbooks e demonstração
 
+Primeiro recorte: [início local e demonstração simulada](../backend-phase-9-local-start.md),
+com [guia de comandos do backend](../../../../services/backend/README.md).
+
 - instalação local e configuração por `.env.example`;
 - deploy, rollback, restauração e diagnóstico;
 - carga de demonstração exclusivamente sintética;

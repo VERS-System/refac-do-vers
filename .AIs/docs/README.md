@@ -59,6 +59,9 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 - [F09 — operação e entrega manual](plans/backend-roadmap/09-operacao-entrega.md):
   validações locais, demonstração, backup e recuperação. CI/CD fora do escopo.
 
+- [Operação local do backend](../../services/backend/README.md):
+  build/start, saúde e simulação usando os comandos existentes.
+
 - `contexts/`: registros resumidos de cada sessão de trabalho com IA.
 - `plans/`: planos aprovados para evolução do projeto.
 - `problems/`: problemas identificados, causas, impactos e soluções.

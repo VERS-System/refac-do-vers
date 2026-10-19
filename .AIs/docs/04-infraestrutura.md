@@ -113,6 +113,11 @@ Cada serviço também possui seu próprio `.env.example` com as variáveis espec
 
 ## Core Backend (NestJS)
 
+Início no host, configuração do processo, probes e demonstração sintética:
+[guia local do backend](../../services/backend/README.md). Após build,
+`pnpm --filter @vers/backend start` usa a mesma entrada compilada do Docker;
+não aplica migrations nem inicia ingestão sem MQTT_ENABLED=true.
+
 ### Estrutura
 
 ```

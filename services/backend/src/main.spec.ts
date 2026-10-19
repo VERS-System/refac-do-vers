@@ -2,7 +2,11 @@
 
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { configureApplication } from './main';
+import { NestFactory } from '@nestjs/core';
+import { bootstrap, configureApplication } from './main';
+import { RealtimeIngestionService } from './modules/realtime/realtime-ingestion.service';
+
+jest.mock('./app.module', () => ({ AppModule: class {} }));
 
 describe('configureApplication', () => {
   it('aplica infraestrutura global de API e devolve a porta validada', () => {
@@ -50,5 +54,52 @@ describe('configureApplication', () => {
     expect(configService.getOrThrow).toHaveBeenCalledWith('CORS_ORIGINS');
     expect(configService.getOrThrow).toHaveBeenCalledWith('NODE_ENV');
     expect(configService.getOrThrow).toHaveBeenCalledWith('PORT');
+  });
+});
+
+describe('bootstrap com ingestão opt-in', () => {
+  const coordinator = { start: jest.fn() };
+  const config = { getOrThrow: jest.fn(), get: jest.fn() };
+  const app = { get: jest.fn(), listen: jest.fn(), close: jest.fn(),
+    use: jest.fn(), enableCors: jest.fn(), useWebSocketAdapter: jest.fn(), getHttpServer: jest.fn(),
+    useGlobalPipes: jest.fn(), useGlobalFilters: jest.fn(), useGlobalInterceptors: jest.fn(),
+    setGlobalPrefix: jest.fn(), enableShutdownHooks: jest.fn() };
+  beforeEach(() => {
+    jest.resetAllMocks();
+    config.getOrThrow.mockImplementation((key: string) => {
+      const values: Record<string, string | number> = { NODE_ENV: 'test', CORS_ORIGINS: 'http://localhost:3050',
+        API_PREFIX: 'api/v1', PORT: 3000 };
+      return values[key];
+    });
+    config.get.mockReturnValue(false);
+    app.get.mockImplementation((token: unknown) => token === ConfigService ? config : coordinator);
+    app.listen.mockResolvedValue(undefined); app.close.mockResolvedValue(undefined);
+    jest.spyOn(NestFactory, 'create').mockResolvedValue(app as never);
+  });
+  afterEach(() => { jest.restoreAllMocks(); });
+  it('mantém ingestão desabilitada por padrão, sem resolver coordenador', async () => {
+    await bootstrap(); expect(coordinator.start).not.toHaveBeenCalled();
+    expect(app.get).not.toHaveBeenCalledWith(RealtimeIngestionService);
+    expect(config.get).toHaveBeenCalledWith('MQTT_ENABLED', false);
+    expect(app.close).not.toHaveBeenCalled();
+  });
+  it('aguarda HTTP pronto antes de iniciar coordenador habilitado', async () => {
+    config.get.mockReturnValue(true); let listening!: () => void;
+    const ready = new Promise<void>((resolve) => { listening = resolve; });
+    app.listen.mockReturnValueOnce(ready);
+    const pending = bootstrap();
+    await new Promise<void>((resolve) => { setImmediate(resolve); });
+    expect(app.listen).toHaveBeenCalledWith(3000); expect(coordinator.start).not.toHaveBeenCalled();
+    listening(); await pending; expect(coordinator.start).toHaveBeenCalledTimes(1);
+    expect(app.get).toHaveBeenCalledWith(RealtimeIngestionService);
+  });
+  it.each(['listen', 'start', 'close'])('fecha aplicação e contém erro seguro na falha %s', async (failure) => {
+    config.get.mockReturnValue(true);
+    if (failure === 'listen') app.listen.mockRejectedValueOnce(new Error('CANARY_SECRET'));
+    else coordinator.start.mockImplementationOnce(() => { throw new Error('CANARY_SECRET'); });
+    if (failure === 'close') app.close.mockRejectedValueOnce(new Error('CANARY_CLOSE_SECRET'));
+    await expect(bootstrap()).rejects.toThrow('BACKEND_START_FAILED');
+    expect(app.close).toHaveBeenCalledTimes(1);
+    if (failure === 'listen') expect(coordinator.start).not.toHaveBeenCalled();
   });
 });

@@ -11,6 +11,7 @@ import { ResponseEnvelopeInterceptor } from './common/interceptors/response-enve
 import { createCorsConfig } from './config/cors.config';
 import { createHelmetConfig } from './config/security.config';
 import { RealtimeIoAdapter } from './modules/realtime/realtime-io.adapter';
+import { RealtimeIngestionService } from './modules/realtime/realtime-ingestion.service';
 
 /**
  * Aplica os comportamentos globais e devolve a porta ja validada.
@@ -49,15 +50,20 @@ export function configureApplication(
 }
 
 /**
- * Cria a aplicacao NestJS e inicia o servidor com a configuracao validada.
+ * Inicia HTTP antes da ingestão opt-in; falha inicial encerra recursos sem expor causas internas.
  */
 export async function bootstrap(): Promise<void> {
   const { AppModule } = await import('./app.module');
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-  const port = configureApplication(app, configService);
-
-  await app.listen(port);
+  try {
+    const port = configureApplication(app, configService);
+    await app.listen(port);
+    if (configService.get<boolean>('MQTT_ENABLED', false)) app.get(RealtimeIngestionService).start();
+  } catch {
+    await app.close().catch(() => {});
+    throw new Error('BACKEND_START_FAILED');
+  }
 }
 
 if (require.main === module) {

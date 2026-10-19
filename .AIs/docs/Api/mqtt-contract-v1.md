@@ -255,7 +255,8 @@ conferidas; arquivo sintético temporário removido. Nenhum broker/banco acessad
 ### Transporte local 7.2
 
 MqttModule exporta MqttService, usado pelo health e pelo futuro processador de
-ingestão. Não conecta no bootstrap. `MQTT_ENABLED=false` por padrão; quando
+ingestão. Desde 19/10/2026 o bootstrap inicia o coordenador após HTTP pronto
+somente com `MQTT_ENABLED=true`; false mantém transporte passivo por padrão. Quando
 habilitado, MQTT_URL (somente mqtts), MQTT_USERNAME, MQTT_PASSWORD e
 MQTT_CLIENT_ID são obrigatórios na configuração validada. Credenciais ficam
 separadas da URL; TLS exige certificado válido. Consultar apenas .env.example.
@@ -444,11 +445,16 @@ ou entrega de broker reais; ensaio autorizado continua pendente.
 
 ### Pipeline local 7.6
 
-MqttModule exporta MqttPipelineService. Constructor/bootstrap não iniciam
-consumidor, timers ou varredura. start() explícito, com MQTT habilitado, recupera
+MqttModule exporta MqttPipelineService. Constructors não iniciam consumidor,
+timers ou varredura. Desde 19/10/2026 o bootstrap chama o coordenador após
+HTTP pronto quando MQTT_ENABLED=true. O coordenador aguarda Redis disponível
+antes de chamar start() do pipeline, que recupera
 pendências antes de assinar e agenda recuperação a cada 60 s, conforme decisão
-do programador. Configuração disabled torna start inerte. Mesmo habilitado,
-esta entrega não chama start no bootstrap nem autoriza broker/credenciais reais.
+do programador. Configuração disabled torna start inerte. A implementação não
+autoriza destinos/credenciais externos: habilitar exige configurar ambiente
+autorizado. Falhas síncronas iniciais fecham aplicação e retornam
+BACKEND_START_FAILED; falhas transitórias posteriores mantêm a política de
+retentativa/pausa do coordenador. Plano: [ativação opt-in](../plans/backend-phase-8-bootstrap-activation.md).
 
 handle(packet, receivedAt) persiste bruto e chama process, inclusive após
 retransmissão equivalente. A partir deste lote, process grava amostras,

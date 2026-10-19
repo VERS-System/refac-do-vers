@@ -48,6 +48,9 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 - [Aviso de recálculo TEST independente](plans/backend-phase-8-test-summary-notification.md):
   evento pós-commit e invalidação autorizada sem nova mensagem MQTT.
 
+- [Ativação opt-in do pipeline](plans/backend-phase-8-bootstrap-activation.md):
+  MQTT_ENABLED inicia coordenação após HTTP pronto; padrão continua false.
+
 - `contexts/`: registros resumidos de cada sessão de trabalho com IA.
 - `plans/`: planos aprovados para evolução do projeto.
 - `problems/`: problemas identificados, causas, impactos e soluções.

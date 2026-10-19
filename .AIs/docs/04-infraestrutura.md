@@ -21,6 +21,10 @@ continua no Neon. A IA atual expõe health e documentação FastAPI.
 
 - Backend: `http://localhost:3000/api/v1/health/live`.
 - Readiness: `http://localhost:3000/api/v1/health/ready` (exige banco e Redis).
+- Pipeline: `MQTT_ENABLED=false` mantém ingestão/tempo real passivos. Com true,
+  o bootstrap inicia o coordenador após HTTP pronto; só habilitar com broker TLS,
+  credenciais consumidoras e banco autorizados. Exemplo na raiz/backend; nenhuma
+  configuração real é alterada pelo código. Ver [plano de ativação](plans/backend-phase-8-bootstrap-activation.md).
 - IA: `http://localhost:8000/health` e `http://localhost:8000/docs`.
 - Logs: `docker compose logs -f backend ai-service`.
 - Parar: `docker compose stop backend ai-service redis` (preserva volumes).

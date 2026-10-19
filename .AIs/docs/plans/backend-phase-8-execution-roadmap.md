@@ -4,8 +4,9 @@
 > **Status reconciliado em 19/10/2026:** F08.7 executado em 16/10 com sete
 > cenários integrados locais aprovados. Referências abaixo a ensaio ainda não
 > executado descrevem etapas históricas. Permanecem integração dos clientes
-> (snapshot/invalidação/recuperação REST) e
-> ativação operacional controlada. F09 ainda planejada. Integração elétrica e
+> (snapshot/invalidação/recuperação REST) e ensaio da ativação operacional.
+> Bootstrap opt-in implementado no [lote de 19/10](backend-phase-8-bootstrap-activation.md).
+> F09 ainda planejada. Integração elétrica e
 > ESP32 cancelados, conforme [decisão de simulação](backend-simulacao-19-10-2026.md).
 
 Estado: avanço solicitado pelo programador em 14/10/2026 após entrega do ensaio
@@ -16,7 +17,8 @@ continuam registradas, sem impedir preparação local do tempo real.
 ## Base existente
 
 - MqttPipelineService emite telemetry.processed depois do commit e contém
-  falhas de listeners; nenhum consumidor é iniciado no bootstrap.
+  falhas de listeners; bootstrap inicia coordenador após HTTP somente com
+  MQTT_ENABLED=true, mantendo false como padrão passivo.
 - REST expõe telemetria/resumos com ResourceAccessService. Acesso histórico ao
   teste pelo criador ou vínculo atual; instalação exige vínculo atual e ADMIN
   não possui exceção global. Reutilizar essas regras.

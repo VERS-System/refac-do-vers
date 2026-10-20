@@ -33,6 +33,12 @@ prolongada permanecem pendentes. Não equivale ao fechamento desta etapa.
 
 ## Etapa B — Validação local
 
+[Auditoria persistida de auth](../backend-phase-9-audit-persistence.md) validada
+localmente: identificada incompatibilidade de códigos com a constraint SQL,
+migration posterior preparada e ensaiada com deploy repetível em banco vazio.
+Login HTTP verifica gravação real; 10 testes SQL relacionados aprovados.
+Aplicação remota, cobertura das demais mutações e retenção continuam pendentes.
+
 Executar pelo programador ou pela IA no ambiente autorizado, sem GitHub Actions
 ou pipeline de CI/CD obrigatório.
 

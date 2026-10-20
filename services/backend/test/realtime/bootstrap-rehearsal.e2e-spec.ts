@@ -89,6 +89,10 @@ describe('F08 — bootstrap compilado com bancada local', () => {
     expect(cookies.has('vers_access')).toBe(true); expect(cookies.has('vers_refresh')).toBe(true);
     const result = await response.json() as { data: { user: { id: string } } };
     expect(result.data.user.id).toBe(userId);
+    expect(await prisma.auditEvent.findMany({ where: { requestId: userId },
+      select: { action: true, resourceType: true, result: true, actorId: true, resourceId: true } })).toEqual([
+      { action: 'auth.login', resourceType: 'session', result: 'SUCCESS', actorId: null, resourceId: null },
+    ]);
   }
 
   /** Inicia somente o processo criado pela suíte, com destinos fixos e sem herdar segredos da sessão. */

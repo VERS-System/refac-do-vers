@@ -1,6 +1,6 @@
 // Verifica executável real com configuração sintética, sem início manual do coordenador.
 import { spawn, ChildProcess } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { resolve } from 'node:path';
@@ -47,6 +47,24 @@ describe('F08 — bootstrap compilado com bancada local', () => {
   let cookie: string;
   let publisher: MqttClient | undefined;
   let socket: Socket | undefined;
+  let apiFixture: RehearsalFixture | undefined;
+
+  /** Renova CSRF vinculado à sessão antes de mutações reais, preservando cookies HttpOnly recebidos. */
+  async function post(path: string, input: object): Promise<Response> {
+    const csrf = await fetch(`${url}/api/v1/auth/csrf`, {
+      headers: { Cookie: cookie }, signal: AbortSignal.timeout(3000),
+    });
+    expect(csrf.status).toBe(200);
+    const csrfCookie = csrf.headers.getSetCookie().find((value) => value.startsWith('vers_csrf='));
+    expect(csrfCookie).toBeDefined();
+    cookie = [...cookie.split('; ').filter((value) => !value.startsWith('vers_csrf=')), csrfCookie!.split(';')[0]].join('; ');
+    const body = await csrf.json() as { data: { csrfToken: string } };
+    return fetch(`${url}/api/v1/${path}`, { method: 'POST',
+      headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json',
+        'X-CSRF-Token': body.data.csrfToken, 'X-Request-Id': userId! },
+      body: JSON.stringify(input), signal: AbortSignal.timeout(5000),
+    });
+  }
 
   /** Usa CSRF e cookies reais para provar login HTTP sem fabricar JWT no cenário integrado. */
   async function login(): Promise<void> {
@@ -102,7 +120,7 @@ describe('F08 — bootstrap compilado com bancada local', () => {
 
   beforeAll(async () => { requireLocalDatabase(); await prisma.$connect(); });
   beforeEach(async () => {
-    child = undefined; f = undefined; userId = undefined; socket = undefined; publisher = undefined;
+    child = undefined; f = undefined; userId = undefined; socket = undefined; publisher = undefined; apiFixture = undefined;
     await requireFreePort();
     f = await createFixture(prisma, 'vers-sim-001'); userId = randomUUID(); const sessionId = randomUUID();
     await prisma.user.create({ data: { id: userId, email: `${userId}@bootstrap.invalid`,
@@ -122,9 +140,10 @@ describe('F08 — bootstrap compilado com bancada local', () => {
         if (!processChild.kill('SIGKILL')) { clearTimeout(timer); reject(new Error('Não foi possível encerrar processo filho.')); }
       });
     }
+    if (userId) await prisma.userVehicle.deleteMany({ where: { userId } });
+    if (apiFixture) await removeFixture(prisma, apiFixture);
     if (userId) {
-      await prisma.auditEvent.deleteMany({ where: { requestId: userId, action: 'auth.login' } });
-      await prisma.userVehicle.deleteMany({ where: { userId } });
+      await prisma.auditEvent.deleteMany({ where: { requestId: userId } });
       await prisma.user.deleteMany({ where: { id: userId } });
     }
     if (f) await removeFixture(prisma, f);
@@ -204,5 +223,66 @@ describe('F08 — bootstrap compilado com bancada local', () => {
         (error: Error | null, value: unknown) => { if (error) reject(error); else done(value); });
     });
     expect(deniedAck).toEqual({ ok: false, version: 1, code: 'RESOURCE_UNAVAILABLE' });
+  }, 60000);
+
+  it('cadastra veículo e executa teste pela API com telemetria e resumo do mesmo recurso', async () => {
+    const running = await start(true);
+    await login();
+    const vehicleInput = { licensePlate: `FNV${randomInt(10000).toString().padStart(4, '0')}`, model: 'Modelo sintético F09' };
+    const denied = await fetch(`${url}/api/v1/vehicles`, { method: 'POST',
+      headers: { Cookie: cookie, Origin: origin, 'Content-Type': 'application/json' },
+      body: JSON.stringify(vehicleInput), signal: AbortSignal.timeout(3000) });
+    expect(denied.status).toBe(403);
+    const vehicleResponse = await post('vehicles', vehicleInput);
+    expect(vehicleResponse.status).toBe(201);
+    const vehicle = await vehicleResponse.json() as { data: { id: string } };
+    apiFixture = { vehicleId: vehicle.data.id, installationId: randomUUID(), deviceId: randomUUID(),
+      testId: randomUUID(), deviceUid: 'vers-sim-002', startedAt: new Date(), endedAt: new Date() };
+    const fixture = apiFixture; const configurationId = randomUUID();
+    await prisma.versInstallation.create({ data: { id: fixture.installationId, vehicleId: fixture.vehicleId,
+      status: 'ACTIVE', systemModel: 'REHEARSAL',
+      configurations: { create: { id: configurationId, name: 'Configuração sintética', version: 1,
+        activePiezoCount: 2, piezoAssociation: 'PARALLEL', installationPoint: 'Bancada', storageType: 'CAPACITOR' } },
+      devices: { create: { id: fixture.deviceId, deviceUid: fixture.deviceUid, status: 'ONLINE' } },
+    } });
+    const planned = await post('tests', { installationId: fixture.installationId, configurationId,
+      name: 'Ciclo HTTP F09', terrain: 'OTHER', testLocation: 'Bancada isolada' });
+    expect(planned.status).toBe(201);
+    const plan = await planned.json() as { data: { id: string; status: string; startedAt: string | null;
+      endedAt: string | null; snapshot: object; createdById: string } };
+    fixture.testId = plan.data.id;
+    expect(plan.data).toMatchObject({ status: 'PLANNED', startedAt: null, endedAt: null, createdById: userId,
+      snapshot: { vehicleModel: vehicleInput.model, testLocation: 'Bancada isolada', activePiezoCount: 2, configurationVersion: 1 } });
+    const started = await post(`tests/${fixture.testId}/start`, {});
+    expect(started.status).toBe(200);
+    const startBody = await started.json() as { data: { startedAt: string; status: string } };
+    expect(startBody.data.status).toBe('RUNNING'); fixture.startedAt = new Date(startBody.data.startedAt);
+    expect(Number.isFinite(fixture.startedAt.getTime())).toBe(true);
+    expect((await post(`tests/${fixture.testId}/start`, {})).status).toBe(409);
+    // As três capturas precisam caber no intervalo atribuído pelo relógio do servidor.
+    await until(async () => Date.now() > fixture.startedAt.getTime() + 2000, running);
+    const finished = await post(`tests/${fixture.testId}/finish`, { status: 'COMPLETED' });
+    expect(finished.status).toBe(200);
+    const finishBody = await finished.json() as { data: { status: string; startedAt: string; endedAt: string } };
+    expect(finishBody.data.status).toBe('COMPLETED');
+    expect(finishBody.data.startedAt).toBe(startBody.data.startedAt);
+    fixture.endedAt = new Date(finishBody.data.endedAt);
+    expect(fixture.endedAt.getTime()).toBeGreaterThan(fixture.startedAt.getTime() + 2000);
+    expect((await post(`tests/${fixture.testId}/finish`, { status: 'COMPLETED' })).status).toBe(409);
+    publisher = await connectAsync('mqtts://localhost:58883', { username: fixture.deviceUid,
+      password: 'synthetic-two-only', ca: readFileSync(certificate), rejectUnauthorized: true,
+      reconnectPeriod: 0, connectTimeout: 3000 });
+    const message = envelope(fixture);
+    await publisher.publishAsync(`vers/v1/devices/${fixture.deviceUid}/telemetry`, JSON.stringify(message), { qos: 1 });
+    await until(async () => (await prisma.mqttMessage.findUnique({ where: { messageId: message.messageId } }))?.status === 'PROCESSED', running);
+    const summary = await fetch(`${url}/api/v1/tests/${fixture.testId}/energy-summaries`,
+      { headers: { Cookie: cookie }, signal: AbortSignal.timeout(3000) });
+    expect(summary.status).toBe(200);
+    const energy = await summary.json() as { data: { recoveredEnergyWh: number }[] };
+    expect(energy.data).toHaveLength(1); expect(energy.data[0].recoveredEnergyWh).toBeCloseTo(4 / 3600, 12);
+    const series = await fetch(`${url}/api/v1/tests/${fixture.testId}/telemetry`,
+      { headers: { Cookie: cookie }, signal: AbortSignal.timeout(3000) });
+    expect(series.status).toBe(200);
+    expect((await series.json() as { data: unknown[] }).data).toHaveLength(3);
   }, 60000);
 });

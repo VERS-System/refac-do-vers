@@ -15,9 +15,12 @@ Tornar o backend reproduzível, implantável, observável e recuperável.
 
 [Recorte integrado do backend](../backend-phase-9-integrated-flow.md) aprovado
 em 19/10/2026: login HTTP/CSRF/cookies, MQTT/TLS, persistência, aviso Socket.IO,
-série/resumo REST, duplicata e recusa após retirada do vínculo. Conta ativa e
-recursos de domínio são fixtures; criação/ciclo pela API e cliente Electron
-seguem pendentes. Não equivale ao fechamento desta etapa.
+série/resumo REST, duplicata e recusa após retirada do vínculo. Continuação com
+3/3 cenários aprovados também cria veículo e planeja/inicia/encerra teste pela
+API, validando snapshots, CSRF e transições repetidas; recebe telemetria após
+encerramento no mesmo teste. Conta ativa, instalação/configuração/dispositivo
+continuam fixtures; cliente Electron e operação contínua permanecem pendentes.
+Não equivale ao fechamento desta etapa.
 
 - usuário cria sessão, veículo, instalação e teste;
 - dispositivo autorizado envia telemetria;

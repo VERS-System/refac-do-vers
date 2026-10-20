@@ -1,5 +1,6 @@
 // Verifica recomputação e escopo de escrita com Prisma simulado, sem alegar concorrência real.
 import { EnergySummary, Prisma } from '@prisma/client';
+import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createTelemetryFixtures } from './fixtures/telemetry.fixtures';
 import { EnergySummaryService } from './energy-summary.service';
@@ -51,6 +52,54 @@ function transactionDouble(): {
 }
 
 describe('recomputação de resumos', () => {
+  it('emite IDs reconsultados somente depois do commit próprio', async () => {
+    const { service, tx, transaction, parent, summary } = setup();
+    const listener = jest.fn(); service.events.on('summary.test-recomputed', listener);
+    let commit!: () => void; let prepared!: () => void;
+    const ready = new Promise<void>((resolve) => { prepared = resolve; });
+    transaction.mockImplementationOnce(async (fn: (client: typeof tx) => Promise<unknown>) => {
+      const result = await fn(tx); expect(listener).not.toHaveBeenCalled();
+      await new Promise<void>((resolve) => { commit = resolve; prepared(); }); return result;
+    });
+    tx.test.findUnique.mockResolvedValueOnce(parent).mockResolvedValue({ ...parent, installationId: null });
+    const pending = service.recomputeTest(parent.id);
+    await ready;
+    expect(listener).not.toHaveBeenCalled(); commit(); expect(await pending).toBe(summary);
+    expect(listener).toHaveBeenCalledWith({ version: 1, type: 'summary.test-recomputed',
+      testId: parent.id, installationId: null });
+  });
+  it('rollback após escrita não emite e transação externa não antecipa aviso', async () => {
+    const { service, tx, transaction, parent } = setup();
+    const listener = jest.fn(); service.events.on('summary.test-recomputed', listener);
+    transaction.mockImplementationOnce(async (fn: (client: typeof tx) => Promise<unknown>) => {
+      await fn(tx); throw new Error('rollback');
+    });
+    await expect(service.recomputeTest(parent.id)).rejects.toThrow('rollback');
+    await service.recomputeTest(parent.id, tx as never); expect(listener).not.toHaveBeenCalled();
+    parent.status = 'RUNNING'; await service.recomputeTest(parent.id); expect(listener).not.toHaveBeenCalled();
+  });
+  it('remoção de resumo sem delta também invalida teste e instalação', async () => {
+    const { service, tx, parent } = setup(); const listener = jest.fn();
+    service.events.on('summary.test-recomputed', listener);
+    tx.telemetrySample.findMany.mockResolvedValue(createTelemetryFixtures().absent.samples);
+    expect(await service.recomputeTest(parent.id)).toBeNull();
+    expect(listener).toHaveBeenCalledWith({ version: 1, type: 'summary.test-recomputed',
+      testId: parent.id, installationId: parent.installationId });
+  });
+  it('isola listeners sync/async e preserva once e resultado confirmado', async () => {
+    const { service, parent, summary } = setup(); const listener = jest.fn();
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    try {
+      service.events.on('summary.test-recomputed', () => { throw new Error('CANARY_SECRET'); });
+      service.events.on('summary.test-recomputed', async () => { throw new Error('CANARY_SECRET'); });
+      service.events.once('summary.test-recomputed', listener);
+      expect(await service.recomputeTest(parent.id)).toBe(summary);
+      await service.recomputeTest(parent.id); await Promise.resolve();
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith('summary_event_failed');
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('CANARY_SECRET');
+    } finally { warn.mockRestore(); }
+  });
   it('calcula TEST encerrado depois dos locks, com projeção e chave da versão ativa', async () => {
     const { service, tx, transaction, parent } = setup();
     await service.recomputeTest(parent.id);

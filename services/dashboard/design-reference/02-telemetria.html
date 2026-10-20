@@ -1,0 +1,585 @@
+<!DOCTYPE html><html class="dark" lang="pt-BR" style=""><head></head><body class="bg-surface text-on-surface font-body overflow-hidden h-screen flex antialiased select-none" style="min-height: 100vh; width: 100%; max-width: 100%; overflow-x: hidden;"><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>VERS Desktop · Telemetria</title>
+<!-- Google Fonts: Geist, Geist Mono, Zen Dots -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Geist:wght@400;500;600;700&amp;family=Zen+Dots&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-high": "#2a2a29",
+            "surface-bright": "#393938",
+            "on-secondary": "#0b3446",
+            "on-primary-fixed-variant": "#514700",
+            "inverse-primary": "#6b5f00",
+            "surface": "#131313",
+            "on-primary-fixed": "#201c00",
+            "on-primary": "#383100",
+            "surface-container-lowest": "#0e0e0d",
+            "secondary-fixed": "#c3e8ff",
+            "on-surface": "#e5e2e0",
+            "on-surface-variant": "#cdc6b2",
+            "surface-container-low": "#1b1c1b",
+            "on-secondary-fixed-variant": "#264b5e",
+            "primary": "#f2e07b",
+            "on-background": "#e5e2e0",
+            "error": "#ffb4ab",
+            "background": "#131313",
+            "on-tertiary": "#003911",
+            "on-error": "#690005",
+            "surface-container-highest": "#353534",
+            "on-error-container": "#ffdad6",
+            "error-container": "#93000a",
+            "inverse-surface": "#e5e2e0",
+            "tertiary": "#a5f1a7",
+            "on-tertiary-fixed-variant": "#00531c",
+            "on-tertiary-fixed": "#002107",
+            "surface-container": "#20201f",
+            "secondary": "#a7cce2",
+            "on-tertiary-container": "#115d24",
+            "tertiary-container": "#8ad48d",
+            "secondary-container": "#264b5e",
+            "primary-fixed-dim": "#d9c765",
+            "primary-fixed": "#f6e47e",
+            "surface-variant": "#353534",
+            "primary-container": "#d5c462",
+            "on-primary-container": "#5b5000",
+            "tertiary-fixed-dim": "#8ed891",
+            "surface-dim": "#131313",
+            "on-secondary-container": "#96bad0",
+            "secondary-fixed-dim": "#a7cce2",
+            "outline": "#96917e",
+            "tertiary-fixed": "#a9f4ab",
+            "surface-tint": "#d9c765",
+            "outline-variant": "#4a4738",
+            "on-secondary-fixed": "#001e2c",
+            "inverse-on-surface": "#30302f"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Geist", "sans-serif"],
+            "display": ["Zen Dots", "sans-serif"],
+            "body": ["Geist", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["Geist Mono", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #131313;
+      color: #e5e2e0;
+      user-select: none;
+    }
+    /* Tabular figures for telemetry data */
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(1.15); }
+    }
+    .animate-pulse-live {
+      animation: pulse-subtle 2s infinite ease-in-out;
+    }
+  </style>
+
+
+<!-- ========================================================================= -->
+<!-- SIDEBAR (Shared Component: SideNavBar)                                     -->
+<!-- ========================================================================= -->
+<aside class="fixed top-0 left-0 h-screen w-64 border-r border-outline-variant dark:border-outline-variant bg-surface-container-low dark:bg-surface-container-low z-40 flex flex-col justify-between p-4" style="width: 248px;">
+<!-- Top Block: Brand + Navigation -->
+<div class="flex flex-col gap-6">
+<!-- Brand Lockup -->
+<div class="px-2 pt-2 flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<div style="display: flex; align-items: center; gap: 10px; padding: 4px 8px 0px;"><svg width="42" height="28" viewBox="0 0 140 93" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><polygon fill="#D9D9D9" points="41.9,0.1 65.6,0.6 43.6,47.9 12.1,92.9 0.1,92.9"></polygon><polygon fill="#D5C462" points="79.9,0.1 103.6,0.6 81.6,47.9 50.1,92.9 38.1,92.9"></polygon><polygon fill="#D9D9D9" points="115.9,0.1 139.9,0.6 117.6,47.9 86.1,92.9 74.1,92.9"></polygon></svg><span style="font-family:'Zen Dots',sans-serif;font-size:22px;color:#D9D9D9;letter-spacing:1px;line-height:1" class="">VERS</span><span style="font-size:11px;color:#737373;margin-left:2px" class="">v0.4</span></div>
+</div>
+<p class="text-[11px] font-medium text-on-surface-variant tracking-tight">Vibration Energy Recovery System</p>
+</div>
+<!-- Navigation Tabs (JSON Specified List) -->
+<nav class="flex flex-col gap-1">
+<!-- Tab 1: Visão geral (Inactive) -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="dashboard">dashboard</span>
+<span class="">Visão geral</span>
+</a>
+<!-- Tab 2: Telemetria (ACTIVE per JSON mapping & intent) -->
+<a class="bg-surface-container-high dark:bg-surface-container-high text-primary dark:text-primary font-semibold rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm" href="#">
+<span class="material-symbols-outlined text-primary" data-icon="monitoring">monitoring</span>
+<span class="tracking-tight">Telemetria</span>
+</a>
+<!-- Tab 3: Energia (Inactive) -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="bolt">bolt</span>
+<span class="">Energia</span>
+</a>
+<!-- Tab 4: Testes (Inactive) -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="science">science</span>
+<span class="">Testes</span>
+</a>
+<!-- Tab 5: Veículo e instalação (Inactive) -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="directions_car">directions_car</span>
+<span class="truncate">Veículo e instalação</span>
+</a>
+<!-- Tab 6: Viber IA (Inactive with pill badge) -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center justify-between transition-colors text-sm font-medium" href="#">
+<div class="flex items-center gap-3">
+<svg width="26" height="20" viewBox="0 0 108 84" style="flex-shrink: 0;"><polygon fill="#D5C462" points="0.1,0.1 15.9,0.1 39.1,67.4 33.4,82.9 29.1,82.9 28.4,82.1"></polygon><polygon fill="#D5C462" points="64.4,1.4 80.1,1.4 79.9,3.6 63.9,46.6 44.6,81.9 42.9,83.9 36.4,83.9 36.1,81.6"></polygon><polygon fill="#D5C462" points="92.4,1.4 107.9,1.6 101.6,19.1 86.1,18.9 91.1,2.4"></polygon><polygon fill="#D5C462" points="83.6,25.4 99.1,25.9 93.9,42.1 71.1,83.9 63.1,83.9"></polygon></svg>
+<span class="">Viber IA</span>
+</div>
+
+</a>
+<!-- Tab 7: Configurações (Inactive) -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface hover:bg-surface-container dark:hover:bg-surface-container rounded-lg px-3 py-2.5 flex items-center gap-3 transition-colors text-sm font-medium" href="#">
+<span class="material-symbols-outlined text-outline" data-icon="settings">settings</span>
+<span class="">Configurações</span>
+</a>
+</nav>
+</div>
+<!-- Bottom Block: Device Status + User Profile -->
+<div class="flex flex-col gap-3">
+<!-- Device Status Card (ESP32 Conectado) -->
+<div class="p-3 rounded-xl bg-surface-container border border-outline-variant/60 flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-mono tracking-wider font-semibold text-tertiary flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-tertiary inline-block animate-pulse-live"></span>
+            ESP32 Conectado
+          </span>
+<span class="text-[10px] font-mono text-outline">Há 3s</span>
+</div>
+<div class="text-[11px] font-mono text-on-surface-variant flex items-center justify-between">
+<span class="">VERS-01</span>
+<span class="text-outline">FW 0.4.2</span>
+</div>
+</div>
+<!-- User Row / Perfil do Pesquisador -->
+<div class="pt-2 border-t border-outline-variant/40 flex items-center justify-between px-1">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center text-xs font-mono font-bold text-primary">
+            AS
+          </div>
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-on-surface leading-tight">Ana Silva</span>
+<span class="text-[10px] text-outline leading-tight">Administradora</span>
+</div>
+</div>
+<button class="text-outline hover:text-on-surface p-1 rounded transition-colors" title="Desconectar" type="button">
+<span class="material-symbols-outlined text-base" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- ========================================================================= -->
+<!-- MAIN WORKSPACE CANVAS                                                     -->
+<!-- ========================================================================= -->
+<main class="ml-64 flex-1 flex flex-col h-screen overflow-hidden bg-background" style="margin-left: 248px; width: calc(100% - 248px); min-width: 0px;">
+<!-- Top Bar Component -->
+<header class="flex justify-between items-center h-16 px-8 border-b border-outline-variant dark:border-outline-variant bg-surface dark:bg-surface shrink-0" style="padding-left: 24px; padding-right: 24px; width: 100%; box-sizing: border-box;">
+<!-- Page Title & Subtitle -->
+<div class="flex items-baseline gap-3">
+<h1 class="font-headline text-lg font-semibold text-on-surface dark:text-on-surface tracking-tight">Telemetria</h1>
+<span class="text-xs text-outline font-mono">Amostras validadas do ESP32 · intervalo 10 s</span>
+</div>
+<!-- Controls & Actions -->
+<div class="flex items-center gap-3">
+<!-- Badge Dados de Exemplo (JSON trailing primary action anchor / honesty rule) -->
+<span class="px-2.5 py-1 rounded-full text-[11px] font-mono font-medium bg-surface-container text-outline border border-outline-variant/60 flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+          Dados de exemplo
+        </span>
+<!-- Botão Secundário: Exportar CSV -->
+<button class="h-9 px-4 rounded-full border border-outline-variant hover:border-outline text-xs font-medium text-on-surface bg-surface-container-low hover:bg-surface-container transition-colors flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="sync">sync</span>
+          Exportar CSV
+        </button>
+<!-- Botão Primário: Ao Vivo -->
+<button class="h-9 px-4 rounded-full bg-primary-container text-on-primary-container font-semibold text-xs transition-colors flex items-center gap-2 hover:bg-primary" type="button">
+<span class="w-2 h-2 rounded-full bg-on-primary-container animate-pulse-live"></span>
+          Ao vivo
+        </button>
+</div>
+</header>
+<!-- Content Viewport (Strict 1512x982 fitting, no vertical scroll) -->
+<div class="p-6 flex-1 flex flex-col gap-4 overflow-hidden">
+<!-- ===================================================================== -->
+<!-- LINHA 1: SINAL EM TEMPO REAL (66%) + ÚLTIMAS LEITURAS (33%)           -->
+<!-- ===================================================================== -->
+<div class="grid grid-cols-12 gap-4 h-[356px] shrink-0" style="display: flex; gap: 16px; height: 356px; width: 100%; min-width: 0px;">
+<!-- CARD ESQUERDA: Sinal em tempo real (8 colunas) -->
+<section class="col-span-8 bg-surface-container-low border border-outline-variant/70 rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden" style="flex: 1 1 0%; min-width: 0px; box-sizing: border-box;">
+<!-- Card Header & Toggles -->
+<div class="flex items-center justify-between pb-2 border-b border-outline-variant/30">
+<div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-base" data-icon="monitoring">monitoring</span>
+<h2 class="text-sm font-semibold text-on-surface font-headline">Sinal em tempo real</h2>
+</div>
+<p class="text-[11px] font-mono text-outline mt-0.5">Últimos 60 segundos · taxa 10 Hz</p>
+</div>
+<!-- Signal Channel Selectors -->
+<div class="flex items-center gap-2">
+<!-- Channel 1: Potência -->
+<button class="px-2.5 py-1 rounded-full text-xs font-mono font-medium flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/30" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Potência (mW)
+              </button>
+<!-- Channel 2: Tensão -->
+<button class="px-2.5 py-1 rounded-full text-xs font-mono font-medium flex items-center gap-1.5 bg-secondary-container/30 text-secondary border border-secondary/30" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                Tensão (V)
+              </button>
+<!-- Channel 3: Vibração RMS -->
+<button class="px-2.5 py-1 rounded-full text-xs font-mono font-medium flex items-center gap-1.5 bg-surface-container text-on-surface-variant border border-outline-variant/60" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+                Vibração RMS (m/s²)
+              </button>
+</div>
+</div>
+<!-- Oscilloscope / Telemetry SVG Chart -->
+<div class="relative flex-1 mt-3 w-full h-[220px]">
+<!-- Left Y-Axis Scale (Power mW) -->
+<div class="absolute left-0 top-0 bottom-6 w-9 flex flex-col justify-between text-[10px] font-mono text-outline text-right pr-2">
+<span class="">300</span>
+<span class="">225</span>
+<span class="">150</span>
+<span class="">75</span>
+<span class="">0</span>
+</div>
+<!-- Right Y-Axis Scale (Voltage V) -->
+<div class="absolute right-0 top-0 bottom-6 w-8 flex flex-col justify-between text-[10px] font-mono text-secondary text-left pl-2">
+<span class="">6.0</span>
+<span class="">4.5</span>
+<span class="">3.0</span>
+<span class="">1.5</span>
+<span class="">0.0</span>
+</div>
+<!-- SVG Multi-Trace Graph Area -->
+<div class="ml-9 mr-8 h-[190px] relative">
+<svg class="w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 740 190">
+<defs>
+<!-- Gradient for Primary Power (Gold) -->
+<linearGradient id="goldGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#f2e07b" stop-opacity="0.28"></stop>
+<stop offset="100%" stop-color="#f2e07b" stop-opacity="0.0"></stop>
+</linearGradient>
+<!-- Gradient for Secondary Voltage (Steel Blue) -->
+<linearGradient id="steelGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#a7cce2" stop-opacity="0.12"></stop>
+<stop offset="100%" stop-color="#a7cce2" stop-opacity="0.0"></stop>
+</linearGradient>
+<!-- Subtle Grid Pattern -->
+<pattern height="38" id="gridPattern" patternUnits="userSpaceOnUse" width="74">
+<path d="M 74 0 L 0 0 0 38" fill="none" stroke="#353534" stroke-dasharray="2,3" stroke-width="0.75"></path>
+</pattern>
+</defs>
+<!-- Grid Background -->
+<rect fill="url(#gridPattern)" height="190" opacity="0.65" width="740"></rect>
+<!-- Zero reference baseline -->
+<line stroke="#4a4738" stroke-width="1" x1="0" x2="740" y1="189" y2="189"></line>
+<!-- TRACE 3: Vibração RMS (Graphite line, base wave) -->
+<path d="M 0,140 Q 60,130 110,145 T 220,135 T 330,150 T 440,130 T 550,142 T 660,128 L 740,136" fill="none" stroke="#96917e" stroke-dasharray="3,2" stroke-opacity="0.7" stroke-width="1.5"></path>
+<!-- TRACE 2: Tensão (V) (Steel blue line) -->
+<path d="M 0,95 C 40,88 80,105 130,90 C 190,75 240,98 300,82 C 370,68 420,86 480,72 C 540,60 610,74 670,62 L 740,58" fill="none" stroke="#a7cce2" stroke-linecap="round" stroke-width="2"></path>
+<!-- TRACE 1: Potência (mW) Area + Line (Gold #f2e07b) -->
+<path d="M 0,120 Q 40,75 90,105 T 180,65 T 270,110 T 360,50 T 450,90 T 540,40 T 630,75 L 740,48 L 740,190 L 0,190 Z" fill="url(#goldGradient)"></path>
+<path d="M 0,120 Q 40,75 90,105 T 180,65 T 270,110 T 360,50 T 450,90 T 540,40 T 630,75 L 740,48" fill="none" stroke="#f2e07b" stroke-linecap="round" stroke-width="2.5"></path>
+<!-- Active Point Marker & Vertical Scanner at Now (t = 0s) -->
+<line opacity="0.8" stroke="#f2e07b" stroke-dasharray="2,2" stroke-width="1.5" x1="740" x2="740" y1="0" y2="190"></line>
+<circle cx="740" cy="48" fill="#f2e07b" r="4.5"></circle>
+<circle class="animate-ping" cx="740" cy="48" fill="#f2e07b" opacity="0.3" r="8"></circle>
+<!-- Live Tag Floating Near Probe Head -->
+<g transform="translate(560, 20)">
+<rect fill="#20201f" height="26" rx="6" stroke="#4a4738" stroke-width="1" width="170"></rect>
+<text fill="#f2e07b" font-family="Geist Mono" font-size="11" font-weight="600" text-anchor="middle" x="85" y="17">
+                    212 mW · 4,82 V · 3,2 m/s²
+                  </text>
+</g>
+</svg>
+</div>
+<!-- Bottom X-Axis Time Markers -->
+<div class="ml-9 mr-8 mt-1 flex justify-between text-[10px] font-mono text-outline">
+<span class="">-60s</span>
+<span class="">-45s</span>
+<span class="">-30s</span>
+<span class="">-15s</span>
+<span class="text-primary font-semibold">Agora (0s)</span>
+</div>
+</div>
+</section>
+<!-- CARD DIREITA: Últimas Leituras (4 colunas) -->
+<section class="col-span-4 bg-surface-container-low border border-outline-variant/70 rounded-2xl p-5 flex flex-col justify-between" style="width: 288px; flex-shrink: 0; box-sizing: border-box;">
+<!-- Header -->
+<div class="flex items-center justify-between pb-2 border-b border-outline-variant/30">
+<h2 class="text-sm font-semibold text-on-surface font-headline">Últimas leituras</h2>
+<div class="flex items-center gap-1.5 text-[11px] font-mono text-tertiary">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse-live"></span>
+              Live feed (10s)
+            </div>
+</div>
+<!-- Feed Rows List (Strict 6 entries) -->
+<div class="flex flex-col gap-2 my-auto">
+<!-- Row 1 -->
+<div class="px-3 py-2 rounded-lg bg-surface-container flex items-center justify-between border border-outline-variant/30 text-xs font-mono">
+<span class="text-outline">14:32:08</span>
+<span class="text-primary font-semibold tabular-nums">212 mW</span>
+<span class="text-on-surface tabular-nums">4,82 V</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-tertiary text-tertiary border border-tertiary-container/30">Válida</span>
+</div>
+<!-- Row 2 -->
+<div class="px-3 py-2 rounded-lg bg-surface-container flex items-center justify-between border border-outline-variant/30 text-xs font-mono">
+<span class="text-outline">14:31:58</span>
+<span class="text-primary font-semibold tabular-nums">208 mW</span>
+<span class="text-on-surface tabular-nums">4,80 V</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-tertiary text-tertiary border border-tertiary-container/30">Válida</span>
+</div>
+<!-- Row 3 -->
+<div class="px-3 py-2 rounded-lg bg-surface-container flex items-center justify-between border border-outline-variant/30 text-xs font-mono">
+<span class="text-outline">14:31:48</span>
+<span class="text-primary font-semibold tabular-nums">189 mW</span>
+<span class="text-on-surface tabular-nums">4,65 V</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-tertiary text-tertiary border border-tertiary-container/30">Válida</span>
+</div>
+<!-- Row 4 -->
+<div class="px-3 py-2 rounded-lg bg-surface-container flex items-center justify-between border border-outline-variant/30 text-xs font-mono">
+<span class="text-outline">14:31:38</span>
+<span class="text-on-surface tabular-nums">142 mW</span>
+<span class="text-on-surface tabular-nums">3,95 V</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-primary-container/20 text-primary border border-primary/30">Parcial</span>
+</div>
+<!-- Row 5 -->
+<div class="px-3 py-2 rounded-lg bg-surface-container flex items-center justify-between border border-outline-variant/30 text-xs font-mono">
+<span class="text-outline">14:31:28</span>
+<span class="text-primary font-semibold tabular-nums">224 mW</span>
+<span class="text-on-surface tabular-nums">4,91 V</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-tertiary text-tertiary border border-tertiary-container/30">Válida</span>
+</div>
+<!-- Row 6 -->
+<div class="px-3 py-2 rounded-lg bg-surface-container flex items-center justify-between border border-outline-variant/30 text-xs font-mono">
+<span class="text-outline">14:31:18</span>
+<span class="text-error font-semibold tabular-nums">94 mW</span>
+<span class="text-on-surface tabular-nums">2,85 V</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-error text-error border border-error/30">Suspeita</span>
+</div>
+</div>
+<!-- Subtle Footer Hint -->
+<div class="pt-2 border-t border-outline-variant/30 flex items-center justify-between text-[11px] font-mono text-outline">
+<span class="">Buffer local: 3.412 registros</span>
+<span class="text-primary cursor-pointer hover:underline">Limpar</span>
+</div>
+</section>
+</div>
+<!-- ===================================================================== -->
+<!-- LINHA 2: AMOSTRAS DE TELEMETRIA (TABELA ANALÍTICA EXPANDIDA)          -->
+<!-- ===================================================================== -->
+<section class="flex-1 bg-surface-container-low border border-outline-variant/70 rounded-2xl p-5 flex flex-col justify-between overflow-hidden" style="width: 100%; min-width: 0px; box-sizing: border-box;">
+<!-- Controls & Filter Toolbar -->
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant/30 shrink-0">
+<div class="flex items-center gap-2.5">
+<!-- Period Pill -->
+<div class="h-8 px-3 rounded-full bg-surface-container border border-outline-variant/60 flex items-center gap-1.5 text-xs font-mono text-on-surface">
+<span class="material-symbols-outlined text-outline text-sm" data-icon="dashboard">dashboard</span>
+<span class="">Hoje, 00:00 até 14:32</span>
+</div>
+<!-- Quality Filter Dropdown Pill -->
+<div class="h-8 px-3 rounded-full bg-surface-container border border-outline-variant/60 flex items-center gap-1.5 text-xs font-mono text-on-surface cursor-pointer hover:bg-surface-container-high transition-colors">
+<span class="">Qualidade: Todas</span>
+<span class="material-symbols-outlined text-outline text-xs" data-icon="settings">settings</span>
+</div>
+<!-- Active Piezos Indicator Pill -->
+<div class="h-8 px-3 rounded-full bg-surface-container border border-outline-variant/60 flex items-center gap-1.5 text-xs font-mono text-secondary">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="bolt">bolt</span>
+<span class="">Piezos: 6/8 ativos</span>
+</div>
+</div>
+<!-- Compact Search Bar -->
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-2 text-outline text-sm" data-icon="monitoring">monitoring</span>
+<input class="w-full h-8 pl-8 pr-3 bg-surface-container text-xs font-mono placeholder:text-outline/70 border border-outline-variant/60 rounded-full focus:outline-none focus:border-primary text-on-surface" placeholder="Buscar por teste..." type="text">
+</div>
+</div>
+<!-- Table Viewport -->
+<div class="flex-1 overflow-hidden mt-2" style="width: 100%; min-width: 0px; overflow-x: auto; box-sizing: border-box;">
+<table class="w-full text-left text-xs font-mono border-collapse">
+<!-- Table Header -->
+<thead>
+<tr class="text-[10px] text-outline uppercase tracking-wider border-b border-outline-variant/50 h-8">
+<th class="font-medium pb-2 text-left pl-3">Capturado Em</th>
+<th class="font-medium pb-2 text-left">Teste</th>
+<th class="font-medium pb-2 text-right">Tensão (V)</th>
+<th class="font-medium pb-2 text-right">Corrente (mA)</th>
+<th class="font-medium pb-2 text-right text-primary">Potência (mW)</th>
+<th class="font-medium pb-2 text-right">Energia Acum. (mWh)</th>
+<th class="font-medium pb-2 text-right">Vibração RMS (m/s²)</th>
+<th class="font-medium pb-2 text-right">Temp. (°C)</th>
+<th class="font-medium pb-2 text-center">Piezos</th>
+<th class="font-medium pb-2 text-center pr-3">Qualidade</th>
+</tr>
+</thead>
+<!-- Table Body (7 Requested Rows) -->
+<tbody class="divide-y divide-outline-variant/20">
+<!-- Linha 1 (Selecionada / Destaque suave) -->
+<tr class="h-9 hover:bg-surface-container-high transition-colors bg-surface-container/50">
+<td class="pl-3 text-on-surface font-mono">14:32:08.410</td>
+<td class="text-secondary font-mono">#TEST-1512-C</td>
+<td class="text-right text-on-surface tabular-nums">4,82</td>
+<td class="text-right text-on-surface tabular-nums">44</td>
+<td class="text-right text-primary font-bold tabular-nums">212</td>
+<td class="text-right text-on-surface tabular-nums">1,84</td>
+<td class="text-right text-on-surface tabular-nums">3,2</td>
+<td class="text-right text-on-surface tabular-nums">31,4</td>
+<td class="text-center text-outline tabular-nums">6/8</td>
+<td class="text-center pr-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-tertiary text-tertiary border border-tertiary-container/30">Válida</span>
+</td>
+</tr>
+<!-- Linha 2 -->
+<tr class="h-9 hover:bg-surface-container transition-colors">
+<td class="pl-3 text-on-surface font-mono">14:31:58.390</td>
+<td class="text-secondary font-mono">#TEST-1512-C</td>
+<td class="text-right text-on-surface tabular-nums">4,80</td>
+<td class="text-right text-on-surface tabular-nums">43</td>
+<td class="text-right text-primary font-semibold tabular-nums">208</td>
+<td class="text-right text-on-surface tabular-nums">1,81</td>
+<td class="text-right text-on-surface tabular-nums">3,1</td>
+<td class="text-right text-on-surface tabular-nums">31,3</td>
+<td class="text-center text-outline tabular-nums">6/8</td>
+<td class="text-center pr-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-tertiary text-tertiary border border-tertiary-container/30">Válida</span>
+</td>
+</tr>
+<!-- Linha 3 -->
+<tr class="h-9 hover:bg-surface-container transition-colors">
+<td class="pl-3 text-on-surface font-mono">14:31:48.405</td>
+<td class="text-secondary font-mono">#TEST-1512-C</td>
+<td class="text-right text-on-surface tabular-nums">4,65</td>
+<td class="text-right text-on-surface tabular-nums">40</td>
+<td class="text-right text-primary font-semibold tabular-nums">189</td>
+<td class="text-right text-on-surface tabular-nums">1,78</td>
+<td class="text-right text-on-surface tabular-nums">2,9</td>
+<td class="text-right text-on-surface tabular-nums">31,2</td>
+<td class="text-center text-outline tabular-nums">6/8</td>
+<td class="text-center pr-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-tertiary text-tertiary border border-tertiary-container/30">Válida</span>
+</td>
+</tr>
+<!-- Linha 4 -->
+<tr class="h-9 hover:bg-surface-container transition-colors">
+<td class="pl-3 text-on-surface font-mono">14:31:38.412</td>
+<td class="text-secondary font-mono">#TEST-1512-C</td>
+<td class="text-right text-on-surface tabular-nums">3,95</td>
+<td class="text-right text-on-surface tabular-nums">36</td>
+<td class="text-right text-on-surface font-medium tabular-nums">142</td>
+<td class="text-right text-on-surface tabular-nums">1,73</td>
+<td class="text-right text-on-surface tabular-nums">2,4</td>
+<td class="text-right text-on-surface tabular-nums">31,0</td>
+<td class="text-center text-outline tabular-nums">5/8</td>
+<td class="text-center pr-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-primary-container/20 text-primary border border-primary/30">Parcial</span>
+</td>
+</tr>
+<!-- Linha 5 -->
+<tr class="h-9 hover:bg-surface-container transition-colors">
+<td class="pl-3 text-on-surface font-mono">14:31:28.401</td>
+<td class="text-secondary font-mono">#TEST-1512-C</td>
+<td class="text-right text-on-surface tabular-nums">4,91</td>
+<td class="text-right text-on-surface tabular-nums">45</td>
+<td class="text-right text-primary font-semibold tabular-nums">224</td>
+<td class="text-right text-on-surface tabular-nums">1,69</td>
+<td class="text-right text-on-surface tabular-nums">3,4</td>
+<td class="text-right text-on-surface tabular-nums">31,1</td>
+<td class="text-center text-outline tabular-nums">6/8</td>
+<td class="text-center pr-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-tertiary text-tertiary border border-tertiary-container/30">Válida</span>
+</td>
+</tr>
+<!-- Linha 6 -->
+<tr class="h-9 hover:bg-surface-container transition-colors">
+<td class="pl-3 text-on-surface font-mono">14:31:18.420</td>
+<td class="text-outline font-mono">#TEST-1512-B</td>
+<td class="text-right text-on-surface tabular-nums">2,85</td>
+<td class="text-right text-on-surface tabular-nums">33</td>
+<td class="text-right text-error font-medium tabular-nums">94</td>
+<td class="text-right text-on-surface tabular-nums">1,63</td>
+<td class="text-right text-on-surface tabular-nums">1,8</td>
+<td class="text-right text-on-surface tabular-nums">30,8</td>
+<td class="text-center text-outline tabular-nums">4/8</td>
+<td class="text-center pr-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-error text-error border border-error/30">Suspeita</span>
+</td>
+</tr>
+<!-- Linha 7 -->
+<tr class="h-9 hover:bg-surface-container transition-colors">
+<td class="pl-3 text-on-surface font-mono">14:31:08.388</td>
+<td class="text-outline font-mono">#TEST-1512-B</td>
+<td class="text-right text-on-surface tabular-nums">4,75</td>
+<td class="text-right text-on-surface tabular-nums">42</td>
+<td class="text-right text-primary font-semibold tabular-nums">200</td>
+<td class="text-right text-on-surface tabular-nums">1,59</td>
+<td class="text-right text-on-surface tabular-nums">3,0</td>
+<td class="text-right text-on-surface tabular-nums">31,2</td>
+<td class="text-center text-outline tabular-nums">6/8</td>
+<td class="text-center pr-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-on-tertiary text-tertiary border border-tertiary-container/30">Válida</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer / Pagination -->
+<div class="pt-3 border-t border-outline-variant/30 flex items-center justify-between text-xs font-mono text-outline shrink-0">
+<div class="">
+            Mostrando <span class="text-on-surface font-semibold">1 a 7</span> de <span class="text-on-surface font-semibold">3.412</span> amostras coletadas
+          </div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant/40 transition-colors disabled:opacity-40" type="button">
+              Anterior
+            </button>
+<span class="px-2 text-on-surface">1 de 488</span>
+<button class="px-3 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant/40 transition-colors" type="button">
+              Próxima
+            </button>
+</div>
+</div>
+</section>
+</div>
+</main>
+
+
+
+
+</body></html>

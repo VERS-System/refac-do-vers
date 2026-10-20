@@ -327,6 +327,26 @@ describe('fundacao HTTP da aplicacao', () => {
     }
   });
 
+  it.each([
+    ['email=ana%40example.com&password=Senha%40123', 200],
+    ['email[nested]=ana%40example.com&password=Senha%40123', 400],
+  ])('preserva validação do formulário de login %s', async (form, status) => {
+    const login = jest.spyOn(app.get(AuthService), 'login').mockResolvedValue({
+      accessToken: 'synthetic-access', refreshToken: 'synthetic-refresh', user: {},
+    } as never);
+    try {
+      const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
+      const { data } = await csrf.json() as { data: { csrfToken: string } };
+      const response = await fetch(`${baseUrl}/api/v1/auth/login`, { method: 'POST', body: form,
+        headers: { Origin: 'http://localhost:3001', 'Content-Type': 'application/x-www-form-urlencoded',
+          Cookie: (csrf.headers.get('set-cookie') ?? '').split(';')[0], 'X-CSRF-Token': data.csrfToken },
+      });
+      expect(response.status).toBe(status);
+      if (status === 200) expect(login).toHaveBeenCalledWith({ email: 'ana@example.com', password: 'Senha@123' });
+      else expect(login).not.toHaveBeenCalled();
+    } finally { login.mockRestore(); }
+  });
+
   it('faz login de conta ativa com perfil público e JWTs só em cookies', async () => {
     const csrf = await fetch(`${baseUrl}/api/v1/auth/csrf`);
     const { data } = (await csrf.json()) as { data: { csrfToken: string } };
@@ -714,7 +734,9 @@ describe('fundacao HTTP da aplicacao', () => {
     let limited: Response | undefined;
 
     for (let attempt = 0; attempt <= 100; attempt += 1) {
-      const response = await fetch(`${baseUrl}/api/v1/foundation-fixture/throttle`);
+      const response = await fetch(`${baseUrl}/api/v1/foundation-fixture/throttle`, {
+        headers: { 'X-Forwarded-For': `198.51.100.${attempt + 1}` },
+      });
       if (response.status === 429) {
         limited = response;
         break;

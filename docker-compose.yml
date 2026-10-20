@@ -1,7 +1,8 @@
 # docker-compose.yml — Infraestrutura do VERS
 #
 # Define os serviços de apoio (Redis) e as aplicações
-# (backend, web, dashboard, mobile, ai-service) para desenvolvimento local.
+# (backend, web, mobile, ai-service) para desenvolvimento local.
+# O dashboard Electron roda no host: pnpm --filter @vers/dashboard dev.
 # Banco: Neon (nuvem) — sem PostgreSQL local.
 # Uso: docker compose up -d
 
@@ -58,36 +59,10 @@ services:
     volumes:
       - ./services/web/src:/app/services/web/src
 
-  dashboard:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.dashboard
-    container_name: vers-dashboard
-    restart: unless-stopped
-    ports:
-      - "3050:5174"
-    env_file:
-      - .env
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
-    depends_on:
-      - backend
-    volumes:
-      - ./services/dashboard/src:/app/services/dashboard/src
-
   mobile:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.mobile
-    container_name: vers-mobile
-    restart: unless-stopped
-    ports:
-      - "8080:8081"
-    environment:
-      EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
-      REACT_NATIVE_PACKAGER_HOSTNAME: ${EXPO_HOST:-localhost}
-    volumes:
-      - ./services/mobile:/app/services/mobile
+    extends:
+      file: docker-compose.mobile.yml
+      service: mobile
 
   ai-service:
     build:

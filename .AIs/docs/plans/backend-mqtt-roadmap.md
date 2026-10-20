@@ -2,6 +2,11 @@
 
 # Roadmap de Backend e MQTT — VERS
 
+> **Escopo atualizado em 19/10/2026:** integração elétrica cancelada pelo
+> programador; dados serão exclusivamente simulados. ESP32/sensores deixam de
+> bloquear a entrega. Permanecem as garantias do backend e os ensaios de software.
+> Ver [decisão e continuidade com simulação](backend-simulacao-19-10-2026.md).
+
 > A execução detalhada de cada fase está separada no
 > [Roadmap executável do backend](backend-roadmap/README.md). Este documento
 > permanece como fonte estratégica de escopo, arquitetura e marcos.
@@ -518,11 +523,16 @@ autorizados.
 
 ### Fase 9 — Operação e entrega
 
-**Entregas:** testes E2E, pipeline CI, migrations de deploy, Docker, métricas,
-alertas, backup/restauração, retenção, documentação e runbook.
+**Estado em20/10/2026:** concluída para demonstração local sintética assistida,
+conforme [matriz e limites](backend-phase-9-closure-20-10-2026.md).
+CI/CD fora do escopo por decisão do programador. Entrega manual, testes E2E,
+migrations, imagem/smoke, recuperação local e runbook validados; audit produção
+dos caminhos backend zero,969 testes. Sem deploy da stack de uso.
 
-**Saída:** ambiente limpo pode ser construído, testado, implantado e operado
-somente com a documentação versionada.
+**Limites:** integração Electron/API, operação remota, métricas/alertas
+automáticos e políticas executáveis para dados reais continuam em recortes
+próprios. A saída comprovada aqui é reprodução e operação local acompanhada,
+não aceite de implantação de produção.
 
 ## 15. Ordem e dependências
 

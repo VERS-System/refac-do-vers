@@ -2,6 +2,20 @@
 
 # Runbook do banco — Fase 02
 
+## Auditoria — migration posterior preparada em 19/10/2026
+
+`20261020000100_audit_application_codes` corrige incompatibilidade entre
+auth.login/session e a constraint original de códigos maiúsculos. Aceita os
+códigos atuais da allowlist e os legados, sem reescrever eventos, e conserva
+limpeza de referências nos dois formatos. [Plano e evidências locais](backend-phase-9-audit-persistence.md).
+
+Não aplicada ao Neon nesta sessão. Antes de deploy remoto autorizado, conferir
+histórico, ponto de retorno e janela para validação/lock de audit_events. Após
+deploy, validar uma operação sintética de auth e persistência correlacionada.
+Restaurar só a constraint antiga recusaria eventos novos: não executar rollback
+cego nem apagar eventos para caber no formato anterior. Preparação de testes
+usa SQL complementar sincronizado; ela não substitui histórico Prisma remoto.
+
 ## Estado verificado em 24/09/2026
 
 A migration `20260923000100_initial_schema` foi aplicada com `prisma migrate
@@ -79,6 +93,9 @@ não recupera dados descartados. A aplicação inicial ao destino vazio não tev
 snapshot prévio, portanto esse procedimento vale para mudanças futuras.
 
 ## Referências
+
+- [Ensaio F09 de deploy, backup e restauração locais](backend-phase-9-backup-rehearsal.md):
+  executado em PostgreSQL descartável; não autoriza operação remota.
 
 - [Dicionário de dados](backend-schema-phase-2-data-dictionary.md)
 - [Plano executável da Fase 02](backend-schema-phase-2-execution-roadmap.md)

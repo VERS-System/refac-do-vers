@@ -4,10 +4,10 @@
 # no dispositivo físico ou emulador e conecta-se a este servidor.
 # A variável EXPO_HOST deve apontar para o IP do host (ex: 192.168.x.x).
 
-FROM node:22-alpine
+FROM node:24-bookworm-slim
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install --global pnpm@11.21.0
 
 # Copia os manifests
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
@@ -15,12 +15,14 @@ COPY services/mobile/package.json ./services/mobile/
 COPY packages/ ./packages/
 
 # Instala dependências
-RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @vers/mobile... install --frozen-lockfile --ignore-scripts --config.strictDepBuilds=false
 
 # Copia o código-fonte
 COPY services/mobile/ ./services/mobile/
 COPY packages/ ./packages/
 
-EXPOSE 8081
+WORKDIR /app/services/mobile
+ENV EXPO_NO_DOTENV=1
+EXPOSE 8080
 
-CMD ["pnpm", "--filter", "@vers/mobile", "start", "--port", "8081"]
+CMD ["pnpm", "exec", "expo", "start", "--lan", "--port", "8080"]

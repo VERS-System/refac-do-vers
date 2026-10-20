@@ -2,6 +2,10 @@
 
 # Dashboard Vite sem Electron — 26/09/2026
 
+> **Substituído em 16/10/2026**: o usuário decidiu manter o Electron no app
+> desktop (`desktop-frontend-roadmap.md`, decisão 2). Este plano fica como
+> histórico.
+
 ## Decisão e objetivo
 
 O programador decidiu retirar Electron. `services/dashboard` será aplicação web

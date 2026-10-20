@@ -1,5 +1,6 @@
 // Recompõe resumos internos sob locks de origem, sem criar rota ou tarifa implícita.
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { EventEmitter } from 'node:events';
 import { EnergySummary, Prisma, SummaryPeriod } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CalculationSample, calculateTelemetry, TELEMETRY_CALCULATION_VERSION } from './telemetry-calculation';
@@ -8,6 +9,10 @@ const calculationSelect = { id: true, messageId: true, sampleIndex: true, device
   testId: true, capturedAt: true, voltageV: true, currentA: true, accumulatedEnergyWh: true,
   quality: true } satisfies Prisma.TelemetrySampleSelect;
 type CalendarPeriod = Exclude<SummaryPeriod, 'TEST'>;
+
+export const TEST_SUMMARY_RECOMPUTED_EVENT = 'summary.test-recomputed';
+export type TestSummaryRecomputedEvent = { version: 1; type: typeof TEST_SUMMARY_RECOMPUTED_EVENT;
+  testId: string; installationId: string | null };
 
 /** Exige início alinhado e usa calendário UTC, incluindo meses e anos bissextos. */
 function calendarEnd(periodType: CalendarPeriod, start: Date): Date {
@@ -29,6 +34,8 @@ function calendarEnd(periodType: CalendarPeriod, start: Date): Date {
 
 @Injectable()
 export class EnergySummaryService {
+  readonly events = new EventEmitter();
+  private readonly logger = new Logger(EnergySummaryService.name);
   /** Reutiliza Prisma global para manter leitura, cálculo e escrita na mesma transação. */
   constructor(private readonly prisma: PrismaService) {}
 
@@ -46,6 +53,7 @@ export class EnergySummaryService {
 
   /** Produz TEST só após encerramento, preservando histórico e a leitura terminal como vizinho. */
   async recomputeTest(testId: string, transaction?: Prisma.TransactionClient): Promise<EnergySummary | null> {
+    let event: TestSummaryRecomputedEvent | undefined;
     const recompute = async (tx: Prisma.TransactionClient): Promise<EnergySummary | null> => {
       const initial = await tx.test.findUnique({ where: { id: testId }, select: { installationId: true } });
       if (!initial) throw new NotFoundException({ code: 'TEST_NOT_FOUND' });
@@ -57,10 +65,24 @@ export class EnergySummaryService {
       if (!test) throw new NotFoundException({ code: 'TEST_NOT_FOUND' });
       if (!['COMPLETED', 'FAILED', 'CANCELLED'].includes(test.status) || !test.startedAt || !test.endedAt ||
         test.endedAt.getTime() <= test.startedAt.getTime()) return null;
-      return this.persist(tx, { testId, installationId: test.installationId }, 'TEST', test.startedAt, test.endedAt);
+      const result = await this.persist(tx, { testId, installationId: test.installationId }, 'TEST', test.startedAt, test.endedAt);
+      event = { version: 1, type: TEST_SUMMARY_RECOMPUTED_EVENT, testId, installationId: test.installationId };
+      return result;
     };
-    return transaction ? recompute(transaction) :
-      this.prisma.$transaction(recompute, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    if (transaction) return recompute(transaction);
+    const result = await this.prisma.$transaction(recompute, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    if (event) this.emitTestRecomputed(event);
+    return result;
+  }
+
+  /** Isola listeners pós-commit para falhas de aviso não alterarem persistência ou demais consumidores. */
+  private emitTestRecomputed(event: TestSummaryRecomputedEvent): void {
+    for (const listener of this.events.rawListeners(TEST_SUMMARY_RECOMPUTED_EVENT)) {
+      try {
+        const result: unknown = listener.call(this.events, event);
+        void Promise.resolve(result).catch(() => { this.logger.warn('summary_event_failed'); });
+      } catch { this.logger.warn('summary_event_failed'); }
+    }
   }
 
   /** Recompõe períodos afetados e vizinhos na transação da ingestão, ou repara histórico em transação própria. */

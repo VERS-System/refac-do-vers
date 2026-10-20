@@ -2,6 +2,11 @@
 
 # Roadmap executável do backend VERS
 
+> **19/10/2026:** o programador cancelou a integração elétrica e definiu dados
+> exclusivamente simulados. Pendências ESP32/hardware abaixo são históricas e
+> deixam de bloquear entrega. As demais pendências continuam válidas conforme
+> [decisão de escopo e continuidade](../backend-simulacao-19-10-2026.md).
+
 Este diretório separa o desenvolvimento do backend em fases detalhadas. O
 [roadmap estratégico](../backend-mqtt-roadmap.md) continua definindo escopo e
 arquitetura; estes documentos definem como executar cada fase.
@@ -18,8 +23,8 @@ arquitetura; estes documentos definem como executar cada fase.
 | 05 | [Recursos de domínio](05-recursos-dominio.md) | Recorte executável concluído — avanço aprovado em 13/10/2026; pendências reais preservadas | Fase 04 |
 | 06 | [Dados, analytics e fixtures](06-dados-analytics-fixtures.md) | Recorte local pronto para revisão — lotes 6.1–6.8 entregues; aceite e ensaio PostgreSQL pendentes | Fase 05 |
 | 07 | [Ingestão MQTT](07-ingestao-mqtt.md) | Recortes 7.1–7.7 entregues para revisão; PostgreSQL e broker TLS locais ensaiados, HiveMQ/ESP32 pendentes | Fase 06 + hardware/simulador |
-| 08 | [Tempo real](08-tempo-real.md) | 8.1 implementado e 8.2 documentado; aviso para busca REST escolhido, Redis/Socket.IO pendentes | Fase 07 |
-| 09 | [Operação e entrega](09-operacao-entrega.md) | Planejada | Fases 00–08 |
+| 08 | [Tempo real](08-tempo-real.md) | Até 8.6 local e ensaio real 8.7 MQTT/Redis para revisão; integração cliente e limites registrados pendentes | Fase 07 |
+| 09 | [Operação e entrega](09-operacao-entrega.md) | Concluída no recorte local sintético em 20/10/2026; produção e Electron/API fora desse aceite | Fases 00–08 |
 
 ```text
 F00 → F01 → F02 → F03 → F04 → F05 → F06
@@ -57,6 +62,17 @@ arquitetural baseada em carga, disponibilidade ou isolamento de falhas.
 - [Plano executável da Fase 7 — recortes locais para revisão](../backend-phase-7-execution-roadmap.md)
 - [Ensaio isolado F07.7 — autorização, comandos e evidências](../backend-phase-7-rehearsal.md)
 - [Plano executável da Fase 8](../backend-phase-8-execution-roadmap.md)
+- [Coordenação de pausa e retomada F08.3.1](../backend-phase-8-ingestion-coordination.md)
+- [Ponte de avisos pós-commit F08.3.2](../backend-phase-8-notification-bridge.md)
+- [Sessão e autorização F08.4](../backend-phase-8-session-authorization.md)
+- [Gateway Socket.IO F08.5](../backend-phase-8-socket-gateway.md)
+- [Consistência e recuperação F08.6](../backend-phase-8-consistency.md)
+- [Aviso de recálculo TEST independente — 19/10](../backend-phase-8-test-summary-notification.md)
+- [Ativação opt-in no bootstrap — 19/10](../backend-phase-8-bootstrap-activation.md)
+- [Ensaio do bootstrap real — dois cenários aprovados](../backend-phase-8-bootstrap-rehearsal.md)
+- [Histórico — proposta de CI cancelada](../backend-phase-9-ci-quality.md)
+- [Ensaio isolado F08.7 — seis cenários reais aprovados](../backend-phase-8-rehearsal.md)
+- [Continuação F08.7 — MQTT/TLS e pausa Redis, sete cenários reais](../backend-phase-8-mqtt-rehearsal.md)
 - [Contrato incremental de tempo real v1](../../Api/realtime-contract-v1.md)
 - [Contrato MQTT v1 local do simulador](../../Api/mqtt-contract-v1.md)
 - [Schema v2 proposto](../schema-mobile-mqtt.md)

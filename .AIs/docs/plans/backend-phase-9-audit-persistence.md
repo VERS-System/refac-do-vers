@@ -1,6 +1,24 @@
 <!-- Planeja corrigir incompatibilidade entre códigos da auditoria e restrição SQL. -->
 # F09 — Persistência real da auditoria
 
+## Próximo recorte — ciclo de autenticação auditado
+
+Continuidade NXT autorizada. Acrescentar dois cenários parametrizados à suíte
+bootstrap: login real, login com senha incorreta (401/FAILURE), cadastro
+duplicado (202/SUCCESS), refresh com rotação e logout ou logout-all (204).
+Conferir eventos mínimos correlacionados no PostgreSQL, acesso antigo recusado
+após refresh, novo cookie aceito e acesso revogado após encerramento. No logout-all
+conferir que não restou sessão ativa da fixture; logout simples não deve revogar
+a sessão independente preparada pelo beforeEach.
+
+Cadastro usa somente email sintético já existente, sem criar conta ativa nem
+inventar fluxo de verificação. Esperar auditoria de handlers 202/204 com prazo,
+pois resposta pode terminar antes da gravação. Limpeza por IDs/requestId atuais.
+Sem produção, dependência, migration ou mudança de contrato. Executar estáticos
+e unitários antes da suíte real, evitando build concorrente sobre dist. Avisar
+antes de Docker; preservar volumes e demais sistemas. Conta expirada/replay
+concorrente, cadastro novo e retenção permanecem fora deste recorte.
+
 ## Escopo e diagnóstico
 
 Continuidade NXT autorizada. AuditWriterService persiste auth.login/session,
@@ -73,3 +91,31 @@ Limites: não validada guarda/retencão de auditoria, todas as mutações de aut
 contra SQL real, auditoria de domínio ou implantação remota. A correção precisa
 ser aplicada por migration no ambiente de uso; autenticação seguirá funcionando
 sem auditoria persistida em bancos que conservarem apenas a constraint antiga.
+
+## Resultado do ciclo auditado — 19/10/2026
+
+Dois cenários novos passaram de primeira em 13,928 s e novamente em 14,216 s
+após completar limpeza Redis. Executados por filtro de nome, com quatro casos
+antigos não repetidos. Cada cenário persiste cinco eventos mínimos com o mesmo
+requestId sintético: login SUCCESS, login FAILURE (senha incorreta), register
+SUCCESS (duplicado), refresh SUCCESS e logout ou logout-all SUCCESS. Espera
+limitada confirma auditoria mesmo quando resposta 202/204 já foi enviada.
+
+Refresh devolve dois cookies HttpOnly; acesso com cookie antigo recebe 401,
+novo cookie recebe 200. Após encerramento, reenviar cookie ainda recebe 401.
+Logout preserva sessão independente da fixture; logout-all deixa zero sessões
+ativas. Cadastro duplicado não cria segunda conta. Não testa ativação.
+
+AfterEach agora reutiliza LoginAttemptsService.clear com configuração local
+fixa e fecha sua conexão para remover somente chaves da conta sintética. Na
+primeira execução, dois contadores opacos ficaram no Redis; identificados e
+removidos por suas chaves exatas. SCAN final auth:login:* vazio. Sem FLUSHDB.
+SQL final: zero nas 12 tabelas usadas. Bancada parada/volumes preservados.
+
+46 suítes/962 testes unitários, lint, tipos, build e diff --check aprovados;
+lint/tipos repetidos após ajuste de limpeza. Sem mudança de produção, nova
+migration, dependência, .env, Neon, commit ou push. O requisito de aplicar a
+migration anterior no ambiente de uso continua. Não repetidos quatro ensaios
+MQTT anteriores nem testes SQL anteriores, pois este recorte só amplia auth
+e limpeza de suas fixtures. Expiração/replay concorrente, cadastro novo,
+auditoria de domínio e retenção ainda não validados neste recorte.

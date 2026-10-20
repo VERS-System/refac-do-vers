@@ -5,10 +5,12 @@ import { readFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { resolve } from 'node:path';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { hash } from 'bcrypt';
 import { connectAsync, MqttClient } from 'mqtt';
 import { io, Socket } from 'socket.io-client';
 import { PrismaService } from '../../src/prisma/prisma.service';
+import { LoginAttemptsService } from '../../src/modules/auth/login-attempts.service';
 import { createFixture, envelope, localDatabaseUrl, removeFixture, RehearsalFixture, requireLocalDatabase } from '../mqtt/fixtures';
 
 const port = 53000;
@@ -147,6 +149,11 @@ describe('F08 — bootstrap compilado com bancada local', () => {
     if (userId) await prisma.userVehicle.deleteMany({ where: { userId } });
     if (apiFixture) await removeFixture(prisma, apiFixture);
     if (userId) {
+      const attempts = new LoginAttemptsService(new ConfigService({
+        REDIS_HOST: '127.0.0.1', REDIS_PORT: 56379, JWT_ACCESS_SECRET: secret,
+      }));
+      try { await attempts.clear(`${userId}@bootstrap.invalid`); }
+      finally { await attempts.onModuleDestroy(); }
       await prisma.auditEvent.deleteMany({ where: { requestId: userId } });
       await prisma.user.deleteMany({ where: { id: userId } });
     }
@@ -163,6 +170,52 @@ describe('F08 — bootstrap compilado com bancada local', () => {
       connection.once('connect', done); connection.once('connect_error', reject); connection.connect();
     })).rejects.toThrow();
     expect(await prisma.mqttMessage.count({ where: { deviceId: f!.deviceId } })).toBe(0);
+  }, 60000);
+
+  it.each(['logout', 'logout-all'])('audita ciclo HTTP de autenticação e revoga acesso por %s', async (ending) => {
+    const running = await start(false);
+    await login();
+    const credentials = { email: `${userId}@bootstrap.invalid`, password };
+    expect((await post('auth/login', { ...credentials, password: 'Senha-Incorreta-123!' })).status).toBe(401);
+    expect((await post('auth/register', credentials)).status).toBe(202);
+    expect(await prisma.user.count({ where: { email: credentials.email } })).toBe(1);
+    const oldCookie = cookie;
+    const refresh = await post('auth/refresh', {});
+    expect(refresh.status).toBe(204);
+    const sessionCookies = refresh.headers.getSetCookie().filter((value) => /^vers_(access|refresh)=/.test(value));
+    expect(sessionCookies).toHaveLength(2);
+    expect(sessionCookies.every((value) => /;\s*HttpOnly(?:;|$)/i.test(value))).toBe(true);
+    cookie = [...cookie.split('; ').filter((value) => !/^vers_(access|refresh)=/.test(value)),
+      ...sessionCookies.map((value) => value.split(';')[0])].join('; ');
+    expect(cookie).not.toBe(oldCookie);
+    const oldAccess = await fetch(`${url}/api/v1/users/me`, {
+      headers: { Cookie: oldCookie }, signal: AbortSignal.timeout(3000),
+    });
+    expect(oldAccess.status).toBe(401);
+    const newAccess = await fetch(`${url}/api/v1/users/me`, {
+      headers: { Cookie: cookie }, signal: AbortSignal.timeout(3000),
+    });
+    expect(newAccess.status).toBe(200);
+    const ended = await post(`auth/${ending}`, {});
+    expect(ended.status).toBe(204);
+    // Reenvia o cookie anterior à limpeza para provar revogação no servidor.
+    const revoked = await fetch(`${url}/api/v1/users/me`, {
+      headers: { Cookie: cookie }, signal: AbortSignal.timeout(3000),
+    });
+    expect(revoked.status).toBe(401);
+    expect(await prisma.refreshSession.count({ where: { userId, revokedAt: null } })).toBe(ending === 'logout-all' ? 0 : 1);
+    await until(async () => await prisma.auditEvent.count({ where: { requestId: userId } }) === 5, running);
+    const events = await prisma.auditEvent.findMany({ where: { requestId: userId }, select: {
+      action: true, resourceType: true, result: true, actorId: true, resourceId: true,
+    } });
+    expect(events).toEqual(expect.arrayContaining([
+      { action: 'auth.login', resourceType: 'session', result: 'SUCCESS', actorId: null, resourceId: null },
+      { action: 'auth.login', resourceType: 'session', result: 'FAILURE', actorId: null, resourceId: null },
+      { action: 'auth.register', resourceType: 'user', result: 'SUCCESS', actorId: null, resourceId: null },
+      { action: 'auth.refresh', resourceType: 'session', result: 'SUCCESS', actorId: null, resourceId: null },
+      { action: `auth.${ending}`, resourceType: 'session', result: 'SUCCESS', actorId: null, resourceId: null },
+    ]));
+    expect(events).toHaveLength(5);
   }, 60000);
 
   it('habilitado recebe MQTT, avisa cliente e retorna resumo REST sem start manual', async () => {

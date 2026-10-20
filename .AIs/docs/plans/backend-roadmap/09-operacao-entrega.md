@@ -37,7 +37,10 @@ prolongada permanecem pendentes. Não equivale ao fechamento desta etapa.
 localmente: identificada incompatibilidade de códigos com a constraint SQL,
 migration posterior preparada e ensaiada com deploy repetível em banco vazio.
 Login HTTP verifica gravação real; 10 testes SQL relacionados aprovados.
-Aplicação remota, cobertura das demais mutações e retenção continuam pendentes.
+Continuação com dois cenários HTTP aprovados cobre cadastro duplicado, login
+recusado, refresh, logout e logout-all com eventos SQL mínimos, rotação e
+revogação reais. Aplicação remota, cadastro novo, casos adicionais de falha e
+retenção continuam pendentes.
 
 Executar pelo programador ou pela IA no ambiente autorizado, sem GitHub Actions
 ou pipeline de CI/CD obrigatório.

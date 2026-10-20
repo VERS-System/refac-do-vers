@@ -71,6 +71,9 @@ it('restringe remetente, cookies, fila e descarte ao ciclo da janela/sessão', a
     expect(ambiente.encerrar.mock.invocationCallOrder[0]).toBeLessThan(ambiente.executar.mock.invocationCallOrder[0]);
   }
   ambiente.ensaios.mockResolvedValueOnce({ ok: false, status: 401, erro: 'HTTP' });
+  ambiente.encerrar.mockReturnValueOnce(dados); ambiente.executar.mockResolvedValueOnce({ ok: false, status: 503, erro: 'HTTP' });
+  ambiente.observar.mockClear(); await sessao(remetente, 'sair');
+  expect(ambiente.observar).toHaveBeenCalledWith(dados);
   ambiente.encerrar.mockClear(); await ensaios(remetente, 'listar', {});
   expect(ambiente.encerrar).toHaveBeenCalledOnce();
   ambiente.encerrar.mockClear();

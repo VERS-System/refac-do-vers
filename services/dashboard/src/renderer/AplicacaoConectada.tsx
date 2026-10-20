@@ -59,5 +59,5 @@ export function AplicacaoConectada() {
 
   if (estado.tipo === 'carregando') return <p role="status">Verificando sessão…</p>;
   if (estado.tipo === 'erro') return <main className="p-8"><EstadoErro mensagem="Não foi possível consultar a API local." onTentarNovamente={() => void verificar()} /></main>;
-  return <App key={identidade ?? 'anonimo'} repositorio={repositorio} autenticado={!!identidade} sessaoExpirada={estado.expirada} aoSair={autenticacao.sair} />;
+  return <App key={identidade ?? 'anonimo'} repositorio={repositorio} autenticado={!!identidade} sessaoExpirada={estado.expirada} aoSair={autenticacao.sair} aoSessaoExpirar={() => { void verificar(); }} />;
 }

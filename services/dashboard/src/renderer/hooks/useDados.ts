@@ -27,6 +27,7 @@ import type {
 } from '@/data/tipos';
 import { usePeriodoStore, type Periodo } from '@/stores/periodo';
 import { useSelecaoInstalacao } from '@/stores/instalacao';
+import { useRecursosTempoReal } from '@/data/ProvedorTempoReal';
 
 export const chavesConsulta = {
   resumoEnergia: (periodo: Periodo) => ['energia', 'resumo', periodo] as const,
@@ -55,6 +56,7 @@ export const chavesConsulta = {
 
 /** Consulta blocos completos por instalação e período; sem placeholder entre recursos. */
 export function useEnergiaInstalacao(instalacaoId: string | null) {
+  useRecursosTempoReal(instalacaoId ? [{ type: 'installation', id: instalacaoId }] : []);
   const repositorio = useRepositorio();
   const periodo = usePeriodoStore(estado => estado.periodo);
   const [agora, setAgora] = useState(() => repositorio.agora());
@@ -213,6 +215,7 @@ export function useTestes(consulta: ConsultaTestes | null) {
 
 /** Resumo de energia de um teste encerrado (`null` para não consultar). */
 export function useResumoTeste(testeId: string | null) {
+  useRecursosTempoReal(testeId ? [{ type: 'test', id: testeId }] : []);
   const repositorio = useRepositorio();
   return useQuery({
     queryKey: chavesConsulta.resumoTeste(testeId),
@@ -223,6 +226,7 @@ export function useResumoTeste(testeId: string | null) {
 
 /** Comparação dos testes escolhidos (`null` enquanto o usuário não pede). */
 export function useComparacaoTestes(testeIds: string[] | null) {
+  useRecursosTempoReal((testeIds ?? []).map(id => ({ type: 'test', id })));
   const repositorio = useRepositorio();
   return useQuery({
     queryKey: chavesConsulta.comparacaoTestes(testeIds),
@@ -287,9 +291,11 @@ export function useAmostrasTelemetria(
   consulta: ConsultaTelemetria | null,
   opcoes: OpcoesAmostrasTelemetria = {},
 ) {
+  useRecursosTempoReal(consulta && opcoes.intervaloMs !== false ? [{ type: 'test', id: consulta.testeId }] : []);
   const repositorio = useRepositorio();
   return useQuery({
     queryKey: chavesConsulta.amostrasTelemetria(consulta),
+    meta: { tempoReal: opcoes.intervaloMs !== false },
     queryFn: () => repositorio.obterAmostrasTelemetria(consulta!),
     enabled: consulta !== null,
     refetchInterval: opcoes.intervaloMs ?? false,

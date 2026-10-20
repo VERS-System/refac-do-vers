@@ -119,9 +119,11 @@ void app.whenReady().then(() => {
         return { ok: false, status: 403, erro: 'REMETENTE_INVALIDO' };
       }
       return enfileirar(async () => {
-        if (canal === 'vers:sessao' && ['entrar', 'sair', 'sairDeTodas'].includes(String(acao))) tempoReal.encerrar();
+        const anterior = canal === 'vers:sessao' && ['entrar', 'sair', 'sairDeTodas'].includes(String(acao)) ? tempoReal.encerrar() : undefined;
         const resultado = await operacao(acao, dados);
         if (!resultado.ok && resultado.status === 401) tempoReal.encerrar();
+        // Logout não confirmado mantém a identidade; restaura os avisos com autorização nova.
+        else if (!resultado.ok && anterior && (acao === 'sair' || acao === 'sairDeTodas')) tempoReal.observar(anterior);
         return resultado;
       });
     });

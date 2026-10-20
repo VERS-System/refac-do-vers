@@ -75,7 +75,10 @@ async function provar(modo, etapa, perfil) {
         ...(modo === 'dev' ? { ELECTRON_RENDERER_URL: 'http://localhost:5175' } : {}) },
     });
     let evidencia = '';
-    processo.stdout.on('data', valor => { evidencia += valor.toString(); });
+    processo.stdout.on('data', valor => {
+      const texto = valor.toString(); evidencia += texto;
+      for (const linha of texto.split(/\r?\n/)) if (/^PROVA_MARCO [a-z-]+$/.test(linha)) console.log(linha);
+    });
     const prazo = setTimeout(() => { processo.kill(); falha(new Error('Electron excedeu prazo')); }, 90000);
     processo.once('error', erro => { clearTimeout(prazo); falha(erro); });
     processo.once('exit', codigo => {
@@ -136,7 +139,7 @@ try {
       recoveredEnergyWh: energia, averagePowerW: qualidade === 'INVALID' ? null : energia, peakPowerW: qualidade === 'INVALID' ? null : energia,
       quality: qualidade, sampleCount: qualidade === 'INVALID' ? 0 : 10, calculatedAt: new Date(), calculationVersion: TELEMETRY_CALCULATION_VERSION } });
   }
-  child = spawn(process.execPath, [resolve(backend, 'dist/services/backend/src/main.js')], {
+  child = spawn(process.execPath, [resolve(dashboard, 'scripts/realtime-backend.cjs')], {
     cwd: backend, windowsHide: true, stdio: 'ignore', env: { ...ambiente,
       NODE_ENV: 'test', PORT: '53000', API_PREFIX: 'api/v1', DATABASE_URL: database,
       REDIS_HOST: '127.0.0.1', REDIS_PORT: '56379', CORS_ORIGINS: 'http://localhost:5174',
@@ -156,7 +159,7 @@ try {
     await prisma.userVehicle.updateMany({ where: { userId: id }, data: { isPrimary: false } });
     await prisma.userVehicle.update({ where: { userId_vehicleId: { userId: id, vehicleId: veiculoId } }, data: { isPrimary: true } });
     const perfil = resolve(pasta, modo);
-    for (const etapa of ['login', 'resume', 'logged-out']) await provar(modo, etapa, perfil);
+    for (const etapa of ['login', 'realtime', 'resume', 'logged-out']) await provar(modo, etapa, perfil);
     assert.equal(await prisma.userVehicle.count({ where: { userId: id, isPrimary: true, vehicle: { licensePlate: placas[2] } } }), 1);
     assert.equal(await prisma.vehicle.count({ where: { id: veiculoId, model: 'Veículo da bancada desktop' } }), 1);
     assert.equal(await prisma.test.count({ where: { createdById: id, status: 'COMPLETED' } }), 1);

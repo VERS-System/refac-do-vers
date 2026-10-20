@@ -23,6 +23,7 @@ import { criarRepositorioMock } from '@/data/repositorioMock';
 import { ROTAS } from '@/routes/navegacao';
 import { TELAS } from '@/routes/telas';
 import { usePreferencias } from '@/stores/preferencias';
+import { TempoRealProvider } from '@/data/ProvedorTempoReal';
 
 /**
  * Monta os provedores, o roteador e a tabela de rotas do app.
@@ -32,11 +33,12 @@ import { usePreferencias } from '@/stores/preferencias';
  * repositório pode vir de fora: os testes usam isso para simular recusas do
  * backend sem mexer no repositório de exemplo.
  */
-export default function App({ repositorio: externo, autenticado, aoSair, sessaoExpirada }: {
+export default function App({ repositorio: externo, autenticado, aoSair, sessaoExpirada, aoSessaoExpirar }: {
   repositorio?: RepositorioVers;
   autenticado?: boolean;
   aoSair?: () => Promise<void>;
   sessaoExpirada?: boolean;
+  aoSessaoExpirar?: () => void;
 } = {}) {
   const [clienteConsultas] = useState(() => new QueryClient());
   const [repositorio] = useState(() => externo ?? criarRepositorioMock());
@@ -59,9 +61,7 @@ export default function App({ repositorio: externo, autenticado, aoSair, sessaoE
     };
   }, [reduzirMovimento]);
 
-  return (
-    <QueryClientProvider client={clienteConsultas}>
-      <RepositorioProvider repositorio={repositorio}>
+  const telas = (
         <HashRouter>
           <Suspense fallback={<CarregandoTela />}>
             <Routes>
@@ -82,7 +82,12 @@ export default function App({ repositorio: externo, autenticado, aoSair, sessaoE
             </Routes>
           </Suspense>
         </HashRouter>
-      </RepositorioProvider>
-    </QueryClientProvider>
   );
+  return <QueryClientProvider client={clienteConsultas}>
+    <RepositorioProvider repositorio={repositorio}>
+      {autenticado && window.vers?.tempoReal
+        ? <TempoRealProvider ponte={window.vers.tempoReal} aoExpirar={aoSessaoExpirar}>{telas}</TempoRealProvider>
+        : telas}
+    </RepositorioProvider>
+  </QueryClientProvider>;
 }

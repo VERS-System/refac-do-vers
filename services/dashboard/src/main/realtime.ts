@@ -39,9 +39,12 @@ export function criarTempoReal(endereco: string, preparar: () => Promise<Credenc
   let atual: Conexao | undefined;
 
   /** Libera transporte/timer antes de permitir outra identidade ou observação. */
-  function encerrar(): void {
+  function encerrar(): ObservacaoTempoReal | undefined {
     const anterior = atual; atual = undefined;
-    if (anterior) liberar(anterior);
+    if (anterior) {
+      liberar(anterior); notificar({ observacao: anterior.dados.observacao, tipo: 'desconectado' });
+    }
+    return anterior?.dados;
   }
 
   /** Remove listeners antes de desconectar para não agendar reconexão por cancelamento local. */
@@ -86,7 +89,7 @@ export function criarTempoReal(endereco: string, preparar: () => Promise<Credenc
       if (atual !== conexao) return;
       if (!credencial.ok) {
         if (credencial.status === 401) {
-          notificar({ observacao: conexao.dados.observacao, tipo: 'sessao-expirada' }); encerrar();
+          encerrar(); notificar({ observacao: conexao.dados.observacao, tipo: 'sessao-expirada' });
         } else repetir(conexao);
         return;
       }

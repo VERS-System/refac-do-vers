@@ -154,4 +154,12 @@ describe('tempo real no main', () => {
     expect(sockets[0].disconnect).toHaveBeenCalledOnce(); expect(sessao).toHaveBeenCalledOnce();
     await vi.advanceTimersByTimeAsync(60000); expect(sockets).toHaveLength(1);
   });
+
+  it('encerra sinalizando desconexão e devolve observação somente para eventual logout não confirmado', async () => {
+    const { tempoReal, avisar } = preparar();
+    tempoReal.observar({ observacao, recursos: [recurso] }); await concluir();
+    expect(tempoReal.encerrar()).toEqual({ observacao, recursos: [recurso] });
+    expect(avisar).toHaveBeenCalledWith({ observacao, tipo: 'desconectado' });
+    expect(tempoReal.encerrar()).toBeUndefined();
+  });
 });

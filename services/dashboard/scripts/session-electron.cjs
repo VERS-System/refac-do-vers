@@ -57,7 +57,9 @@ async function executar(janela) {
     await clicar('Entrar');
     await esperar(`document.body.textContent.includes('Autenticação e cadastro reais')`, 'área autenticada');
   }
-  if (process.env.VERS_PROOF_STAGE === 'login') {
+  if (process.env.VERS_PROOF_STAGE === 'realtime') {
+    await require('./realtime-electron.cjs')(janela, { chamar, esperar, selecionar, clicar, entrarPelaTela });
+  } else if (process.env.VERS_PROOF_STAGE === 'login') {
     const inicial = await perfil();
     assert.equal(inicial.status, 401, `perfil inicial: ${JSON.stringify(inicial)}`);
     const invalido = await chamar(`window.vers.sessao.entrar({email:${JSON.stringify(process.env.VERS_PROOF_EMAIL)},password:'incorreta'})`);

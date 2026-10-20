@@ -33,6 +33,12 @@ prolongada permanecem pendentes. Não equivale ao fechamento desta etapa.
 
 ## Etapa B — Validação local
 
+[Validação de contratos/Prisma/dependências](../backend-phase-9-local-validation.md):
+shared-types, Prisma validate/generate e build aprovados; 32 operações e 242
+referências OpenAPI conferidas. Auditoria de produção reportou 34 advisories em
+caminhos do backend (9 pacotes), ainda sem correção/alcance de exploração
+validados. Secret scanning dedicado e instalação limpa congelada pendentes.
+
 [Auditoria persistida de auth](../backend-phase-9-audit-persistence.md) validada
 localmente: identificada incompatibilidade de códigos com a constraint SQL,
 migration posterior preparada e ensaiada com deploy repetível em banco vazio.

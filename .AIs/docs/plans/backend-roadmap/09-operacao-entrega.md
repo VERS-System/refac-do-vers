@@ -39,6 +39,11 @@ referências OpenAPI conferidas. Auditoria de produção reportou 34 advisories 
 caminhos do backend (9 pacotes), ainda sem correção/alcance de exploração
 validados. Secret scanning dedicado e instalação limpa congelada pendentes.
 
+Em 20/10, [atualização isolada Joi](../backend-phase-9-joi-update.md) para 18.2.9
+removeu seus quatro avisos, mantendo 30 nos caminhos do backend. Install
+congelado sem scripts, 962 unitários, lint/build/tipos aprovados. Instalação
+limpa e imagem rebuildada não comprovadas; demais pacotes permanecem pendentes.
+
 [Auditoria persistida de auth](../backend-phase-9-audit-persistence.md) validada
 localmente: identificada incompatibilidade de códigos com a constraint SQL,
 migration posterior preparada e ensaiada com deploy repetível em banco vazio.

@@ -34,7 +34,7 @@
     "class-validator": "^0.14.1",
     "helmet": "^8.3.0",
     "ioredis": "^5.4.0",
-    "joi": "^18.2.3",
+    "joi": "^18.2.9",
     "mqtt": "^5.10.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

@@ -4,7 +4,9 @@
 > **20/10/2026 — lote 0 concluído:** [matriz dos37 métodos e lacunas](desktop-backend-contract-matrix-20-10-2026.md).
 > Programador confirmou API local da demonstração e área demonstrativa
 > identificada para campos sem contrato. Sem fallback silencioso em falha real.
-> Lote1 (prova de sessão Electron) ainda não implementado.
+> Lote1 implementado: [prova de sessão dev/build e persistência](desktop-backend-session-lot1.md).
+> Sessão permanece ao reabrir até expirar ou encerrar, conforme decisão do programador.
+> Próximo lote: autenticação real da interface (lote2).
 
 ## Objetivo e limites
 
@@ -92,6 +94,11 @@ depende de definição do programador. Não escolher hospedagem neste lote.
 Arquivos candidatos: main/index.ts, main/seguranca.ts, preload/index.ts e tipos
 da ponte se necessária, electron.vite.config.ts, renderer/services/api.ts e
 testes correspondentes; config de backend somente se demonstrada necessidade.
+
+Transporte validado: net.request no main, origin fixo localhost5174 e partição
+persistente exclusiva da API. Configuração HTTP aceita somente localhost,
+mantendo o mesmo site da origem. Seis instâncias Electron reais passaram nos
+modos dev e loadFile/build, incluindo reabertura e encerramento.
 
 Aceite: cookies HttpOnly inacessíveis ao renderer, CSRF/Origin válidos,
 renovação/encerramento reais e nenhum enfraquecimento dos controles existentes.
@@ -195,7 +202,7 @@ Sem alteração funcional neste planejamento: não foi necessário repetir teste
 ## Decisões a fechar antes do lote correspondente
 
 1. Distribuição: API local na demonstração ou destino HTTPS para distribuição?
-2. Sessão: deve permanecer após fechar/reabrir o app? Validar com cookie real.
+2. Sessão: decidido manter até expirar/encerrar; reabertura validada com cookie real no lote1.
 3. Lacunas de dados: qual tratamento desejado para bateria/celular, logs e Viber?
 4. Períodos: fuso e definição de semana dos gráficos ao comparar com os buckets?
 5. Conta de demonstração: provisionamento/ativação sintéticos, sem criar fluxo

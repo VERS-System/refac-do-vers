@@ -5,23 +5,13 @@ import type { ResultadoCadastro } from '../../shared/cadastro';
 import type { RepositorioVers } from './repositorio';
 import type { TesteCampo, ResumoTeste, AmostraTelemetria } from './tipos';
 import { ErroRepositorio } from './erros';
+import { isoBrasilia } from '../lib/brasilia';
+import { carregarEnergia } from './energia';
 
 const ESTADOS = { planejado: 'PLANNED', 'em-andamento': 'RUNNING', concluido: 'COMPLETED', falhou: 'FAILED', cancelado: 'CANCELLED' } as const;
 const TERRENOS = { rodovia: 'HIGHWAY', cidade: 'CITY', 'fora-estrada': 'OFFROAD', misto: 'MIXED', outro: 'OTHER' } as const;
 const RESULTADOS = { satisfatorio: 'SATISFACTORY', insatisfatorio: 'UNSATISFACTORY', inconclusivo: 'INCONCLUSIVE' } as const;
 const QUALIDADES = { valida: 'VALID', parcial: 'PARTIAL', suspeita: 'SUSPECT', invalida: 'INVALID' } as const;
-const DATA_BRASILIA = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
-  hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3, hourCycle: 'h23' });
-
-/** Formata ISO em Brasília preservando o instante, inclusive em datas históricas com outro offset. */
-export function isoBrasilia(valor: string): string {
-  const data = new Date(valor);
-  const p = Object.fromEntries(DATA_BRASILIA.formatToParts(data).map(p => [p.type, p.value]));
-  const local = `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}.${p.fractionalSecond}`;
-  const minutos = Math.round((Date.parse(`${local}Z`) - data.getTime()) / 60000);
-  const absoluto = Math.abs(minutos);
-  return `${local}${minutos < 0 ? '-' : '+'}${String(Math.floor(absoluto / 60)).padStart(2, '0')}:${String(absoluto % 60).padStart(2, '0')}`;
-}
 
 /** Omite campos opcionais ausentes, preservando null e zero do contrato. */
 function definidos<T extends Record<string, unknown>>(dados: T): T {
@@ -71,8 +61,8 @@ function converterAmostra(a: TelemetrySample): AmostraTelemetria {
     qualidade: (Object.keys(QUALIDADES) as (keyof typeof QUALIDADES)[]).find(k => QUALIDADES[k] === a.quality)! };
 }
 
-type Metodos = Pick<RepositorioVers, 'buscarTestes' | 'criarTeste' | 'iniciarTeste' | 'finalizarTeste' | 'cancelarTeste'
-  | 'obterResumoTeste' | 'compararTestes' | 'obterAmostrasTelemetria'>;
+type Metodos = Required<Pick<RepositorioVers, 'buscarTestes' | 'criarTeste' | 'iniciarTeste' | 'finalizarTeste' | 'cancelarTeste'
+  | 'obterResumoTeste' | 'compararTestes' | 'obterAmostrasTelemetria' | 'obterEnergiaInstalacao'>>;
 
 /** Expõe somente os métodos já integrados e encerra a identidade quando a API recusa a sessão. */
 export function criarEnsaios(ponte: PonteEnsaios | undefined, expirar: () => void): Metodos & { ensaiosReais: true } {
@@ -93,6 +83,9 @@ export function criarEnsaios(ponte: PonteEnsaios | undefined, expirar: () => voi
 
   return {
     ensaiosReais: true,
+    /** Completa a janela horária com o mesmo tratamento de sessão e erros dos demais ensaios. */
+    obterEnergiaInstalacao: (id, janela) => carregarEnergia(id, janela, page => chamar(() => ponte!.energia(id,
+      { page, periodFrom: janela.inicio, periodTo: janela.fim }))),
     /** Busca páginas do histórico mantendo os filtros e os limites reais. */
     async buscarTestes(c) {
       const query: TestSearchQuery = definidos({ page: c.pagina ?? 1, pageSize: c.tamanhoPagina ?? 20,

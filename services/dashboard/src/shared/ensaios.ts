@@ -12,4 +12,5 @@ export interface PonteEnsaios {
   amostras(id: string, query: TelemetrySearchQuery): Promise<ResultadoCadastro<TelemetrySample[]>>;
   resumos(id: string): Promise<ResultadoCadastro<EnergySummary[]>>;
   comparar(testIds: string[]): Promise<ResultadoCadastro<TestComparison>>;
+  energia(id: string, query: { page: number; periodFrom: string; periodTo: string }): Promise<ResultadoCadastro<EnergySummary[]>>;
 }

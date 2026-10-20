@@ -52,14 +52,17 @@ function amostra(v: unknown, id: string): TelemetrySample {
   return r as unknown as TelemetrySample;
 }
 
-/** Devolve somente resumos oficiais TEST, mantendo valores desconhecidos como nulos. */
-function resumo(v: unknown, id: string): EnergySummary {
-  const r = copiar(v, { id: uuid, installationId: nulo(uuid), testId: v => texto(v) && v.toLowerCase() === id.toLowerCase(),
-    periodType: v => v === 'TEST', periodStart: instante, periodEnd: instante, recoveredEnergyWh: numero,
+/** Devolve resumos oficiais TEST ou HOUR da instalação, preservando nulos e vínculo. */
+function resumo(v: unknown, id: string, instalacao = false): EnergySummary {
+  const igual = (v: unknown) => texto(v) && v.toLowerCase() === id.toLowerCase();
+  const r = copiar(v, { id: uuid, installationId: instalacao ? igual : nulo(uuid), testId: instalacao ? v => v === null : igual,
+    periodType: v => v === (instalacao ? 'HOUR' : 'TEST'), periodStart: instante, periodEnd: instante, recoveredEnergyWh: numero,
     vehicleEnergyUsedWh: nulo(numero), averagePowerW: nulo(numero), peakPowerW: nulo(numero),
     moneySaved: nulo(texto), currencyCode: nulo(texto), energyTariffPerKwh: nulo(texto), sampleCount: inteiro,
     quality: v => ['GOOD', 'PARTIAL', 'INVALID'].includes(String(v)), calculatedAt: instante });
   if (Date.parse(String(r.periodEnd)) <= Date.parse(String(r.periodStart))) throw new Error('Período inválido');
+  if (instalacao && (Date.parse(String(r.periodStart)) % 3600000 !== 0 ||
+    Date.parse(String(r.periodEnd)) - Date.parse(String(r.periodStart)) !== 3600000)) throw new Error('Bloco horário inválido');
   return r as unknown as EnergySummary;
 }
 
@@ -85,7 +88,7 @@ export function criarEnsaios(rede: Pick<Session, 'fetch'> & { cookies: Pick<Sess
   /** Faz preflight de sessão, CSRF para POST e uma única repetição de GET após 401. */
   return async (acao: unknown, dados: unknown): Promise<ResultadoCadastro<Dados>> => {
     const p = objeto(dados) ? dados : {};
-    const leitura = ['listar', 'amostras', 'resumos', 'comparar'].includes(String(acao));
+    const leitura = ['listar', 'amostras', 'resumos', 'comparar', 'energia'].includes(String(acao));
     const limitado = (max: number) => (v: unknown) => texto(v) && v.length <= max;
     const obrigatorio = (max: number) => (v: unknown) => limitado(max)(v) && /\S/.test(String(v));
     const positivo = (v: unknown) => numero(v) && v > 0;
@@ -103,18 +106,26 @@ export function criarEnsaios(rede: Pick<Session, 'fetch'> & { cookies: Pick<Sess
         : campos(v, { reason: limitado(500) }) }, ['id', 'dados']);
     if (acao === 'amostras' || acao === 'resumos') valida = campos(dados, { id: uuid,
       query: v => acao === 'amostras' ? consulta(v, true) : campos(v, {}) }, ['id', 'query']);
+    if (acao === 'energia') valida = campos(dados, { id: uuid, query: v => campos(v, {
+      page: v => inteiro(v) && Number(v) > 0,
+      periodFrom: v => instante(v) && Date.parse(v) % 3600000 === 0,
+      periodTo: v => instante(v) && Date.parse(v) % 3600000 === 0,
+    }, ['page', 'periodFrom', 'periodTo']) && Date.parse(String(v.periodTo)) > Date.parse(String(v.periodFrom)) &&
+      Date.parse(String(v.periodTo)) - Date.parse(String(v.periodFrom)) <= 32 * 24 * 3600000 }, ['id', 'query']);
     if (acao === 'comparar') valida = campos(dados, { testIds: v => Array.isArray(v) && v.length >= 2 && v.length <= 5
       && v.every(uuid) && new Set(v.map(i => i.toLowerCase())).size === v.length }, ['testIds']);
     if (!valida) return { ok: false, status: 400, erro: 'REQUISICAO_INVALIDA' };
-    const query = acao === 'listar' ? p : acao === 'amostras' ? p.query as Objeto : acao === 'resumos' ? { periodType: 'TEST', page: 1, pageSize: 20 } : {};
+    const query = acao === 'listar' ? p : acao === 'amostras' ? p.query as Objeto : acao === 'resumos' ? { periodType: 'TEST', page: 1, pageSize: 20 }
+      : acao === 'energia' ? { ...p.query as Objeto, pageSize: 100, periodType: 'HOUR' } : {};
     const parametros = new URLSearchParams();
-    if (['listar', 'amostras', 'resumos'].includes(String(acao))) {
+    if (['listar', 'amostras', 'resumos', 'energia'].includes(String(acao))) {
       parametros.set('page', String(query.page ?? 1)); parametros.set('pageSize', String(query.pageSize ?? 20));
       for (const [k, v] of Object.entries(query)) if (v !== undefined && !['page', 'pageSize'].includes(k)) parametros.set(k, String(v));
     }
     if (acao === 'comparar') for (const id of p.testIds as string[]) parametros.append('testIds', id);
     const sufixo = ({ iniciar: 'start', finalizar: 'finish', cancelar: 'cancel', amostras: 'telemetry', resumos: 'energy-summaries' } as Record<string, string>)[String(acao)];
-    const rota = acao === 'comparar' ? 'test-comparisons' : sufixo ? `tests/${p.id}/${sufixo}` : 'tests';
+    const rota = acao === 'comparar' ? 'test-comparisons' : acao === 'energia' ? `installations/${p.id}/energy-summaries`
+      : sufixo ? `tests/${p.id}/${sufixo}` : 'tests';
     const url = `${base}/${rota}${parametros.size ? `?${parametros}` : ''}`;
     try {
       const acesso = await autorizar(); if (!acesso.ok) return acesso;
@@ -155,7 +166,10 @@ export function criarEnsaios(rede: Pick<Session, 'fetch'> & { cookies: Pick<Sess
         const meta = copiar(corpo.meta, { page: inteiro, pageSize: inteiro, totalItems: inteiro, totalPages: inteiro }) as unknown as PaginationMeta;
         if (meta.page !== Number(query.page ?? 1) || meta.pageSize !== Number(query.pageSize ?? 20) || meta.totalPages !== Math.ceil(meta.totalItems / meta.pageSize)
           || !Array.isArray(corpo.data) || corpo.data.length !== Math.min(meta.pageSize, Math.max(0, meta.totalItems - (meta.page - 1) * meta.pageSize))) throw new Error('Paginação inválida');
-        const data = corpo.data.map((v: unknown) => acao === 'listar' ? teste(v) : acao === 'amostras' ? amostra(v, String(p.id)) : resumo(v, String(p.id)));
+        const data = corpo.data.map((v: unknown) => acao === 'listar' ? teste(v) : acao === 'amostras' ? amostra(v, String(p.id)) : resumo(v, String(p.id), acao === 'energia'));
+        if (acao === 'energia' && (meta.totalItems > (Date.parse(String(query.periodTo)) - Date.parse(String(query.periodFrom))) / 3600000 ||
+          data.some((r: EnergySummary) => Date.parse(r.periodStart) < Date.parse(String(query.periodFrom)) || Date.parse(r.periodEnd) > Date.parse(String(query.periodTo)))))
+          throw new Error('Bloco fora da janela');
         if (new Set(data.map((i: { id: string }) => i.id)).size !== data.length) throw new Error('Duplicação inválida');
         if (acao === 'resumos' && meta.totalItems > 1) throw new Error('Resumo TEST ambíguo');
         return { ok: true, data, meta };

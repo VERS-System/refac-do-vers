@@ -44,8 +44,10 @@ igual. Snapshot/cursor consistente exige evolução do contrato.
 
 ## Estado
 
-Em andamento. Testes/transições, telemetria, resumos TEST, comparação e CSV
-conectados à API. Energia por instalação/períodos ainda não concluída.
+Concluído no escopo da demonstração local. Testes/transições, telemetria,
+resumos TEST, comparação, energia por instalação/períodos/cobertura e CSV
+conectados à API. Tempo real, recuperação e ensaio MQTT/instalador seguem nos
+lotes5/6. Os registros abaixo preservam a execução das partes anteriores.
 
 Primeira alteração concluída: proteção do CSV e erro recuperável na tela.
 Validação: 86 arquivos/616 testes unitários aprovados, typecheck aprovado e
@@ -112,3 +114,68 @@ Publicação MQTT e prova positiva de ponta a ponta permanecem para o lote6.
 Próxima parte do lote4: energia por instalação, blocos horários completos,
 períodos de Brasília e cobertura visível. Depois lotes5/6. Sem fechamento
 antecipado do lote4 nem afirmação de validação com hardware.
+
+## Energia por instalação — próxima parte autorizada por NXT
+
+Arquivos: main/ensaios.ts, shared/ensaios.ts, preload/index.ts e testes;
+renderer/data/energia.ts e testes, extração do formatador Brasília para lib,
+data/ensaios.ts/repositorio.tsx, hooks/useDados.ts, painel de energia oficial,
+EnergiaPage/VisaoGeralPage, banner e testes. Ampliar o ensaio Electron existente
+com resumos HOUR sintéticos conhecidos e limpeza pelos IDs das instalações.
+
+Janelas: Hora é a última hora fechada; Dia vai do início de hoje em Brasília
+até a última fronteira horária; Mês, do início do mês até essa fronteira.
+Semana é a última segunda a domingo completos. API recebe UTC, início
+inclusivo e fim exclusivo. Hora em curso nunca entra. Dia/mês sem hora completa
+mostram estado próprio, sem enviar intervalo vazio à API.
+
+Usar somente HOUR de instalação, testId null, duração1h, sem duplicatas de
+bucket ou IDs, dentro da janela, com páginas completas e total estável.
+Limite técnico da janela32dias; no máximo768 blocos. Somar apenas energia
+oficial dos blocos GOOD/PARTIAL com amostras, identificando a soma como parcial
+quando cobertura/qualidade exigir. INVALID e ausência ficam distintos de zero.
+Não somar contagens de amostras nem calcular média global de médias horárias.
+Cobertura significa disponibilidade dos resumos, não medição contínua da hora.
+
+Painel real compartilhado pelas duas telas, com seleção de instalação, carga,
+erro, vazio, cobertura, tabela horária paginada e CSV de toda a janela. Potência
+média/pico permanecem por bloco; nenhuma tarifa/eficiência/energia da bateria
+ou celular será inventada. Componentes antigos ficam em área de demonstração
+identificada e recolhida. Não há fallback para exemplos na falha real.
+
+Validação: TDD de fuso, virada de dia/ano/mês, semana completa, horário de verão,
+limites/paginação/duplicação, nulos/zero/qualidade, troca de instalação e CSV.
+Suíte completa, typecheck/build e Electron dev/build com fixture de resumos
+persistidos; sem mudar backend, schema, dependências ou implantar serviços.
+
+### Energia concluída — evidências
+
+- `main/ensaios` aceita somente HOUR da instalação, query UTC horária de até
+  32dias e campos conhecidos; valida vínculo/testId null/duração/intervalo.
+- `data/energia` confere paginação completa e total estável, IDs/buckets únicos,
+  energia/qualidade e cobertura. Calendário usa America/Sao_Paulo, inclusive
+  horário de verão histórico. Nenhuma média global de médias ou tarifa criada.
+- Painel compartilhado nas duas telas: soma dos blocos utilizáveis, cobertura
+  GOOD/PARTIAL/INVALID/ausentes, gráfico com lacunas, tabela paginada e CSV
+  completo. Resumo zero continua zero; ausência/invalidade não vira zero.
+- Área de demonstração só monta após abertura explícita. Troca de recurso ou
+  erro real não exibe números do recurso anterior nem exemplos como fallback.
+- Unidade final:90 arquivos/669 testes aprovados, com maxWorkers4. Typecheck e
+  build main/preload/renderer aprovados. TDD antecedeu implementação dos períodos,
+  leitura autorizada e painel; asserção do KPI foi refinada para não aceitar
+  por engano um valor do eixo do gráfico.
+- Electron real: seis processos dev/build aprovados. Fixture persistida de
+  100+200mWh e700mWh em instalações distintas; INVALID7Wh e DAY100Wh não entram
+  na soma. Semana completa com168 linhas, CSV169 linhas incluindo cabeçalho,
+  qualidades/ausências/fuso conferidos. Download real interceptado e cancelado
+  antes de qualquer gravação fora do perfil temporário. Outra conta recebe404.
+- Ajustados somente detalhes da automação: duas casas decimais esperadas e
+  retorno void na instrumentação do Blob, pois função não atravessa executeJavaScript.
+- Limpeza por IDs das próprias instalações/contas, antes de vínculos SetNull;
+  banco conferido com0 usuários/veículos/testes/amostras/resumos. Sem dados órfãos.
+  db-test/redis-test parados, preservando volumes e containers de uso.
+
+Limites mantidos: paginação REST não é snapshot atômico; cobertura não comprova
+aquisição contínua. Fixture de resumos persistidos não prova a ingestão/calibração
+física; ensaio MQTT completo permanece no lote6. Sem alteração de backend,
+schema, dependências, deploy, commit ou push.

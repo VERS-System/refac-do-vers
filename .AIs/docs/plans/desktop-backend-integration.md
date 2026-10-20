@@ -8,9 +8,10 @@
 > Sessão permanece ao reabrir até expirar ou encerrar, conforme decisão do programador.
 > Lote2 implementado: [autenticação real da interface](desktop-backend-auth-lot2.md).
 > Lote3 concluído: [cadastro real e seleção de instalação](desktop-backend-cadastro-lot3.md).
-> Lote4 parcialmente implementado: testes/transições, telemetria, resumo TEST,
-> comparação e CSV reais. Próxima parte: energia por instalação e cobertura.
-> Lote4 em andamento: [plano e decisões de medições](desktop-backend-medicoes-lot4.md).
+> Lote4 concluído na demonstração local: testes/transições, telemetria, resumo
+> TEST, comparação, energia horária por instalação, cobertura e CSV reais.
+> [Plano e evidências de medições](desktop-backend-medicoes-lot4.md).
+> Próximo lote:5 — tempo real e recuperação.
 > Períodos aprovados: America/Sao_Paulo; semana anterior completa, segunda a
 > domingo. Energia em blocos horários completos e cobertura visível;
 > curvas sem contrato permanecem em demonstração identificada.
@@ -158,7 +159,12 @@ Lista e transições reais, escolha de instalação/configuração no planejamen
 ações por teste no histórico, amostras com paginação descendente global,
 resumos TEST e comparação conectados. CSV mantém unidades/fuso e limite de
 10 mil itens; não inicia download após desmontagem da tela/troca de conta.
-Energia por instalação e períodos ainda pendentes; o lote4 não está encerrado.
+Energia por instalação concluída: HOUR oficial, janela de Brasília, cobertura,
+gráfico/tabela/CSV e seleção da instalação em Energia/Visão geral. Curvas e
+métricas sem contrato ficam em demonstração recolhida, sem fallback.669 testes,
+typecheck/build e seis processos Electron dev/build aprovados. Resumos
+sintéticos persistidos provaram soma, qualidade, seleção e CSV. MQTT positivo
+e instalador continuam nos lotes5/6; lote4 fechado somente no escopo local.
 
 Integrar testes/transições, consulta de amostras, resumos e comparação. Reutilizar
 adaptadores puros pequenos para DTO → modelo de tela, sem duplicar cálculos

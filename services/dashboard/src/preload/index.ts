@@ -47,6 +47,8 @@ const cadastro: PonteCadastro = {
 
 /** Encaminha ensaios por operações fixas, sem acesso ao transporte ou à identidade. */
 const ensaios: PonteEnsaios = {
+  /** Consulta blocos horários completos exclusivamente da instalação solicitada. */
+  energia: (id, query) => ipcRenderer.invoke('vers:ensaios', 'energia', { id, query }),
   /** Consulta histórico e filtros públicos. */
   listar: query => ipcRenderer.invoke('vers:ensaios', 'listar', query),
   /** Planeja com instalação e configuração explícitas. */

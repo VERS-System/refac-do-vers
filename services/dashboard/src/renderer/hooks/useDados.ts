@@ -8,6 +8,8 @@
  */
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { janelaEnergia } from '@/data/energia';
 import { descreverVeiculo, resumirDispositivo } from '@/data/calculos';
 import { useRepositorio, type PeriodoComDias } from '@/data/repositorio';
 import type {
@@ -50,6 +52,24 @@ export const chavesConsulta = {
   dispositivo: ['cadastro', 'dispositivo'] as const,
   usuarioAtual: ['cadastro', 'usuario-atual'] as const,
 };
+
+/** Consulta blocos completos por instalação e período; sem placeholder entre recursos. */
+export function useEnergiaInstalacao(instalacaoId: string | null) {
+  const repositorio = useRepositorio();
+  const periodo = usePeriodoStore(estado => estado.periodo);
+  const [agora, setAgora] = useState(() => repositorio.agora());
+  useEffect(() => {
+    const timer = setInterval(() => setAgora(repositorio.agora()), 60000);
+    return () => clearInterval(timer);
+  }, [repositorio]);
+  const janela = janelaEnergia(periodo, agora);
+  return useQuery({
+    queryKey: ['energia', 'instalacao', instalacaoId, periodo, janela.inicio, janela.fim],
+    queryFn: () => repositorio.obterEnergiaInstalacao!(instalacaoId!, janela),
+    enabled: instalacaoId !== null && !!repositorio.obterEnergiaInstalacao,
+    refetchInterval: 60000,
+  });
+}
 
 /**
  * Resumo de energia de um período.
@@ -226,6 +246,7 @@ export function useAcoesTeste() {
     Promise.all([
       cliente.invalidateQueries({ queryKey: ['testes'] }),
       cliente.invalidateQueries({ queryKey: ['telemetria'] }),
+      cliente.invalidateQueries({ queryKey: ['energia'] }),
     ]);
 
   const criar = useMutation({

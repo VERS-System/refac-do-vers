@@ -18,6 +18,7 @@ const requireBackend = createRequire(resolve(backend, 'package.json'));
 const { PrismaClient } = requireBackend('@prisma/client');
 const { hash } = requireBackend('bcrypt');
 const Redis = requireBackend('ioredis');
+const { TELEMETRY_CALCULATION_VERSION } = requireBackend(resolve(backend, 'dist/services/backend/src/modules/data/telemetry-calculation.js'));
 const database = 'postgresql://vers_test:vers_test_local_only@127.0.0.1:55432/vers_test?schema=public';
 const secret = 'desktop-access-somente-sintetico-123';
 const id = randomUUID();
@@ -27,6 +28,13 @@ const segundoEmail = `${segundoId}@desktop.invalid`;
 const novosEmails = ['dev', 'build'].map(modo => `${id}-${modo}@desktop.invalid`);
 const veiculoId = randomUUID();
 const instalacoes = [randomUUID(), randomUUID()];
+// Oráculo civil da bancada atual (sem horário de verão); regras históricas ficam nos testes de período.
+const diaBrasilia = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+const segunda = new Date(`${diaBrasilia}T12:00:00.000Z`);
+segunda.setUTCDate(segunda.getUTCDate() - (segunda.getUTCDay() + 6) % 7);
+const fimSemana = `${segunda.toISOString().slice(0, 10)}T03:00:00.000Z`;
+segunda.setUTCDate(segunda.getUTCDate() - 7);
+const inicioSemana = `${segunda.toISOString().slice(0, 10)}T03:00:00.000Z`;
 const placas = ['QAA', 'QBB', 'QCC'].map(prefixo => `${prefixo}${String(randomInt(10000)).padStart(4, '0')}`);
 const prisma = new PrismaClient({ datasources: { db: { url: database } } });
 const redis = new Redis({ host: '127.0.0.1', port: 56379, lazyConnect: true, retryStrategy: () => null });
@@ -63,6 +71,7 @@ async function provar(modo, etapa, perfil) {
         VERS_PROOF_SECOND_EMAIL: segundoEmail, VERS_PROOF_NEW_EMAIL: `${id}-${modo}@desktop.invalid`,
         VERS_PROOF_VEHICLE: veiculoId, VERS_PROOF_INSTALLATION: instalacoes[0], VERS_PROOF_INSTALLATION_TWO: instalacoes[1],
         VERS_PROOF_PLATE_ONE: placas[1], VERS_PROOF_PLATE_TWO: placas[2],
+        VERS_PROOF_ENERGY_FROM: inicioSemana, VERS_PROOF_ENERGY_TO: fimSemana,
         ...(modo === 'dev' ? { ELECTRON_RENDERER_URL: 'http://localhost:5175' } : {}) },
     });
     let evidencia = '';
@@ -115,6 +124,18 @@ try {
       ...(indice === 0 ? { devices: { create: { deviceUid: `desktop-${id}`, name: 'Dispositivo sintético desktop', status: 'ONLINE' } } } : {}),
     } });
   }
+  // Resumos persistidos conhecidos provam leitura/soma/cobertura; não substituem o ensaio de ingestão MQTT.
+  for (const [indice, [instalacaoId, energia, qualidade, tipo]] of [
+    [instalacoes[0], 0.1, 'GOOD', 'HOUR'], [instalacoes[0], 0.2, 'PARTIAL', 'HOUR'],
+    [instalacoes[0], 7, 'INVALID', 'HOUR'], [instalacoes[1], 0.7, 'GOOD', 'HOUR'],
+    [instalacoes[0], 100, 'GOOD', 'DAY'],
+  ].entries()) {
+    const periodStart = new Date(Date.parse(inicioSemana) + (tipo === 'HOUR' && instalacaoId === instalacoes[0] ? indice : 0) * 3600000);
+    await prisma.energySummary.create({ data: { installationId: instalacaoId, testId: null, periodType: tipo,
+      periodStart, periodEnd: new Date(periodStart.getTime() + (tipo === 'DAY' ? 24 : 1) * 3600000),
+      recoveredEnergyWh: energia, averagePowerW: qualidade === 'INVALID' ? null : energia, peakPowerW: qualidade === 'INVALID' ? null : energia,
+      quality: qualidade, sampleCount: qualidade === 'INVALID' ? 0 : 10, calculatedAt: new Date(), calculationVersion: TELEMETRY_CALCULATION_VERSION } });
+  }
   child = spawn(process.execPath, [resolve(backend, 'dist/services/backend/src/main.js')], {
     cwd: backend, windowsHide: true, stdio: 'ignore', env: { ...ambiente,
       NODE_ENV: 'test', PORT: '53000', API_PREFIX: 'api/v1', DATABASE_URL: database,
@@ -152,6 +173,7 @@ try {
   try {
   await prisma.auditEvent.deleteMany({ where: { requestId: id } });
   await limparEnsaios();
+  await prisma.energySummary.deleteMany({ where: { installationId: { in: instalacoes } } });
   await limparVeiculosExtras();
   await prisma.userVehicle.deleteMany({ where: { userId: { in: [id, segundoId] }, vehicleId: veiculoId } });
   await prisma.vehicle.deleteMany({ where: { id: veiculoId } });

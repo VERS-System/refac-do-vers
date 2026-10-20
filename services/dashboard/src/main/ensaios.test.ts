@@ -1,6 +1,6 @@
 /** Verifica operações fixas, validação pública e ausência de replay nas transições. */
 import { describe, expect, it, vi } from 'vitest';
-import { testRecordFixture as teste, testListFixture, telemetrySampleListFixture, energySummaryListFixture, testComparisonFixture } from '@vers/shared-types';
+import { testRecordFixture as teste, testListFixture, telemetrySampleListFixture, energySummaryListFixture, testComparisonFixture, energySummaryFixture } from '@vers/shared-types';
 import { criarEnsaios } from './ensaios';
 
 /** Cria transporte isolado sem rede, sessão ou serviços reais. */
@@ -12,6 +12,35 @@ function preparar() {
 }
 
 describe('ensaios no processo principal', () => {
+  it('consulta só HOUR da instalação dentro do intervalo, sem campos internos', async () => {
+    const { executar, fetch } = preparar();
+    const hora = { ...energySummaryFixture, testId: null, periodType: 'HOUR', periodStart: '2026-10-20T03:00:00.000Z', periodEnd: '2026-10-20T04:00:00.000Z' };
+    fetch.mockResolvedValue(Response.json({ data: [{ ...hora, segredo: 'interno' }], meta: { page: 1, pageSize: 100, totalItems: 1, totalPages: 1 } }));
+    const query = { page: 1, periodFrom: hora.periodStart, periodTo: '2026-10-20T15:00:00.000Z' };
+    const resultado = await executar('energia', { id: hora.installationId, query });
+    expect(resultado).toMatchObject({ ok: true, data: [hora] });
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.pathname).toBe(`/api/v1/installations/${hora.installationId}/energy-summaries`);
+    expect(url.searchParams.get('periodType')).toBe('HOUR');
+    expect(url.searchParams.get('pageSize')).toBe('100');
+    expect(JSON.stringify(resultado)).not.toContain('interno');
+    for (const extra of [{ installationId: teste.id }, { testId: teste.id }, { periodType: 'DAY' },
+      { periodEnd: '2026-10-20T04:30:00.000Z' }, { periodStart: '2026-10-20T02:00:00.000Z', periodEnd: hora.periodStart }]) {
+      fetch.mockResolvedValue(Response.json({ data: [{ ...hora, ...extra }], meta: { page: 1, pageSize: 100, totalItems: 1, totalPages: 1 } }));
+      expect(await executar('energia', { id: hora.installationId, query })).toMatchObject({ erro: 'RESPOSTA_INVALIDA' });
+    }
+  });
+
+  it('recusa consulta de energia sem limites horários, excessiva ou com período arbitrário', async () => {
+    const { executar, fetch } = preparar();
+    const base = { page: 1, periodFrom: '2026-10-20T03:00:00.000Z', periodTo: '2026-10-20T15:00:00.000Z' };
+    for (const query of [{}, { ...base, periodType: 'DAY' }, { ...base, page: 0 },
+      { ...base, periodFrom: '2026-10-20T03:30:00.000Z' }, { ...base, periodTo: base.periodFrom },
+      { ...base, periodTo: '2026-12-20T15:00:00.000Z' }]) {
+      expect(await executar('energia', { id: energySummaryFixture.installationId, query })).toMatchObject({ status: 400 });
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it('recusa URL, autoridade, IDs, datas e payloads arbitrários antes da rede', async () => {
     const { executar, fetch, autorizar } = preparar();
     for (const [acao, dados] of [

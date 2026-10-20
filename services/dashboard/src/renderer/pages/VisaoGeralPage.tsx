@@ -19,12 +19,14 @@ import { CardGraficoEnergia } from '@/components/energia/CardGraficoEnergia';
 import { CardVibracao } from '@/components/visao-geral/CardVibracao';
 import { CardBateria, CardEficiencia, CardPotencia } from '@/components/visao-geral/KpisAoVivo';
 import { useVeiculoAtivo } from '@/hooks/useDados';
+import { useRepositorio } from '@/data/repositorio';
+import { PainelEnergiaReal, DemonstracaoMedicoes } from '@/components/energia/PainelEnergiaReal';
 
 /** Renderiza a tela Visão geral. */
 export function VisaoGeralPage() {
   const { data: veiculo } = useVeiculoAtivo();
-  return (
-    <Page title="Visão geral" subtitle={veiculo === null ? 'Nenhum veículo principal definido' : veiculo?.descricao} controls={<PeriodSelector />}>
+  const { obterEnergiaInstalacao } = useRepositorio();
+  const demonstracao = (
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <CardEnergia />
@@ -38,6 +40,8 @@ export function VisaoGeralPage() {
         </div>
         <CadeiaConversao />
       </div>
-    </Page>
   );
+  return <Page title="Visão geral" subtitle={veiculo === null ? 'Nenhum veículo principal definido' : veiculo?.descricao} controls={<PeriodSelector />}>
+    {obterEnergiaInstalacao ? <><PainelEnergiaReal /><DemonstracaoMedicoes>{demonstracao}</DemonstracaoMedicoes></> : demonstracao}
+  </Page>;
 }

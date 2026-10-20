@@ -27,12 +27,14 @@ import { TabelaResumoDias } from '@/components/energia/TabelaResumoDias';
 import { Page } from '@/components/layout/Page';
 import { PeriodSelector } from '@/components/layout/PeriodSelector';
 import { useVeiculoAtivo } from '@/hooks/useDados';
+import { useRepositorio } from '@/data/repositorio';
+import { PainelEnergiaReal, DemonstracaoMedicoes } from '@/components/energia/PainelEnergiaReal';
 
 /** Renderiza a tela Energia. */
 export function EnergiaPage() {
   const { data: veiculo } = useVeiculoAtivo();
-  return (
-    <Page title="Energia" subtitle={veiculo === null ? 'Nenhum veículo principal definido' : veiculo?.descricao} controls={<PeriodSelector />}>
+  const { obterEnergiaInstalacao } = useRepositorio();
+  const demonstracao = (
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <CardEnergia variante="energia" />
@@ -51,6 +53,8 @@ export function EnergiaPage() {
         </div>
         <TabelaResumoDias />
       </div>
-    </Page>
   );
+  return <Page title="Energia" subtitle={veiculo === null ? 'Nenhum veículo principal definido' : veiculo?.descricao} controls={<PeriodSelector />}>
+    {obterEnergiaInstalacao ? <><PainelEnergiaReal /><DemonstracaoMedicoes>{demonstracao}</DemonstracaoMedicoes></> : demonstracao}
+  </Page>;
 }

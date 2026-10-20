@@ -8,6 +8,7 @@
 
 import { createContext, useContext, type ReactNode } from 'react';
 import type { Periodo } from '@/stores/periodo';
+import type { EnergiaInstalacao, JanelaEnergia } from './energia';
 import type {
   AmostraTelemetria,
   AtualizacaoPerfil,
@@ -53,6 +54,8 @@ export interface RepositorioVers {
   readonly fotoLocalPermitida?: boolean;
   readonly cadastroReal?: boolean;
   readonly ensaiosReais?: boolean;
+  /** Presente somente no adaptador real; resumos horários oficiais e cobertura da instalação. */
+  obterEnergiaInstalacao?(instalacaoId: string, janela: JanelaEnergia): Promise<EnergiaInstalacao>;
   /** Disponível no cadastro real para permitir escolha explícita de instalação. */
   listarInstalacoes?(veiculoId: string): Promise<Instalacao[]>;
   /** Relógio do repositório (fixo no exemplo, real na API). */

@@ -83,6 +83,33 @@ async function executar(janela) {
     await selecionar('Instalação exibida', process.env.VERS_PROOF_INSTALLATION_TWO);
     await esperar(`document.body.textContent.includes('Configuração desktop 2 · v1')`, 'troca de instalação');
     assert.equal(await chamar(`document.body.textContent.includes('Configuração desktop 1 · v1')`), false);
+    // A energia vem dos blocos da instalação escolhida, sem somar DAY/INVALID ou manter o recurso anterior.
+    await chamar(`document.querySelector('a[href="#/energia"]').click()`);
+    await esperar(`!![...document.querySelectorAll('[role="radio"]')].find(b => b.textContent.trim() === 'Semana')`, 'período da energia');
+    await clicar('Semana');
+    await esperar(`document.body.textContent.includes('700,00 mWh')`, 'energia da segunda instalação');
+    await selecionar('Instalação exibida', process.env.VERS_PROOF_INSTALLATION);
+    await esperar(`document.body.textContent.includes('300,00 mWh') && document.body.textContent.includes('2 de 168 horas utilizáveis')`, 'soma e cobertura oficiais');
+    assert.equal(await chamar(`document.body.textContent.includes('0 inválidas')`), false);
+    assert.equal(await chamar(`!!document.querySelector('details[open]')`), false);
+    const consultaEnergia = { page: 1, periodFrom: process.env.VERS_PROOF_ENERGY_FROM, periodTo: process.env.VERS_PROOF_ENERGY_TO };
+    const blocos = await chamar(`window.vers.ensaios.energia(${JSON.stringify(process.env.VERS_PROOF_INSTALLATION)}, ${JSON.stringify(consultaEnergia)})`);
+    assert.equal(blocos.ok, true); assert.equal(blocos.data.length, 3);
+    assert.ok(blocos.data.every(b => b.periodType === 'HOUR' && b.testId === null));
+    // Intercepta o download real antes de qualquer gravação fora do perfil temporário.
+    let nomeCsv = '';
+    janela.webContents.session.once('will-download', (_evento, item) => { nomeCsv = item.getFilename(); item.cancel(); });
+    await chamar(`window.__versCsvProva = null; window.__versCriarURL = URL.createObjectURL; URL.createObjectURL = b => { b.text().then(t => { window.__versCsvProva = t; }); return window.__versCriarURL.call(URL, b); }; void 0;`);
+    await clicar('Exportar blocos CSV');
+    await esperar(`typeof window.__versCsvProva === 'string'`, 'CSV completo da janela');
+    const csv = await chamar('window.__versCsvProva');
+    assert.equal(csv.trimEnd().split('\r\n').length, 169);
+    assert.ok(csv.includes('America/Sao_Paulo') && csv.includes('Inválida') && csv.includes('Ausente'));
+    const limiteDownload = Date.now() + 5000;
+    while (!nomeCsv && Date.now() < limiteDownload) await new Promise(ok => setTimeout(ok, 25));
+    assert.ok(nomeCsv.startsWith('vers-energia-'));
+    await chamar(`URL.createObjectURL = window.__versCriarURL; delete window.__versCriarURL; delete window.__versCsvProva; document.querySelector('a[href="#/visao-geral"]').click()`);
+    await esperar(`document.body.textContent.includes('300,00 mWh')`, 'mesmo resumo na visão geral');
     // O fluxo de planejamento passa pelo formulário e escolhe a configuração conhecida da bancada.
     await chamar(`document.querySelector('a[href="#/testes"]').click()`);
     await esperar(`!![...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Novo teste')`, 'tela de testes reais');
@@ -172,6 +199,8 @@ async function executar(janela) {
     assert.equal(negar.status, 404);
     const negarConfiguracao = await chamar(`window.vers.cadastro.configuracoes(${JSON.stringify(process.env.VERS_PROOF_INSTALLATION)}, 1)`);
     assert.equal(negarConfiguracao.status, 404);
+    assert.equal((await chamar(`window.vers.ensaios.energia(${JSON.stringify(process.env.VERS_PROOF_INSTALLATION)}, ${JSON.stringify({ page: 1,
+      periodFrom: process.env.VERS_PROOF_ENERGY_FROM, periodTo: process.env.VERS_PROOF_ENERGY_TO })})`)).status, 404);
     const testeAlheio = await chamar(`localStorage.getItem('vers:prova-teste-alheio')`);
     assert.ok(testeAlheio);
     assert.equal((await chamar(`window.vers.ensaios.amostras(${JSON.stringify(testeAlheio)}, {})`)).status, 404);

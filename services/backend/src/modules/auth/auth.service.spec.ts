@@ -141,6 +141,18 @@ describe('AuthService.login', () => {
     (attempts.recordFailure as jest.Mock).mockResolvedValue(0);
   });
 
+  // Hashes sintéticos produzidos pelo bcrypt 5 protegem o login após trocar a biblioteca nativa.
+  it.each([
+    { label: 'ASCII 2b', password: 'Migracao-Sintetica-123!', hash: '$2b$04$iojuvOBJ2Q.YkFDLsWvFjuCd.la9rcmAmNwvNASqMmO9/qh99dgNK' },
+    { label: 'Unicode 2b', password: 'Senha-ação-漢字-🔋', hash: '$2b$04$RL30Ax8p6d3I4uhlx.Jawe1Ttuip9BTCL4QYd1XhMrs770WK1/Ajm' },
+    { label: 'ASCII 2a', password: 'Migracao-Sintetica-123!', hash: '$2a$04$iojuvOBJ2Q.YkFDLsWvFjuCd.la9rcmAmNwvNASqMmO9/qh99dgNK' },
+  ])('autentica hash legado $label e recusa senha incorreta', async ({ password, hash }) => {
+    user.passwordHash = hash;
+    await expect(service.login({ email: user.email, password })).resolves.toMatchObject({ user: { id: user.id } });
+    await expect(service.login({ email: user.email, password: password + '!' })).rejects.toMatchObject({ status: 401 });
+    expect(createSession).toHaveBeenCalledTimes(1);
+  });
+
   it('emite tokens só após persistir hash do refresh e retorna perfil sem senha', async () => {
     const result = await service.login({ email: ' ANA@EXAMPLE.COM ', password: 'Senha@123' });
     expect(findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { email: 'ana@example.com' } }));

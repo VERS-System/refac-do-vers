@@ -62,6 +62,13 @@ Audit18→13, zero avisos Multer;964 unitários, lint/build/tipos, instalação
 congelada, imagem Linux nova e oito cenários reais aprovados. Bancada limpa e
 parada, sem deploy. Restam tar12 e deepmerge-ts1; auditoria não aprovada.
 
+[bcrypt6 — 20/10](../backend-phase-9-bcrypt-tar-20-10-2026.md): removida a
+cadeia node-pre-gyp do backend; audit13→1, apenas deepmerge-ts/Prisma alto.
+967 unitários, lint/build/tipos, dois cenários HTTP reais e três testes de
+hash legado no runtime Linux aprovados. Imagem nova construída, sem deploy.
+Bancada limpa/parada; custo e hashes existentes preservados. Aviso restante e
+critérios operacionais ainda impedem declarar fechamento integral da F09.
+
 [Auditoria persistida de auth](../backend-phase-9-audit-persistence.md) validada
 localmente: identificada incompatibilidade de códigos com a constraint SQL,
 migration posterior preparada e ensaiada com deploy repetível em banco vazio.

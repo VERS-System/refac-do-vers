@@ -8,7 +8,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { buscarTodasAmostras } from '@/data/consultasTelemetria';
@@ -39,6 +39,22 @@ async function linhasDaTabela() {
 }
 
 describe('TelemetriaPage — conteúdo', () => {
+  /** Testes antigos continuam acessíveis sem baixar histórico inteiro ou filtrar somente hoje. */
+  it('pagina o seletor real por todo o histórico e informa o modo de consulta', async () => {
+    const base = criarRepositorioMock();
+    const fixture = (await base.buscarTestes({})).itens[0];
+    const buscar = vi.fn().mockImplementation(async (c) => ({ pagina: c.pagina, tamanhoPagina: 100, total: 101,
+      itens: c.pagina === 2 ? [{ ...fixture, id: 'teste-antigo', codigo: 'ID antigo', nome: 'Histórico antigo' }]
+        : Array.from({ length: 100 }, (_, i) => ({ ...fixture, id: `teste-${i}`, codigo: `ID ${i}` })),
+    }));
+    renderizar({ ...base, ensaiosReais: true, buscarTestes: buscar });
+    expect(await screen.findByText(/Consulta periódica a cada 10 s/)).toBeInTheDocument();
+    const seletor = await screen.findByRole('region', { name: 'Páginas do seletor de testes' });
+    await userEvent.click(within(seletor).getByRole('button', { name: 'Próxima' }));
+    expect(await screen.findByRole('option', { name: /Histórico antigo/ })).toBeInTheDocument();
+    expect(buscar).toHaveBeenCalledWith({ pagina: 2, tamanhoPagina: 100 });
+    expect(buscar.mock.calls.every(([c]) => c.inicioDe === undefined)).toBe(true);
+  });
   /** Barra superior da referência, com exportação e ao vivo ligado. */
   it('mostra a barra superior', async () => {
     renderizar();
@@ -199,6 +215,27 @@ describe('TelemetriaPage — unidades preferidas', () => {
 describe('TelemetriaPage — exportação', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  /** Sair da tela ou trocar de conta invalida uma exportação que ainda aguardava a rede. */
+  it('não baixa CSV pendente depois de desmontar a tela', async () => {
+    const criar = vi.fn(() => 'blob:vers/telemetria');
+    Object.assign(URL, { createObjectURL: criar, revokeObjectURL: vi.fn() });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const repositorio = criarRepositorioMock();
+    const original = repositorio.obterAmostrasTelemetria;
+    let concluir!: () => void;
+    const espera = new Promise<void>(ok => { concluir = ok; });
+    vi.spyOn(repositorio, 'obterAmostrasTelemetria').mockImplementation(async c => {
+      if (c.tamanhoPagina === 100 && !c.de) await espera;
+      return original(c);
+    });
+    renderizar(repositorio);
+    await linhasDaTabela();
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    cleanup();
+    await act(async () => { concluir(); await new Promise(ok => setTimeout(ok, 50)); });
+    expect(criar).not.toHaveBeenCalled();
   });
 
   /** Mantém a falha no contexto do CSV e permite tentar novamente sem baixar parcial. */

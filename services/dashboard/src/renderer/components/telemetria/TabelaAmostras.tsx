@@ -162,7 +162,7 @@ function colunas(codigoTeste: string): TableColumn<AmostraTelemetria>[] {
       key: 'piezos',
       header: 'Piezos',
       numeric: true,
-      render: (a) => (a.piezosAtivos === null ? '–' : `${a.piezosAtivos}/${a.piezosTotal}`),
+      render: (a) => (a.piezosAtivos === null ? '–' : `${a.piezosAtivos}/${a.piezosTotal ?? '–'}`),
     },
     {
       key: 'qualidade',
@@ -224,7 +224,7 @@ export function TabelaAmostras(props: TabelaAmostrasProps) {
                 </Selecao>
                 {ultimaAmostra?.piezosAtivos != null && (
                   <Pilula icone={<Cpu aria-hidden="true" className="size-3.5" />}>
-                    {`Piezos: ${ultimaAmostra.piezosAtivos}/${ultimaAmostra.piezosTotal} ativos`}
+                    {`Piezos: ${ultimaAmostra.piezosAtivos}/${ultimaAmostra.piezosTotal ?? '–'} ativos`}
                   </Pilula>
                 )}
               </div>

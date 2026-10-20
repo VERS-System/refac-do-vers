@@ -52,6 +52,7 @@ export interface RepositorioVers {
   /** Somente o repositório de demonstração aceita fotos blob sem upload remoto. */
   readonly fotoLocalPermitida?: boolean;
   readonly cadastroReal?: boolean;
+  readonly ensaiosReais?: boolean;
   /** Disponível no cadastro real para permitir escolha explícita de instalação. */
   listarInstalacoes?(veiculoId: string): Promise<Instalacao[]>;
   /** Relógio do repositório (fixo no exemplo, real na API). */

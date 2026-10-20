@@ -94,6 +94,7 @@ function numeroCsv(valor: number | null, casas = 0): string {
 export function csvAmostrasTelemetria(
   amostras: readonly AmostraTelemetria[],
   codigoTeste: string,
+  real = false,
 ): string {
   const linhas = amostras.map((amostra) => [
     `${formatarData(amostra.capturadaEm.slice(0, 10))} ${formatarHorarioCaptura(amostra.capturadaEm, true)}`,
@@ -104,10 +105,10 @@ export function csvAmostrasTelemetria(
     numeroCsv(amostra.energiaAcumuladaMwh, 2),
     numeroCsv(amostra.vibracaoRmsMs2, 1),
     numeroCsv(amostra.temperaturaC, 1),
-    amostra.piezosAtivos === null ? '' : `${amostra.piezosAtivos}/${amostra.piezosTotal}`,
+    amostra.piezosAtivos === null ? '' : amostra.piezosTotal === null ? String(amostra.piezosAtivos) : `${amostra.piezosAtivos}/${amostra.piezosTotal}`,
     TEXTO_QUALIDADE[amostra.qualidade],
   ]);
-  return gerarCsv(CABECALHO_TELEMETRIA, linhas);
+  return gerarCsv(real ? CABECALHO_TELEMETRIA.map((c, i) => i === 0 ? 'Capturado em (America/Sao_Paulo)' : i === 5 ? 'Contador do dispositivo (mWh)' : c) : CABECALHO_TELEMETRIA, linhas);
 }
 
 /** Nome do arquivo das amostras: código do teste sem "#" e a data do início. */

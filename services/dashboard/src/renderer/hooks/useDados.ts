@@ -272,7 +272,12 @@ export function useAmostrasTelemetria(
     queryFn: () => repositorio.obterAmostrasTelemetria(consulta!),
     enabled: consulta !== null,
     refetchInterval: opcoes.intervaloMs ?? false,
-    placeholderData: keepPreviousData,
+    // Só a página pode mudar sem apagar a leitura anterior; outro recurso/filtro exige sua própria resposta.
+    placeholderData: (anterior, consultaAnterior) => {
+      const antes = consultaAnterior?.queryKey[2] as ConsultaTelemetria | null | undefined;
+      return consulta && antes && consulta.testeId === antes.testeId && consulta.qualidade === antes.qualidade &&
+        consulta.de === antes.de && consulta.ate === antes.ate ? anterior : undefined;
+    },
   });
 }
 
@@ -304,7 +309,7 @@ export function useInstalacao(veiculoId: string | null) {
     opcoes, precisaEscolher: opcoes.length > 1 && !selecionada };
 }
 
-/** Versões da configuração da instalação, da ativa para a mais antiga. */
+/** Versões da configuração da instalação, da mais recente para a mais antiga; sem inferir ativa. */
 export function useConfiguracoes(instalacaoId: string | null) {
   const repositorio = useRepositorio();
   return useQuery({

@@ -9,6 +9,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { PonteSessao } from '../shared/sessao';
 import type { PonteCadastro } from '../shared/cadastro';
+import type { PonteEnsaios } from '../shared/ensaios';
 
 /** Expõe operações fixas; o renderer nunca escolhe canal, URL ou cabeçalhos. */
 const sessao: PonteSessao = {
@@ -44,8 +45,29 @@ const cadastro: PonteCadastro = {
   configuracoes: (id, pagina) => ipcRenderer.invoke('vers:cadastro', 'configuracoes', { id, pagina }),
 };
 
+/** Encaminha ensaios por operações fixas, sem acesso ao transporte ou à identidade. */
+const ensaios: PonteEnsaios = {
+  /** Consulta histórico e filtros públicos. */
+  listar: query => ipcRenderer.invoke('vers:ensaios', 'listar', query),
+  /** Planeja com instalação e configuração explícitas. */
+  criar: dados => ipcRenderer.invoke('vers:ensaios', 'criar', dados),
+  /** Inicia usando o relógio do servidor. */
+  iniciar: id => ipcRenderer.invoke('vers:ensaios', 'iniciar', { id, dados: {} }),
+  /** Encerra com informações fornecidas pelo operador. */
+  finalizar: (id, dados) => ipcRenderer.invoke('vers:ensaios', 'finalizar', { id, dados }),
+  /** Cancela sem apagar amostras. */
+  cancelar: (id, dados) => ipcRenderer.invoke('vers:ensaios', 'cancelar', { id, dados }),
+  /** Consulta uma página de amostras do teste. */
+  amostras: (id, query) => ipcRenderer.invoke('vers:ensaios', 'amostras', { id, query }),
+  /** Consulta exclusivamente o resumo TEST. */
+  resumos: id => ipcRenderer.invoke('vers:ensaios', 'resumos', { id, query: {} }),
+  /** Consulta resumos dos testes selecionados. */
+  comparar: testIds => ipcRenderer.invoke('vers:ensaios', 'comparar', { testIds }),
+};
+
 contextBridge.exposeInMainWorld('vers', {
   plataforma: process.platform,
   sessao,
   cadastro,
+  ensaios,
 });

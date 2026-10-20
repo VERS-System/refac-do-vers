@@ -161,7 +161,7 @@ export function Notificacoes() {
         >
           <header className="flex items-center justify-between gap-3 px-1">
             <h2 id={idTitulo} className="text-base font-semibold text-fg">
-              {repositorio.cadastroReal ? 'Notificações de demonstração' : 'Notificações'}
+              {repositorio.ensaiosReais ? 'Testes reais e alertas de demonstração' : repositorio.cadastroReal ? 'Notificações de demonstração' : 'Notificações'}
             </h2>
             <Button
               variant="ghost"

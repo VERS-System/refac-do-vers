@@ -26,18 +26,22 @@ async function executar(janela) {
   async function preencher(rotulo, valor) {
     await chamar(`(() => {
       const label = [...document.querySelectorAll('label')].find(l => l.textContent.trim() === ${JSON.stringify(rotulo)});
-      const campo = document.getElementById(label.htmlFor);
+      const campo = label && document.getElementById(label.htmlFor);
+      if (!campo) return false;
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(campo, ${JSON.stringify(valor)});
       campo.dispatchEvent(new Event('input', {bubbles:true}));
-    })()`);
+      return true;
+    })()`).then(ok => assert.ok(ok, `Campo ausente: ${rotulo}`));
   }
   /** Aciona botão pelo texto que o usuário encontra na tela. */
   async function clicar(texto) {
-    await chamar(`(() => { const raiz = document.querySelector('[role="dialog"]') ?? document; [...raiz.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(texto)}).click(); })()`);
+    const ok = await chamar(`(() => { const raiz = document.querySelector('[role="dialog"]') ?? document; const b = [...raiz.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(texto)}); if (!b || b.disabled) return false; b.click(); return true; })()`);
+    assert.ok(ok, `Botão indisponível: ${texto}`);
   }
   /** Seleciona recurso pelo controle nativo, preservando o caminho real do hook. */
   async function selecionar(rotulo, valor) {
-    await chamar(`(() => { const l = [...document.querySelectorAll('label')].find(l => l.textContent.trim() === ${JSON.stringify(rotulo)}); const campo = document.getElementById(l.htmlFor); campo.value = ${JSON.stringify(valor)}; campo.dispatchEvent(new Event('change', {bubbles:true})); })()`);
+    const ok = await chamar(`(() => { const l = [...document.querySelectorAll('label')].find(l => l.textContent.trim() === ${JSON.stringify(rotulo)}); const campo = l && document.getElementById(l.htmlFor); if (!campo || campo.disabled) return false; campo.value = ${JSON.stringify(valor)}; campo.dispatchEvent(new Event('change', {bubbles:true})); return true; })()`);
+    assert.ok(ok, `Seleção indisponível: ${rotulo}`);
   }
   /** Cadastra pelo formulário de veículos e aguarda confirmação persistida. */
   async function criarVeiculo(placa) {
@@ -79,6 +83,48 @@ async function executar(janela) {
     await selecionar('Instalação exibida', process.env.VERS_PROOF_INSTALLATION_TWO);
     await esperar(`document.body.textContent.includes('Configuração desktop 2 · v1')`, 'troca de instalação');
     assert.equal(await chamar(`document.body.textContent.includes('Configuração desktop 1 · v1')`), false);
+    // O fluxo de planejamento passa pelo formulário e escolhe a configuração conhecida da bancada.
+    await chamar(`document.querySelector('a[href="#/testes"]').click()`);
+    await esperar(`!![...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Novo teste')`, 'tela de testes reais');
+    await clicar('Novo teste');
+    await esperar(`!![...document.querySelectorAll('label')].find(l => l.textContent.trim() === 'Configuração do teste')`, 'planejamento real');
+    await selecionar('Instalação exibida', process.env.VERS_PROOF_INSTALLATION);
+    const configuracoesTeste = await chamar(`window.vers.cadastro.configuracoes(${JSON.stringify(process.env.VERS_PROOF_INSTALLATION)}, 1)`);
+    assert.equal(configuracoesTeste.ok, true);
+    const configuracaoId = configuracoesTeste.data[0].id;
+    await esperar(`!![...document.querySelectorAll('select option')].find(o => o.value === ${JSON.stringify(configuracaoId)})`, 'configuração do teste carregada');
+    await selecionar('Configuração do teste', configuracaoId);
+    await preencher('Nome do teste', 'Percurso Electron sintético'); await preencher('Local', 'Bancada local');
+    await clicar('Planejar'); await esperar(`!document.querySelector('[role="dialog"]')`, 'teste planejado');
+    await esperar(`!![...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Iniciar teste')`, 'teste disponível para iniciar');
+    await clicar('Iniciar teste');
+    await esperar(`!!document.querySelector('[role="dialog"]')`, 'confirmação de início');
+    await clicar('Iniciar');
+    await esperar(`!document.querySelector('[role="dialog"]') && !![...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Finalizar teste')`, 'teste iniciado');
+    assert.equal(await chamar(`document.body.textContent.includes('Contador do dispositivo')`), true);
+    assert.equal(await chamar(`document.body.textContent.includes('Bateria 68%')`), false);
+    await clicar('Finalizar teste');
+    await esperar(`!!document.querySelector('[role="dialog"]')`, 'formulário de finalização');
+    await clicar('Finalizar');
+    await esperar(`!document.querySelector('[role="dialog"]') && document.body.textContent.includes('Nenhum teste em andamento')`, 'teste finalizado');
+    const historico = await chamar('window.vers.ensaios.listar({})');
+    assert.equal(historico.ok, true); assert.equal(historico.data.length, 1);
+    const testeFinal = historico.data[0];
+    assert.equal(testeFinal.status, 'COMPLETED'); assert.ok(testeFinal.startedAt && testeFinal.endedAt);
+    assert.equal(testeFinal.installationId, process.env.VERS_PROOF_INSTALLATION);
+    const segundoTeste = await chamar(`window.vers.ensaios.criar(${JSON.stringify({ installationId: process.env.VERS_PROOF_INSTALLATION,
+      configurationId: configuracaoId, name: 'Cancelamento Electron sintético', terrain: 'CITY', testLocation: 'Bancada local' })})`);
+    assert.equal(segundoTeste.ok, true);
+    const segundoTesteId = segundoTeste.data.id;
+    assert.equal((await chamar(`window.vers.ensaios.iniciar(${JSON.stringify(segundoTesteId)})`)).data.status, 'RUNNING');
+    assert.equal((await chamar(`window.vers.ensaios.cancelar(${JSON.stringify(segundoTesteId)}, {reason:'Encerramento da prova'})`)).data.status, 'CANCELLED');
+    assert.equal((await chamar(`window.vers.ensaios.resumos(${JSON.stringify(testeFinal.id)})`)).ok, true);
+    assert.equal((await chamar(`window.vers.ensaios.comparar(${JSON.stringify([testeFinal.id, segundoTesteId])})`)).ok, true);
+    const semAmostras = await chamar(`window.vers.ensaios.amostras(${JSON.stringify(testeFinal.id)}, {})`);
+    assert.equal(semAmostras.ok, true); assert.equal(semAmostras.meta.totalItems, 0);
+    await chamar(`localStorage.setItem('vers:prova-teste-alheio', ${JSON.stringify(testeFinal.id)})`);
+    await chamar(`document.querySelector('a[href="#/telemetria"]').click()`);
+    await esperar(`document.body.textContent.includes('Consulta periódica a cada 10 s') && document.body.textContent.includes('Nenhuma amostra neste teste.')`, 'telemetria real vazia');
     await chamar(`document.querySelector('a[href="#/veiculos"]').click()`);
     await esperar(`!![...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Novo veículo')`, 'cadastro de veículos');
     await criarVeiculo(process.env.VERS_PROOF_PLATE_ONE);
@@ -126,6 +172,11 @@ async function executar(janela) {
     assert.equal(negar.status, 404);
     const negarConfiguracao = await chamar(`window.vers.cadastro.configuracoes(${JSON.stringify(process.env.VERS_PROOF_INSTALLATION)}, 1)`);
     assert.equal(negarConfiguracao.status, 404);
+    const testeAlheio = await chamar(`localStorage.getItem('vers:prova-teste-alheio')`);
+    assert.ok(testeAlheio);
+    assert.equal((await chamar(`window.vers.ensaios.amostras(${JSON.stringify(testeAlheio)}, {})`)).status, 404);
+    assert.equal((await chamar(`window.vers.ensaios.iniciar(${JSON.stringify(testeAlheio)})`)).status, 404);
+    await chamar(`localStorage.removeItem('vers:prova-teste-alheio')`);
     await esperar(`document.body.textContent.includes('Nenhum veículo principal definido')`, 'conta sem veículo');
     const rascunho = JSON.stringify({ email: process.env.VERS_PROOF_SECOND_EMAIL, placa: process.env.VERS_PROOF_PLATE_ONE, fabricante: '', modelo: '', ano: '' });
     await chamar(`localStorage.setItem('vers:veiculo-do-cadastro', ${JSON.stringify(rascunho)}); window.location.hash = '#/primeiro-veiculo';`);

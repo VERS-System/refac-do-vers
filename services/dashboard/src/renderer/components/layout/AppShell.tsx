@@ -21,6 +21,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { AcoesGlobaisProvider, InicioBarraProvider } from './AcoesGlobais';
 import { CarregandoTela } from './CarregandoTela';
 import { Sidebar } from './Sidebar';
+import { useRepositorio } from '@/data/repositorio';
 
 /** Ações da barra superior em todas as telas internas (Fase 5). */
 const ACOES_GLOBAIS = (
@@ -42,6 +43,7 @@ const ACOES_GLOBAIS = (
  * lateral, que fecha sozinho ao trocar de tela.
  */
 export function AppShell({ aoSair, demonstracao = false }: { aoSair?: () => Promise<void>; demonstracao?: boolean }) {
+  const { ensaiosReais } = useRepositorio();
   const navegar = useNavigate();
   const local = useLocation();
   const { data: usuario } = useUsuarioAtual();
@@ -123,7 +125,9 @@ export function AppShell({ aoSair, demonstracao = false }: { aoSair?: () => Prom
         key={`${unidades.potencia}-${unidades.energia}-${unidades.aceleracao}`}
         className="flex min-w-0 flex-1 flex-col outline-none"
       >
-        {demonstracao && <p role="status" className="border-b border-line px-4 py-2 text-xs text-fg-secondary">Autenticação e cadastro reais · medições, testes, revisões e Viber em demonstração, sem vínculo com o veículo real.</p>}
+        {demonstracao && <p role="status" className="border-b border-line px-4 py-2 text-xs text-fg-secondary">{ensaiosReais
+          ? 'Autenticação e cadastro reais · testes, resumos por teste e telemetria reais. Painéis gerais de energia, bateria, revisões e Viber em demonstração, sem vínculo com o veículo real.'
+          : 'Autenticação e cadastro reais · medições, testes, revisões e Viber em demonstração, sem vínculo com o veículo real.'}</p>}
         {demonstracao && !consultaDispositivo.isError && dispositivo === null && <p className="px-4 py-2 text-xs text-fg-muted">Nenhum dispositivo selecionado.</p>}
         {demonstracao && consultaDispositivo.isError && <p role="alert" className="px-4 py-2 text-xs text-danger">Não foi possível consultar o dispositivo.</p>}
         {saindo && <p role="status" className="px-4 py-2 text-sm">Encerrando sessão…</p>}

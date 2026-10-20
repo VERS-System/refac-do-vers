@@ -15,6 +15,7 @@ import { navegacaoPermitida } from './seguranca';
 import { criarSessao, remetentePermitido } from './sessao';
 import { fetchDaSessao } from './rede-sessao';
 import { criarCadastro } from './cadastro';
+import { criarEnsaios } from './ensaios';
 
 /** Pasta deste arquivo compilado; substitui `__dirname`, que não existe em ESM. */
 const diretorioAtual = fileURLToPath(new URL('.', import.meta.url));
@@ -78,11 +79,12 @@ void app.whenReady().then(() => {
   const endereco = process.env['VERS_DESKTOP_API_URL'] ?? 'http://localhost:3000/api/v1';
   const executar = criarSessao(rede, endereco);
   const cadastro = criarCadastro(rede, endereco, () => executar('perfil'));
+  const ensaios = criarEnsaios(rede, endereco, () => executar('perfil'));
   const pagina = process.env['ELECTRON_RENDERER_URL']
     ?? pathToFileURL(join(diretorioAtual, '../renderer/index.html')).href;
-  // Uma fila mantém CSRF/login/logout/cadastro na mesma identidade e ordem.
+  // Uma fila mantém CSRF/login/logout/cadastro/ensaios na mesma identidade e ordem.
   let fila: Promise<unknown> = Promise.resolve();
-  for (const [canal, operacao] of [['vers:sessao', executar], ['vers:cadastro', cadastro]] as const) {
+  for (const [canal, operacao] of [['vers:sessao', executar], ['vers:cadastro', cadastro], ['vers:ensaios', ensaios]] as const) {
     ipcMain.handle(canal, (evento, acao: unknown, dados: unknown) => {
       if (!janelaPrincipal || !remetentePermitido(evento, janelaPrincipal.webContents, pagina)) {
         return { ok: false, status: 403, erro: 'REMETENTE_INVALIDO' };

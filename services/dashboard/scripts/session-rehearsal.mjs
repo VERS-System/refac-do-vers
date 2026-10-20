@@ -88,6 +88,17 @@ async function limparVeiculosExtras() {
   });
 }
 
+/** Remove apenas ensaios das contas exclusivas desta execução, antes dos vínculos históricos SetNull. */
+async function limparEnsaios() {
+  const proprios = await prisma.test.findMany({ where: { createdById: { in: [id, segundoId] } }, select: { id: true } });
+  const testIds = proprios.map(t => t.id);
+  await prisma.$transaction([
+    prisma.energySummary.deleteMany({ where: { testId: { in: testIds } } }),
+    prisma.telemetrySample.deleteMany({ where: { testId: { in: testIds } } }),
+    prisma.test.deleteMany({ where: { id: { in: testIds } } }),
+  ]);
+}
+
 try {
   await portaLivre(53000); await portaLivre(5175);
   await prisma.$connect(); await redis.connect();
@@ -119,6 +130,7 @@ try {
     server: { host: 'localhost', port: 5175, strictPort: true } });
   await vite.listen();
   for (const modo of ['dev', 'build']) {
+    await limparEnsaios();
     await limparVeiculosExtras();
     await prisma.userVehicle.updateMany({ where: { userId: id }, data: { isPrimary: false } });
     await prisma.userVehicle.update({ where: { userId_vehicleId: { userId: id, vehicleId: veiculoId } }, data: { isPrimary: true } });
@@ -126,6 +138,8 @@ try {
     for (const etapa of ['login', 'resume', 'logged-out']) await provar(modo, etapa, perfil);
     assert.equal(await prisma.userVehicle.count({ where: { userId: id, isPrimary: true, vehicle: { licensePlate: placas[2] } } }), 1);
     assert.equal(await prisma.vehicle.count({ where: { id: veiculoId, model: 'Veículo da bancada desktop' } }), 1);
+    assert.equal(await prisma.test.count({ where: { createdById: id, status: 'COMPLETED' } }), 1);
+    assert.equal(await prisma.test.count({ where: { createdById: id, status: 'CANCELLED' } }), 1);
   }
   assert.equal(await prisma.user.count({ where: { email: { in: novosEmails }, status: 'PENDING_VERIFICATION' } }), 2);
   assert.equal(await prisma.refreshSession.count({ where: { userId: { in: [id, segundoId] }, revokedAt: null } }), 0);
@@ -137,6 +151,7 @@ try {
   await vite?.close();
   try {
   await prisma.auditEvent.deleteMany({ where: { requestId: id } });
+  await limparEnsaios();
   await limparVeiculosExtras();
   await prisma.userVehicle.deleteMany({ where: { userId: { in: [id, segundoId] }, vehicleId: veiculoId } });
   await prisma.vehicle.deleteMany({ where: { id: veiculoId } });

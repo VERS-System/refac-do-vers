@@ -8,6 +8,7 @@ import type { Usuario } from './data/tipos';
 import { EstadoErro } from './components/ui/EstadoConsulta';
 import { consumirDestino } from './stores/destinoBusca';
 import { criarCadastro } from './data/cadastro';
+import { criarEnsaios } from './data/ensaios';
 import { useSelecaoInstalacao } from './stores/instalacao';
 
 type Estado = { tipo: 'carregando' | 'erro' | 'pronto'; usuario: Usuario | null; expirada?: boolean };
@@ -16,7 +17,7 @@ type Estado = { tipo: 'carregando' | 'erro' | 'pronto'; usuario: Usuario | null;
 export function AplicacaoConectada() {
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando', usuario: null });
   const revisao = useRef(0);
-  const [{ autenticacao, cadastro }] = useState(() => {
+  const [{ autenticacao, cadastro, ensaios }] = useState(() => {
     /** Troca a identidade e apaga escolhas que pertencem à conta anterior. */
     const alterar = (usuario: Usuario | null, expirada?: true) => {
       revisao.current++;
@@ -25,12 +26,13 @@ export function AplicacaoConectada() {
       setEstado(anterior => ({ tipo: 'pronto', usuario, expirada: !!expirada && !!anterior.usuario }));
     };
     return { autenticacao: criarAutenticacao(window.vers?.sessao, alterar),
-      cadastro: criarCadastro(window.vers?.cadastro, () => alterar(null, true)) };
+      cadastro: criarCadastro(window.vers?.cadastro, () => alterar(null, true)),
+      ensaios: criarEnsaios(window.vers?.ensaios, () => alterar(null, true)) };
   });
   const identidade = estado.usuario?.id;
   useEffect(() => { useSelecaoInstalacao.setState({ escolhas: {} }); }, [identidade]);
-  const repositorio = useMemo(() => ({ ...criarRepositorioMock(), ...autenticacao, ...cadastro,
-    fotoLocalPermitida: false, agora: () => new Date() }), [autenticacao, cadastro, identidade]);
+  const repositorio = useMemo(() => ({ ...criarRepositorioMock(), ...autenticacao, ...cadastro, ...ensaios,
+    fotoLocalPermitida: false, agora: () => new Date() }), [autenticacao, cadastro, ensaios, identidade]);
 
   /** Separa 401 de indisponibilidade e ignora respostas de uma identidade anterior. */
   const verificar = useCallback(async () => {

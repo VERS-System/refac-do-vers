@@ -9,6 +9,10 @@
 > Lote2 implementado: [autenticação real da interface](desktop-backend-auth-lot2.md).
 > Lote3 concluído: [cadastro real e seleção de instalação](desktop-backend-cadastro-lot3.md).
 > Próximo lote: testes/telemetria/energia/exportação (lote4).
+> Lote4 em andamento: [plano e decisões de medições](desktop-backend-medicoes-lot4.md).
+> Períodos aprovados: America/Sao_Paulo; semana anterior completa, segunda a
+> domingo. Energia em blocos horários completos e cobertura visível;
+> curvas sem contrato permanecem em demonstração identificada.
 
 ## Objetivo e limites
 
@@ -214,7 +218,8 @@ Sem alteração funcional neste planejamento: não foi necessário repetir teste
 1. Distribuição: API local na demonstração ou destino HTTPS para distribuição?
 2. Sessão: decidido manter até expirar/encerrar; reabertura validada com cookie real no lote1.
 3. Lacunas de dados: qual tratamento desejado para bateria/celular, logs e Viber?
-4. Períodos: fuso e definição de semana dos gráficos ao comparar com os buckets?
+4. Períodos: decidido America/Sao_Paulo e última semana completa, segunda a
+   domingo; energia real em blocos horários completos com cobertura visível.
 5. Conta de demonstração: provisionamento/ativação sintéticos, sem criar fluxo
    falso de confirmação de email ou serviço externo não existente.
 

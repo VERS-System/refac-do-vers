@@ -97,6 +97,7 @@ export function TelemetriaPage() {
   const [qualidade, setQualidade] = useState<QualidadeAmostra | ''>('');
   const [pagina, setPagina] = useState(1);
   const [exportando, setExportando] = useState(false);
+  const [erroExportacao, setErroExportacao] = useState(false);
 
   const hoje = dataEmBrasilia(repositorio.agora());
   const testes = useTestes({ inicioDe: `${hoje}T00:00:00${FUSO_BRASILIA}` });
@@ -146,6 +147,7 @@ export function TelemetriaPage() {
   const exportar = async () => {
     if (!teste) return;
     setExportando(true);
+    setErroExportacao(false);
     try {
       const amostras = await buscarTodasAmostras(repositorio, {
         testeId: teste.id,
@@ -156,6 +158,8 @@ export function TelemetriaPage() {
         csvAmostrasTelemetria(amostras, teste.codigo),
         'text/csv;charset=utf-8',
       );
+    } catch {
+      setErroExportacao(true);
     } finally {
       setExportando(false);
     }
@@ -180,6 +184,12 @@ export function TelemetriaPage() {
       }
     >
       <div className="flex flex-col gap-4">
+        {erroExportacao && (
+          <p role="alert" className="text-sm text-fg-muted">
+            Não foi possível exportar o CSV completo. O limite é de 10.000 amostras;
+            confira a conexão e tente novamente com a aquisição pausada ou um filtro de qualidade.
+          </p>
+        )}
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           <CardSinal consulta={sinal} />
           <CardUltimasLeituras consulta={recentes} conexao={conexao} />

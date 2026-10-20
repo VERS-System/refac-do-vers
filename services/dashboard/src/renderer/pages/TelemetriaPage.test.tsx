@@ -201,6 +201,30 @@ describe('TelemetriaPage — exportação', () => {
     vi.restoreAllMocks();
   });
 
+  /** Mantém a falha no contexto do CSV e permite tentar novamente sem baixar parcial. */
+  it('mostra erro seguro e permite repetir a exportação', async () => {
+    const criar = vi.fn(() => 'blob:vers/telemetria');
+    Object.assign(URL, { createObjectURL: criar, revokeObjectURL: vi.fn() });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const repositorio = criarRepositorioMock();
+    const obter = repositorio.obterAmostrasTelemetria;
+    let falhar = true;
+    vi.spyOn(repositorio, 'obterAmostrasTelemetria').mockImplementation((consulta) =>
+      falhar && consulta.tamanhoPagina === 100 && !consulta.de
+        ? Promise.reject(new Error('corpo interno não deve aparecer')) : obter(consulta));
+    renderizar(repositorio);
+    await linhasDaTabela();
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível exportar');
+    expect(screen.queryByText(/corpo interno/)).not.toBeInTheDocument();
+    expect(criar).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeEnabled();
+    falhar = false;
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    await vi.waitFor(() => expect(criar).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   /** Exporta todas as amostras do teste (com o filtro atual) em CSV pt-BR. */
   it('exporta as amostras do teste em CSV', async () => {
     const criar = vi.fn((_blob: Blob) => 'blob:vers/telemetria');

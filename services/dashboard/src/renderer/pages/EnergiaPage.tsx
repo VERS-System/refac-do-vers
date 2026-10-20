@@ -32,7 +32,7 @@ import { useVeiculoAtivo } from '@/hooks/useDados';
 export function EnergiaPage() {
   const { data: veiculo } = useVeiculoAtivo();
   return (
-    <Page title="Energia" subtitle={veiculo?.descricao} controls={<PeriodSelector />}>
+    <Page title="Energia" subtitle={veiculo === null ? 'Nenhum veículo principal definido' : veiculo?.descricao} controls={<PeriodSelector />}>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <CardEnergia variante="energia" />

@@ -7,6 +7,8 @@ import { ErroRepositorio } from './data/erros';
 import type { Usuario } from './data/tipos';
 import { EstadoErro } from './components/ui/EstadoConsulta';
 import { consumirDestino } from './stores/destinoBusca';
+import { criarCadastro } from './data/cadastro';
+import { useSelecaoInstalacao } from './stores/instalacao';
 
 type Estado = { tipo: 'carregando' | 'erro' | 'pronto'; usuario: Usuario | null; expirada?: boolean };
 
@@ -14,13 +16,21 @@ type Estado = { tipo: 'carregando' | 'erro' | 'pronto'; usuario: Usuario | null;
 export function AplicacaoConectada() {
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando', usuario: null });
   const revisao = useRef(0);
-  const [autenticacao] = useState(() => criarAutenticacao(window.vers?.sessao, (usuario, expirada) => {
-    revisao.current++;
-    consumirDestino('teste'); consumirDestino('veiculo'); consumirDestino('secao');
-    setEstado(anterior => ({ tipo: 'pronto', usuario, expirada: !!expirada && !!anterior.usuario }));
-  }));
+  const [{ autenticacao, cadastro }] = useState(() => {
+    /** Troca a identidade e apaga escolhas que pertencem à conta anterior. */
+    const alterar = (usuario: Usuario | null, expirada?: true) => {
+      revisao.current++;
+      consumirDestino('teste'); consumirDestino('veiculo'); consumirDestino('secao');
+      useSelecaoInstalacao.setState({ escolhas: {} });
+      setEstado(anterior => ({ tipo: 'pronto', usuario, expirada: !!expirada && !!anterior.usuario }));
+    };
+    return { autenticacao: criarAutenticacao(window.vers?.sessao, alterar),
+      cadastro: criarCadastro(window.vers?.cadastro, () => alterar(null, true)) };
+  });
   const identidade = estado.usuario?.id;
-  const repositorio = useMemo(() => ({ ...criarRepositorioMock(), ...autenticacao, fotoLocalPermitida: false }), [autenticacao, identidade]);
+  useEffect(() => { useSelecaoInstalacao.setState({ escolhas: {} }); }, [identidade]);
+  const repositorio = useMemo(() => ({ ...criarRepositorioMock(), ...autenticacao, ...cadastro,
+    fotoLocalPermitida: false, agora: () => new Date() }), [autenticacao, cadastro, identidade]);
 
   /** Separa 401 de indisponibilidade e ignora respostas de uma identidade anterior. */
   const verificar = useCallback(async () => {

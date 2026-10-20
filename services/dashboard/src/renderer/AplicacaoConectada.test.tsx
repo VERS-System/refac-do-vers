@@ -30,7 +30,7 @@ describe('aplicação conectada', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('API local');
     expect(screen.queryByText('Ana Silva')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
-    expect(await screen.findByText('Autenticação real · demais áreas em demonstração')).toBeInTheDocument();
+    expect(await screen.findByText(/Autenticação e cadastro reais/)).toBeInTheDocument();
     expect(await screen.findByText(userProfileFixture.displayName!)).toBeInTheDocument();
   });
 
@@ -63,7 +63,7 @@ describe('aplicação conectada', () => {
     render(<AplicacaoConectada />);
     await screen.findByText('Conta ativa');
     await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível confirmar a saída');
+    expect(await screen.findByText('Não foi possível confirmar a saída. Tente de novo.')).toBeInTheDocument();
     expect(screen.getByText('Conta ativa')).toBeInTheDocument();
   });
 

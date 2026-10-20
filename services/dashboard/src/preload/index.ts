@@ -8,6 +8,7 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import type { PonteSessao } from '../shared/sessao';
+import type { PonteCadastro } from '../shared/cadastro';
 
 /** Expõe operações fixas; o renderer nunca escolhe canal, URL ou cabeçalhos. */
 const sessao: PonteSessao = {
@@ -27,7 +28,24 @@ const sessao: PonteSessao = {
   sairDeTodas: () => ipcRenderer.invoke('vers:sessao', 'sairDeTodas'),
 };
 
+/** Encaminha somente ações de cadastro conhecidas, sem expor o IPC bruto. */
+const cadastro: PonteCadastro = {
+  /** Lista uma página fixa de veículos próprios. */
+  veiculos: pagina => ipcRenderer.invoke('vers:cadastro', 'veiculos', { pagina }),
+  /** Cria veículo com os campos públicos aceitos. */
+  criarVeiculo: dados => ipcRenderer.invoke('vers:cadastro', 'criarVeiculo', dados),
+  /** Edita o UUID informado, com autorização conferida no servidor. */
+  atualizarVeiculo: (id, dados) => ipcRenderer.invoke('vers:cadastro', 'atualizarVeiculo', { id, dados }),
+  /** Desvincula veículo e informa substituto somente quando solicitado. */
+  removerVeiculo: (id, substitutoId) => ipcRenderer.invoke('vers:cadastro', 'removerVeiculo', { id, ...(substitutoId ? { substitutoId } : {}) }),
+  /** Lista instalações exclusivamente do veículo informado. */
+  instalacoes: (id, pagina) => ipcRenderer.invoke('vers:cadastro', 'instalacoes', { id, pagina }),
+  /** Lista versões somente da instalação selecionada. */
+  configuracoes: (id, pagina) => ipcRenderer.invoke('vers:cadastro', 'configuracoes', { id, pagina }),
+};
+
 contextBridge.exposeInMainWorld('vers', {
   plataforma: process.platform,
   sessao,
+  cadastro,
 });

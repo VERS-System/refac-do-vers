@@ -51,6 +51,9 @@ export type PeriodoComDias = Exclude<Periodo, 'hora'>;
 export interface RepositorioVers {
   /** Somente o repositório de demonstração aceita fotos blob sem upload remoto. */
   readonly fotoLocalPermitida?: boolean;
+  readonly cadastroReal?: boolean;
+  /** Disponível no cadastro real para permitir escolha explícita de instalação. */
+  listarInstalacoes?(veiculoId: string): Promise<Instalacao[]>;
   /** Relógio do repositório (fixo no exemplo, real na API). */
   agora(): Date;
   /**
@@ -81,7 +84,7 @@ export interface RepositorioVers {
   obterCadeiaAoVivo(): Promise<CadeiaConversao>;
   obterBateria(): Promise<Bateria>;
   obterVibracao(): Promise<Vibracao>;
-  obterVeiculoAtivo(): Promise<Veiculo>;
+  obterVeiculoAtivo(): Promise<Veiculo | null>;
   obterVeiculos(): Promise<Veiculo[]>;
   criarVeiculo(novo: NovoVeiculo): Promise<Veiculo>;
   atualizarVeiculo(veiculoId: string, atualizacao: AtualizacaoVeiculo): Promise<Veiculo>;
@@ -99,7 +102,7 @@ export interface RepositorioVers {
   obterMensagensViber(conversaId: string): Promise<MensagemViber[]>;
   criarConversaViber(): Promise<ConversaViber>;
   enviarMensagemViber(envio: EnvioViber): Promise<MensagemViber[]>;
-  obterDispositivo(): Promise<Dispositivo>;
+  obterDispositivo(): Promise<Dispositivo | null>;
   obterUsuarioAtual(): Promise<Usuario>;
   atualizarPerfil(atualizacao: AtualizacaoPerfil): Promise<Usuario>;
   encerrarSessoes(): Promise<void>;

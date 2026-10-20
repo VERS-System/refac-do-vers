@@ -77,7 +77,7 @@ export default function App({ repositorio: externo, autenticado, aoSair, sessaoE
               </Route>
               <Route path={ROTAS.login} element={autenticado === true ? <Navigate to={ROTAS.visaoGeral} replace /> : <TELAS.login />} />
               <Route path={ROTAS.criarConta} element={autenticado === true ? <Navigate to={ROTAS.visaoGeral} replace /> : <TELAS.criarConta />} />
-              <Route path={ROTAS.primeiroVeiculo} element={autenticado === false ? <Navigate to={ROTAS.login} replace /> : autenticado === true ? <Navigate to={ROTAS.visaoGeral} replace /> : <TELAS.primeiroVeiculo />} />
+              <Route path={ROTAS.primeiroVeiculo} element={autenticado === false ? <Navigate to={ROTAS.login} replace /> : <TELAS.primeiroVeiculo />} />
               <Route path="*" element={<Navigate to={ROTAS.visaoGeral} replace />} />
             </Routes>
           </Suspense>

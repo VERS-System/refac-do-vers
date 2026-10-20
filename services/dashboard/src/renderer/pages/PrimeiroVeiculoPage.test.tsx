@@ -27,6 +27,15 @@ function abrirPrimeiroVeiculo() {
 const visaoGeral = () => screen.findByRole('heading', { level: 1, name: 'Visão geral' });
 
 describe('PrimeiroVeiculoPage', () => {
+  it('não mostra rascunho de outra conta na entrada real', async () => {
+    guardarVeiculoDoCadastro('outra@vers.com', POLO);
+    const repositorio = { ...criarRepositorioMock(), cadastroReal: true };
+    window.location.hash = '#/primeiro-veiculo';
+    render(<App repositorio={repositorio} autenticado />);
+    await visaoGeral();
+    expect(screen.queryByRole('button', { name: 'Cadastrar veículo' })).not.toBeInTheDocument();
+    expect(lerVeiculoDoCadastro('outra@vers.com')).toEqual(POLO);
+  });
   /** Traz o que foi digitado no Criar conta e grava o carro ao confirmar. */
   it('cadastra o veículo guardado', async () => {
     guardarVeiculoDoCadastro('novo@vers.com', POLO);

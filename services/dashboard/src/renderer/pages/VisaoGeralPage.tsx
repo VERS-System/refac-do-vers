@@ -24,7 +24,7 @@ import { useVeiculoAtivo } from '@/hooks/useDados';
 export function VisaoGeralPage() {
   const { data: veiculo } = useVeiculoAtivo();
   return (
-    <Page title="Visão geral" subtitle={veiculo?.descricao} controls={<PeriodSelector />}>
+    <Page title="Visão geral" subtitle={veiculo === null ? 'Nenhum veículo principal definido' : veiculo?.descricao} controls={<PeriodSelector />}>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <CardEnergia />

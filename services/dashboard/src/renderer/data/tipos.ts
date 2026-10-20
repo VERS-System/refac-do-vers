@@ -217,8 +217,8 @@ export interface Configuracao {
   nome: string;
   versao: number;
   piezosAtivos: number;
-  piezosTotal: number;
-  piezosInativos: number[];
+  piezosTotal: number | null;
+  piezosInativos: number[] | null;
   associacao: AssociacaoPiezos;
   pontoInstalacao: string;
   armazenamento: TipoArmazenamento;
@@ -248,12 +248,14 @@ export interface LinhaLog {
 }
 
 export interface Dispositivo {
+  nome?: string;
+  status?: 'PROVISIONING' | 'ONLINE' | 'OFFLINE' | 'REVOKED' | 'FAULT';
   id: string;
   plataforma: string;
   firmware: string;
   online: boolean;
   /** Última mensagem recebida (ISO 8601). */
-  ultimoContato: string;
+  ultimoContato: string | null;
   protocolo: string;
 }
 

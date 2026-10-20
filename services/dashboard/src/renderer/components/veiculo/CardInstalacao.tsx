@@ -25,6 +25,8 @@ import {
   TEXTO_ARMAZENAMENTO,
 } from './rotulos';
 import { TopologiaPiezos } from './TopologiaPiezos';
+import { SeletorInstalacao } from './SeletorInstalacao';
+import { useRepositorio } from '@/data/repositorio';
 
 /**
  * Associação dos nós como grupo de rádios desativado: mostra a escolha da
@@ -69,9 +71,27 @@ function ConteudoInstalacao({
   configuracoes: Configuracao[];
 }) {
   const bateria = useBateria();
+  const real = useRepositorio().cadastroReal;
   const ativa = configuracoes[0];
   const status = BADGE_INSTALACAO[instalacao.status];
-  const capacidade = ativa ? Math.round((ativa.piezosAtivos / ativa.piezosTotal) * 100) : 0;
+  const capacidade = ativa?.piezosTotal ? Math.round((ativa.piezosAtivos / ativa.piezosTotal) * 100) : null;
+
+  if (real) return <div className="flex flex-col gap-4">
+    <Badge tone={status.tom}>{status.texto}</Badge>
+    <p className="font-mono text-sm">{instalacao.modelo}</p>
+    <p className="text-xs text-fg-muted">{instalacao.instaladaEm ? `Instalada em ${formatarData(instalacao.instaladaEm)}` : 'Data de instalação não informada'}</p>
+    {configuracoes.length ? configuracoes.map(c => <section key={c.id} className="rounded-control border border-line-subtle p-3">
+      <h3 className="font-semibold">{`${c.nome} · v${c.versao}`}</h3>
+      <dl className="mt-2 text-sm">
+        <dt>Piezos ativos</dt><dd>{c.piezosAtivos}</dd>
+        <dt>Associação</dt><dd>{ASSOCIACOES.find(a => a.valor === c.associacao)?.rotulo}</dd>
+        <dt>Armazenamento</dt><dd>{TEXTO_ARMAZENAMENTO[c.armazenamento]}</dd>
+        <dt>Ponto de instalação</dt><dd>{c.pontoInstalacao}</dd>
+        <dt>Observações</dt><dd>{c.observacoes ?? 'Não informadas'}</dd>
+      </dl>
+    </section>) : <p>Nenhuma configuração nesta instalação.</p>}
+    <p className="text-xs text-fg-muted">Topologia, total de piezos, capacidade percentual e componentes do circuito não informados pela API. Versões listadas em ordem decrescente; não indicam configuração ativa.</p>
+  </div>;
 
   return (
     <div className="flex flex-col gap-5">
@@ -88,7 +108,7 @@ function ConteudoInstalacao({
             <h3 className="text-[15px] font-semibold text-fg">Topologia piezoelétrica do chassi</h3>
             <span className="font-mono text-xs text-accent">{`${ativa.piezosAtivos} de ${ativa.piezosTotal} piezos captando`}</span>
           </div>
-          <TopologiaPiezos total={ativa.piezosTotal} inativos={ativa.piezosInativos} />
+          {ativa.piezosTotal !== null && ativa.piezosInativos !== null && <TopologiaPiezos total={ativa.piezosTotal} inativos={ativa.piezosInativos} />}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3 text-[13px]">
               <span className="font-semibold text-fg">{`Configuração de circuito · ${ativa.nome}`}</span>
@@ -168,7 +188,7 @@ function InstalacaoComConfiguracoes({ instalacao }: { instalacao: Instalacao }) 
 /** Renderiza o card como região "Instalação" do veículo principal. */
 export function CardInstalacao() {
   const veiculos = useVeiculos();
-  const principal = veiculos.data?.find((v) => v.principal) ?? veiculos.data?.[0];
+  const principal = veiculos.data?.find((v) => v.principal);
   const instalacao = useInstalacao(principal?.id ?? null);
   const idTitulo = useId();
   return (
@@ -179,6 +199,8 @@ export function CardInstalacao() {
       >
         Instalação
       </h2>
+      {!principal ? <EstadoConsulta consulta={veiculos} nome="os veículos">{() => <p>Nenhum veículo principal definido.</p>}</EstadoConsulta> : <>
+      <SeletorInstalacao veiculoId={principal.id} />
       <EstadoConsulta
         consulta={instalacao}
         nome="a instalação"
@@ -188,10 +210,11 @@ export function CardInstalacao() {
           dados ? (
             <InstalacaoComConfiguracoes instalacao={dados} />
           ) : (
-            <p className="text-[13px] text-fg-muted">Nenhuma instalação neste veículo.</p>
+            <p className="text-[13px] text-fg-muted">{instalacao.precisaEscolher ? 'Selecione uma instalação para consultar seus dados.' : 'Nenhuma instalação neste veículo.'}</p>
           )
         }
       </EstadoConsulta>
+      </>}
     </Card>
   );
 }

@@ -7,7 +7,8 @@
 > Lote1 implementado: [prova de sessão dev/build e persistência](desktop-backend-session-lot1.md).
 > Sessão permanece ao reabrir até expirar ou encerrar, conforme decisão do programador.
 > Lote2 implementado: [autenticação real da interface](desktop-backend-auth-lot2.md).
-> Próximo lote: veículos/instalação/configuração (lote3).
+> Lote3 concluído: [cadastro real e seleção de instalação](desktop-backend-cadastro-lot3.md).
+> Próximo lote: testes/telemetria/energia/exportação (lote4).
 
 ## Objetivo e limites
 
@@ -132,6 +133,10 @@ reinício do app e isolamento entre duas contas cobertos. Decidir persistência
 da sessão ao fechar o app com o programador; não presumir requisito.
 
 ### 3 — Veículos, instalação e configurações
+
+Concluído no escopo local: CRUD, principal/substituto, leituras autorizadas,
+seleção explícita entre instalações, estados nulos e primeiro veículo por conta.
+602 testes e ensaio Electron real dev/build aprovados; evidências no plano do lote3.
 
 Implementar leitura e mutações suportadas; onboarding sem veículo/instalação,
 validações de campos, principal/substituto e estados sem vínculo. Invalidar

@@ -24,6 +24,7 @@ import type {
   NovoVeiculo,
 } from '@/data/tipos';
 import { usePeriodoStore, type Periodo } from '@/stores/periodo';
+import { useSelecaoInstalacao } from '@/stores/instalacao';
 
 export const chavesConsulta = {
   resumoEnergia: (periodo: Periodo) => ['energia', 'resumo', periodo] as const,
@@ -120,7 +121,7 @@ export function useVeiculoAtivo() {
   return useQuery({
     queryKey: chavesConsulta.veiculoAtivo,
     queryFn: () => repositorio.obterVeiculoAtivo(),
-    select: (veiculo) => ({ ...veiculo, descricao: descreverVeiculo(veiculo) }),
+    select: (veiculo) => veiculo ? ({ ...veiculo, descricao: descreverVeiculo(veiculo) }) : null,
   });
 }
 
@@ -132,11 +133,19 @@ export function useVeiculoAtivo() {
  */
 export function useDispositivo() {
   const repositorio = useRepositorio();
-  return useQuery({
+  const principal = useVeiculoAtivo();
+  const instalacao = useInstalacao(principal.data?.id ?? null);
+  const consulta = useQuery({
     queryKey: chavesConsulta.dispositivo,
     queryFn: () => repositorio.obterDispositivo(),
-    select: (dispositivo) => resumirDispositivo(dispositivo, repositorio.agora()),
+    enabled: !repositorio.cadastroReal,
+    select: (dispositivo) => dispositivo ? resumirDispositivo(dispositivo, repositorio.agora()) : null,
   });
+  if (!repositorio.cadastroReal) return consulta;
+  // O dispositivo deriva da mesma instalação autorizada; não há cache paralelo divergente.
+  const pendente = principal.isPending || (!!principal.data && instalacao.isPending);
+  return { ...instalacao, isPending: pendente, isError: principal.isError || (!!principal.data && instalacao.isError),
+    data: pendente ? undefined : instalacao.data?.dispositivo ? resumirDispositivo(instalacao.data.dispositivo, repositorio.agora()) : null };
 }
 
 export function useUsuarioAtual() {
@@ -279,11 +288,20 @@ export function useVeiculos() {
 /** Instalação do VERS no veículo (`null` para não consultar; resposta `null` se não houver). */
 export function useInstalacao(veiculoId: string | null) {
   const repositorio = useRepositorio();
-  return useQuery({
+  const escolhido = useSelecaoInstalacao(estado => estado.escolhas[veiculoId ?? '']);
+  const consulta = useQuery({
     queryKey: chavesConsulta.instalacao(veiculoId),
-    queryFn: () => repositorio.obterInstalacao(veiculoId!),
+    queryFn: async () => {
+      if (repositorio.listarInstalacoes) return repositorio.listarInstalacoes(veiculoId!);
+      const unica = await repositorio.obterInstalacao(veiculoId!);
+      return unica ? [unica] : [];
+    },
     enabled: veiculoId !== null,
   });
+  const opcoes = consulta.data ?? [];
+  const selecionada = opcoes.length === 1 ? opcoes[0] : opcoes.find(i => i.id === escolhido) ?? null;
+  return { ...consulta, data: consulta.data === undefined ? undefined : selecionada,
+    opcoes, precisaEscolher: opcoes.length > 1 && !selecionada };
 }
 
 /** Versões da configuração da instalação, da ativa para a mais antiga. */

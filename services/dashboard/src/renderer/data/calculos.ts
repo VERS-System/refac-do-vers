@@ -199,12 +199,12 @@ export function enriquecerCadeia(
 
 /** Prepara o dispositivo para o card da sidebar, com o tempo desde o último contato. */
 export function resumirDispositivo(dispositivo: Dispositivo, agora: Date): DispositivoResumo {
-  const segundos = (agora.getTime() - new Date(dispositivo.ultimoContato).getTime()) / 1000;
+  const segundos = dispositivo.ultimoContato ? (agora.getTime() - new Date(dispositivo.ultimoContato).getTime()) / 1000 : null;
   return {
-    nome: `${dispositivo.plataforma} · ${dispositivo.id}`,
+    nome: dispositivo.nome ?? `${dispositivo.plataforma} · ${dispositivo.id}`,
     online: dispositivo.online,
     firmware: dispositivo.firmware,
-    vistoHa: formatarTempoDecorrido(segundos),
+    vistoHa: segundos === null ? 'não informado' : formatarTempoDecorrido(segundos),
     protocolo: dispositivo.protocolo,
   };
 }

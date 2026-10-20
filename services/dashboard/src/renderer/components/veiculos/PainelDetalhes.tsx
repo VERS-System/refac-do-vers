@@ -20,6 +20,8 @@ import type { Veiculo } from '@/data/tipos';
 import { useAcoesVeiculo, useInstalacao, useVeiculos } from '@/hooks/useDados';
 import { formatarData } from '@/lib/format';
 import { nomeDoVeiculo } from './ListaVeiculos';
+import { SeletorInstalacao } from '../veiculo/SeletorInstalacao';
+import { useRepositorio } from '@/data/repositorio';
 
 /** Uma linha da ficha: rótulo e valor. */
 function Campo({ rotulo, children }: { rotulo: string; children: ReactNode }) {
@@ -49,6 +51,7 @@ export function PainelDetalhes({
   const instalacao = useInstalacao(veiculo.id);
   const [copiado, setCopiado] = useState(false);
   const comInstalacao = Boolean(instalacao.data);
+  const cadastroReal = useRepositorio().cadastroReal;
 
   /** Copia o ID completo para a área de transferência. */
   async function copiarId() {
@@ -65,6 +68,7 @@ export function PainelDetalhes({
         <p className="text-lg font-semibold text-fg">{nomeDoVeiculo(veiculo)}</p>
         {veiculo.principal && <Badge tone="accent">Principal</Badge>}
       </header>
+      <SeletorInstalacao veiculoId={veiculo.id} />
 
       <div className="mt-5 rounded-control border border-line-subtle bg-inset px-4 py-3">
         <div className="flex items-center justify-between gap-3">
@@ -94,7 +98,7 @@ export function PainelDetalhes({
         <Campo rotulo="Relação">{TEXTO_RELACAO[veiculo.relacao]}</Campo>
         <Campo rotulo="Cadastrado em">{formatarData(veiculo.criadoEm.slice(0, 10))}</Campo>
         <Campo rotulo="Instalação do VERS">
-          {instalacao.data ? (
+          {instalacao.isError ? 'Não foi possível consultar a instalação' : instalacao.precisaEscolher ? 'Selecione uma instalação' : instalacao.data ? (
             <span className="flex items-center gap-2">
               <span className="font-mono">{instalacao.data.modelo}</span>
               <Badge tone={BADGE_INSTALACAO[instalacao.data.status].tom}>
@@ -118,11 +122,11 @@ export function PainelDetalhes({
             Tornar principal
           </Button>
         )}
-        <Button variant="danger" icon={Trash2} onClick={onRemover} disabled={comInstalacao}>
+        <Button variant="danger" icon={Trash2} onClick={onRemover} disabled={!cadastroReal && comInstalacao}>
           Remover
         </Button>
       </div>
-      {comInstalacao && (
+      {comInstalacao && !cadastroReal && (
         <p className="mt-3 text-xs text-fg-muted">
           Remover um veículo com instalação apaga a instalação junto: disponível com a API.
         </p>
@@ -148,6 +152,7 @@ export function DialogoRemoverVeiculo({
 }: DialogoRemoverVeiculoProps) {
   const { remover } = useAcoesVeiculo();
   const veiculos = useVeiculos();
+  const cadastroReal = useRepositorio().cadastroReal;
   const [substitutoId, setSubstitutoId] = useState('');
   const [erroEscolha, setErroEscolha] = useState<string | undefined>();
   const outros = (veiculos.data ?? []).filter((v) => v.id !== veiculo?.id);
@@ -185,7 +190,7 @@ export function DialogoRemoverVeiculo({
     <Dialog
       aberto={veiculo !== null}
       titulo={veiculo ? `Remover ${nomeDoVeiculo(veiculo)}?` : ''}
-      descricao="O veículo sai da sua conta. Os testes já feitos com ele continuam no histórico."
+      descricao={cadastroReal ? 'O veículo sai da sua conta. Se este for o último vínculo, instalações e dispositivos associados também serão removidos.' : 'O veículo sai da sua conta. Os testes já feitos com ele continuam no histórico.'}
       onFechar={fechar}
     >
       <div className="flex flex-col gap-4">

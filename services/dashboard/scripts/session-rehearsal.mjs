@@ -1,7 +1,7 @@
 /** Prova sessão com backend compilado, PostgreSQL/Redis locais e Electron real. */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { randomUUID, createHmac } from 'node:crypto';
+import { randomUUID, randomInt, createHmac } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, dirname } from 'node:path';
@@ -25,6 +25,9 @@ const email = `${id}@desktop.invalid`;
 const segundoId = randomUUID();
 const segundoEmail = `${segundoId}@desktop.invalid`;
 const novosEmails = ['dev', 'build'].map(modo => `${id}-${modo}@desktop.invalid`);
+const veiculoId = randomUUID();
+const instalacoes = [randomUUID(), randomUUID()];
+const placas = ['QAA', 'QBB', 'QCC'].map(prefixo => `${prefixo}${String(randomInt(10000)).padStart(4, '0')}`);
 const prisma = new PrismaClient({ datasources: { db: { url: database } } });
 const redis = new Redis({ host: '127.0.0.1', port: 56379, lazyConnect: true, retryStrategy: () => null });
 const ambiente = Object.fromEntries(['SystemRoot', 'PATH', 'TEMP', 'TMP', 'APPDATA', 'LOCALAPPDATA'].filter(k => process.env[k]).map(k => [k, process.env[k]]));
@@ -58,11 +61,13 @@ async function provar(modo, etapa, perfil) {
       env: { ...ambiente, VERS_DESKTOP_API_URL: 'http://localhost:53000/api/v1',
         VERS_PROOF_EMAIL: email, VERS_PROOF_ID: id, VERS_PROOF_PROFILE: perfil, VERS_PROOF_STAGE: etapa,
         VERS_PROOF_SECOND_EMAIL: segundoEmail, VERS_PROOF_NEW_EMAIL: `${id}-${modo}@desktop.invalid`,
+        VERS_PROOF_VEHICLE: veiculoId, VERS_PROOF_INSTALLATION: instalacoes[0], VERS_PROOF_INSTALLATION_TWO: instalacoes[1],
+        VERS_PROOF_PLATE_ONE: placas[1], VERS_PROOF_PLATE_TWO: placas[2],
         ...(modo === 'dev' ? { ELECTRON_RENDERER_URL: 'http://localhost:5175' } : {}) },
     });
     let evidencia = '';
     processo.stdout.on('data', valor => { evidencia += valor.toString(); });
-    const prazo = setTimeout(() => { processo.kill(); falha(new Error('Electron excedeu prazo')); }, 50000);
+    const prazo = setTimeout(() => { processo.kill(); falha(new Error('Electron excedeu prazo')); }, 90000);
     processo.once('error', erro => { clearTimeout(prazo); falha(erro); });
     processo.once('exit', codigo => {
       clearTimeout(prazo);
@@ -74,12 +79,31 @@ async function provar(modo, etapa, perfil) {
   });
 }
 
+/** Limpa exclusivamente veículos criados pelas duas contas sintéticas deste ensaio. */
+async function limparVeiculosExtras() {
+  await prisma.$transaction(async tx => {
+    const links = await tx.userVehicle.findMany({ where: { userId: { in: [id, segundoId] }, vehicleId: { not: veiculoId } }, select: { vehicleId: true } });
+    await tx.userVehicle.deleteMany({ where: { userId: { in: [id, segundoId] }, vehicleId: { in: links.map(v => v.vehicleId) } } });
+    await tx.vehicle.deleteMany({ where: { id: { in: links.map(v => v.vehicleId) } } });
+  });
+}
+
 try {
   await portaLivre(53000); await portaLivre(5175);
   await prisma.$connect(); await redis.connect();
   pasta = await mkdtemp(resolve(tmpdir(), 'vers-desktop-session-'));
   await prisma.user.create({ data: { id, email, passwordHash: await hash('Desktop-Sintetico-123!', 10), status: 'ACTIVE' } });
   await prisma.user.create({ data: { id: segundoId, email: segundoEmail, passwordHash: await hash('Desktop-Sintetico-123!', 10), status: 'ACTIVE', displayName: 'Segunda conta sintética' } });
+  await prisma.vehicle.create({ data: { id: veiculoId, licensePlate: placas[0], model: 'Veículo da bancada desktop',
+    users: { create: { userId: id, relationship: 'OWNER', isPrimary: true } } } });
+  for (const [indice, instalacaoId] of instalacoes.entries()) {
+    await prisma.versInstallation.create({ data: { id: instalacaoId, vehicleId: veiculoId,
+      systemModel: `Montagem desktop ${indice + 1}`, status: indice ? 'MAINTENANCE' : 'ACTIVE',
+      configurations: { create: { name: `Configuração desktop ${indice + 1}`, version: 1,
+        activePiezoCount: 3 + indice, piezoAssociation: 'PARALLEL', installationPoint: 'Bancada isolada', storageType: 'CAPACITOR' } },
+      ...(indice === 0 ? { devices: { create: { deviceUid: `desktop-${id}`, name: 'Dispositivo sintético desktop', status: 'ONLINE' } } } : {}),
+    } });
+  }
   child = spawn(process.execPath, [resolve(backend, 'dist/services/backend/src/main.js')], {
     cwd: backend, windowsHide: true, stdio: 'ignore', env: { ...ambiente,
       NODE_ENV: 'test', PORT: '53000', API_PREFIX: 'api/v1', DATABASE_URL: database,
@@ -91,12 +115,17 @@ try {
   await pronto();
   const configuracao = await loadConfigFromFile({ command: 'serve', mode: 'development' }, resolve(dashboard, 'electron.vite.config.ts'), dashboard);
   vite = await createServer({ ...configuracao.config.renderer, configFile: false, envFile: false,
-    cacheDir: resolve(pasta, 'vite-cache'),
+    cacheDir: resolve(pasta, 'node_modules/.vite'),
     server: { host: 'localhost', port: 5175, strictPort: true } });
   await vite.listen();
   for (const modo of ['dev', 'build']) {
+    await limparVeiculosExtras();
+    await prisma.userVehicle.updateMany({ where: { userId: id }, data: { isPrimary: false } });
+    await prisma.userVehicle.update({ where: { userId_vehicleId: { userId: id, vehicleId: veiculoId } }, data: { isPrimary: true } });
     const perfil = resolve(pasta, modo);
     for (const etapa of ['login', 'resume', 'logged-out']) await provar(modo, etapa, perfil);
+    assert.equal(await prisma.userVehicle.count({ where: { userId: id, isPrimary: true, vehicle: { licensePlate: placas[2] } } }), 1);
+    assert.equal(await prisma.vehicle.count({ where: { id: veiculoId, model: 'Veículo da bancada desktop' } }), 1);
   }
   assert.equal(await prisma.user.count({ where: { email: { in: novosEmails }, status: 'PENDING_VERIFICATION' } }), 2);
   assert.equal(await prisma.refreshSession.count({ where: { userId: { in: [id, segundoId] }, revokedAt: null } }), 0);
@@ -106,15 +135,21 @@ try {
     await new Promise(ok => { child.once('exit', ok); child.kill(); });
   }
   await vite?.close();
+  try {
   await prisma.auditEvent.deleteMany({ where: { requestId: id } });
+  await limparVeiculosExtras();
+  await prisma.userVehicle.deleteMany({ where: { userId: { in: [id, segundoId] }, vehicleId: veiculoId } });
+  await prisma.vehicle.deleteMany({ where: { id: veiculoId } });
   await prisma.user.deleteMany({ where: { OR: [{ id: { in: [id, segundoId] } }, { email: { in: novosEmails } }] } });
   for (const conta of [email, segundoEmail, ...novosEmails]) {
     const digest = createHmac('sha256', secret).update(conta).digest('hex');
     if (redis.status === 'ready') await redis.del(`auth:login:${digest}:count`, `auth:login:${digest}:lock`);
   }
+  } finally {
   redis.disconnect(); await prisma.$disconnect();
   if (pasta) {
     assert.ok(dirname(pasta) === tmpdir() && pasta.includes('vers-desktop-session-'));
     await rm(pasta, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  }
   }
 }

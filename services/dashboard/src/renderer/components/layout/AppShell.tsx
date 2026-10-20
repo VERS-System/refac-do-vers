@@ -45,7 +45,8 @@ export function AppShell({ aoSair, demonstracao = false }: { aoSair?: () => Prom
   const navegar = useNavigate();
   const local = useLocation();
   const { data: usuario } = useUsuarioAtual();
-  const { data: dispositivo } = useDispositivo();
+  const consultaDispositivo = useDispositivo();
+  const dispositivo = consultaDispositivo.data;
   const unidades = usePreferencias((estado) => estado.unidades);
   const [menuAberto, setMenuAberto] = useState(false);
   const [erroSaida, setErroSaida] = useState<string | null>(null);
@@ -103,7 +104,7 @@ export function AppShell({ aoSair, demonstracao = false }: { aoSair?: () => Prom
       </a>
       <Sidebar
         usuario={usuario}
-        dispositivo={dispositivo}
+        dispositivo={dispositivo ?? undefined}
         onSair={() => void sair()}
         className="hidden lg:flex"
       />
@@ -113,7 +114,7 @@ export function AppShell({ aoSair, demonstracao = false }: { aoSair?: () => Prom
         variante="lateral"
         onFechar={() => setMenuAberto(false)}
       >
-        <Sidebar usuario={usuario} dispositivo={dispositivo} onSair={() => void sair()} />
+        <Sidebar usuario={usuario} dispositivo={dispositivo ?? undefined} onSair={() => void sair()} />
       </Dialog>
       <main
         id="conteudo"
@@ -122,7 +123,9 @@ export function AppShell({ aoSair, demonstracao = false }: { aoSair?: () => Prom
         key={`${unidades.potencia}-${unidades.energia}-${unidades.aceleracao}`}
         className="flex min-w-0 flex-1 flex-col outline-none"
       >
-        {demonstracao && <p role="status" className="border-b border-line px-4 py-2 text-xs text-fg-secondary">Autenticação real · demais áreas em demonstração</p>}
+        {demonstracao && <p role="status" className="border-b border-line px-4 py-2 text-xs text-fg-secondary">Autenticação e cadastro reais · medições, testes, revisões e Viber em demonstração, sem vínculo com o veículo real.</p>}
+        {demonstracao && !consultaDispositivo.isError && dispositivo === null && <p className="px-4 py-2 text-xs text-fg-muted">Nenhum dispositivo selecionado.</p>}
+        {demonstracao && consultaDispositivo.isError && <p role="alert" className="px-4 py-2 text-xs text-danger">Não foi possível consultar o dispositivo.</p>}
         {saindo && <p role="status" className="px-4 py-2 text-sm">Encerrando sessão…</p>}
         {erroSaida && <p role="alert" className="px-4 py-2 text-sm text-danger">{erroSaida}</p>}
         <InicioBarraProvider value={botaoMenu}>

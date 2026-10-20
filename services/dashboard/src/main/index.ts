@@ -14,6 +14,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { navegacaoPermitida } from './seguranca';
 import { criarSessao, remetentePermitido } from './sessao';
 import { fetchDaSessao } from './rede-sessao';
+import { criarCadastro } from './cadastro';
 
 /** Pasta deste arquivo compilado; substitui `__dirname`, que não existe em ESM. */
 const diretorioAtual = fileURLToPath(new URL('.', import.meta.url));
@@ -73,16 +74,24 @@ function criarJanelaPrincipal(): void {
 /** Registra a ponte após iniciar o Chromium, mantendo cookies fora da sessão do renderer. */
 void app.whenReady().then(() => {
   const sessaoApi = session.fromPartition('persist:vers-api');
-  const executar = criarSessao({ fetch: fetchDaSessao(net, sessaoApi), cookies: sessaoApi.cookies },
-    process.env['VERS_DESKTOP_API_URL'] ?? 'http://localhost:3000/api/v1');
+  const rede = { fetch: fetchDaSessao(net, sessaoApi), cookies: sessaoApi.cookies };
+  const endereco = process.env['VERS_DESKTOP_API_URL'] ?? 'http://localhost:3000/api/v1';
+  const executar = criarSessao(rede, endereco);
+  const cadastro = criarCadastro(rede, endereco, () => executar('perfil'));
   const pagina = process.env['ELECTRON_RENDERER_URL']
     ?? pathToFileURL(join(diretorioAtual, '../renderer/index.html')).href;
-  ipcMain.handle('vers:sessao', (evento, acao: unknown, dados: unknown) => {
-    if (!janelaPrincipal || !remetentePermitido(evento, janelaPrincipal.webContents, pagina)) {
-      return { ok: false, status: 403, erro: 'REMETENTE_INVALIDO' };
-    }
-    return executar(acao, dados);
-  });
+  // Uma fila mantém CSRF/login/logout/cadastro na mesma identidade e ordem.
+  let fila: Promise<unknown> = Promise.resolve();
+  for (const [canal, operacao] of [['vers:sessao', executar], ['vers:cadastro', cadastro]] as const) {
+    ipcMain.handle(canal, (evento, acao: unknown, dados: unknown) => {
+      if (!janelaPrincipal || !remetentePermitido(evento, janelaPrincipal.webContents, pagina)) {
+        return { ok: false, status: 403, erro: 'REMETENTE_INVALIDO' };
+      }
+      const resultado = fila.then(() => operacao(acao, dados));
+      fila = resultado.catch(() => undefined);
+      return resultado;
+    });
+  }
   criarJanelaPrincipal();
 });
 

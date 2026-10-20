@@ -56,7 +56,7 @@ function FichaPrincipal({ veiculo, onEditar }: { veiculo: Veiculo } & CardVeicul
       <div className="mt-4 flex items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-xs text-fg-muted">
           <BadgeCheck aria-hidden="true" className="size-4 text-success" />
-          {instalacao.data
+          {instalacao.isError ? 'Não foi possível consultar a instalação' : instalacao.precisaEscolher ? 'Selecione uma instalação' : instalacao.data
             ? `Instalação ${instalacao.data.modelo} vinculada`
             : instalacao.isPending
               ? '…'
@@ -88,11 +88,11 @@ export function CardVeiculo({ onEditar }: CardVeiculoProps) {
         carregando={<Skeleton className="mt-3 h-64 w-full" />}
       >
         {(lista) => {
-          const principal = lista.find((v) => v.principal) ?? lista[0];
+          const principal = lista.find((v) => v.principal);
           return principal ? (
             <FichaPrincipal veiculo={principal} onEditar={onEditar} />
           ) : (
-            <p className="mt-3 text-[13px] text-fg-muted">Nenhum veículo cadastrado.</p>
+            <p className="mt-3 text-[13px] text-fg-muted">{lista.length ? 'Nenhum veículo principal definido.' : 'Nenhum veículo cadastrado.'}</p>
           );
         }}
       </EstadoConsulta>
@@ -120,7 +120,7 @@ function OutroVeiculo({
           <p className="truncate text-sm font-medium text-fg">{nome}</p>
           <p className="font-mono text-xs text-fg-muted">{`Placa ${veiculo.placa} · ${TEXTO_RELACAO[veiculo.relacao]}`}</p>
           <p className="text-xs text-fg-muted">
-            {instalacao.data ? `Instalação ${instalacao.data.modelo}` : 'Sem instalação'}
+            {instalacao.isError ? 'Não foi possível consultar a instalação' : instalacao.precisaEscolher ? 'Selecione uma instalação' : instalacao.isPending ? 'Consultando instalação…' : instalacao.data ? `Instalação ${instalacao.data.modelo}` : 'Sem instalação'}
           </p>
         </div>
       </div>

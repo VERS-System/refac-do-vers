@@ -35,7 +35,7 @@ export interface Notificacao {
 export interface DadosNotificacoes {
   alertas: Alerta[];
   agora: Date;
-  dispositivo?: Dispositivo;
+  dispositivo?: Dispositivo | null;
   eficienciaHojePercentual?: number | null;
   temperaturaBlocoC?: number;
   testes?: TesteCampo[];
@@ -65,7 +65,7 @@ function alertasDisparados(dados: DadosNotificacoes): Notificacao[] {
   // No horário de Brasília, como as demais datas do app.
   const agoraIso = formatarIsoComFuso(dados.agora, FUSO_MINUTOS);
 
-  if (ativos.has('offline') && dispositivo) {
+  if (ativos.has('offline') && dispositivo?.ultimoContato) {
     const minutos = (dados.agora.getTime() - Date.parse(dispositivo.ultimoContato)) / 60_000;
     if (minutos > MINUTOS_SEM_MENSAGEM) {
       disparados.push({
@@ -106,7 +106,7 @@ function alertasDisparados(dados: DadosNotificacoes): Notificacao[] {
 function eventos(dados: DadosNotificacoes): Notificacao[] {
   const lista: Notificacao[] = [];
   const { dispositivo } = dados;
-  if (dispositivo?.online) {
+  if (dispositivo?.online && dispositivo.ultimoContato) {
     lista.push({
       id: `evento-online-${dispositivo.id}`,
       titulo: `${dispositivo.plataforma} · ${dispositivo.id} online`,

@@ -56,6 +56,12 @@ aprovados, sem deploy. Após o programador fechar Electron, instalação congela
 geral e binários restaurados; tipos dashboard/mobile aprovados. Tar, deepmerge-ts e Multer
 permanecem pendentes, sem alegar auditoria aprovada ou encerramento da F09.
 
+[Nest11/Multer — 20/10](../backend-phase-9-nest-multer-20-10-2026.md): seis
+pacotes Nest alinhados11.2.7, Multer2.4.0, Express/Socket.IO preservados.
+Audit18→13, zero avisos Multer;964 unitários, lint/build/tipos, instalação
+congelada, imagem Linux nova e oito cenários reais aprovados. Bancada limpa e
+parada, sem deploy. Restam tar12 e deepmerge-ts1; auditoria não aprovada.
+
 [Auditoria persistida de auth](../backend-phase-9-audit-persistence.md) validada
 localmente: identificada incompatibilidade de códigos com a constraint SQL,
 migration posterior preparada e ensaiada com deploy repetível em banco vazio.

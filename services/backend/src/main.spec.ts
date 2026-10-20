@@ -5,8 +5,22 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { bootstrap, configureApplication } from './main';
 import { RealtimeIngestionService } from './modules/realtime/realtime-ingestion.service';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 jest.mock('./app.module', () => ({ AppModule: class {} }));
+
+describe('entrada do backend compilado', () => {
+  /** Mantém script local alinhado ao Docker, cujo caminho corresponde ao layout compilado do monorepo. */
+  it('usa o mesmo executável e artefato no start local e no container', () => {
+    const manifest = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf8')) as { scripts: { start: string } };
+    const dockerfile = readFileSync(resolve(__dirname, '../../../docker/Dockerfile.backend'), 'utf8');
+    const command = dockerfile.match(/^CMD (\[.*\])$/m);
+    expect(command).not.toBeNull();
+    const argv = JSON.parse(command![1]) as string[];
+    expect(manifest.scripts.start).toBe(argv.join(' '));
+  });
+});
 
 describe('configureApplication', () => {
   it('aplica infraestrutura global de API e devolve a porta validada', () => {

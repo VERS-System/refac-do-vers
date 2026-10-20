@@ -43,7 +43,7 @@ O arquivo `docker-compose.yml` na raiz define os serviços:
 | Redis      | 6379 → 6379              | Redis 7 Alpine           |
 | Backend    | 3000 → 3000              | NestJS (Node 22)         |
 | Web        | 3001 → 5173              | Vite + React + Tailwind  |
-| Mobile     | 8080 → 8081              | Expo + React Native      |
+| Mobile     | 8080 → 8080              | Expo + React Native      |
 | AI Service | 8000 → 8000              | FastAPI (Python 3.14)    |
 
 ### Uso básico
@@ -112,6 +112,11 @@ Cada serviço também possui seu próprio `.env.example` com as variáveis espec
 ---
 
 ## Core Backend (NestJS)
+
+Início no host, configuração do processo, probes e demonstração sintética:
+[guia local do backend](../../services/backend/README.md). Após build,
+`pnpm --filter @vers/backend start` usa a mesma entrada compilada do Docker;
+não aplica migrations nem inicia ingestão sem MQTT_ENABLED=true.
 
 ### Estrutura
 

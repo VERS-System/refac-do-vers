@@ -24,19 +24,27 @@ BEGIN
     ALTER TABLE support_requests ADD CONSTRAINT support_requests_reason_required
       CHECK (length(btrim(reason)) > 0);
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_events_codes_valid') THEN
-    ALTER TABLE audit_events ADD CONSTRAINT audit_events_codes_valid
-      CHECK (action ~ '^[A-Z][A-Z_]*$' AND resource_type ~ '^[A-Z][A-Z_]*$');
-  END IF;
 END;
 $$;
+
+-- Reaplica a mesma restrição da migration de compatibilidade também em bancadas preservadas.
+ALTER TABLE audit_events DROP CONSTRAINT IF EXISTS audit_events_codes_valid;
+ALTER TABLE audit_events ADD CONSTRAINT audit_events_codes_valid CHECK (
+  (action ~ '^[A-Z][A-Z_]*$' OR action IN (
+    'auth.login', 'auth.refresh', 'auth.logout-all', 'auth.logout', 'auth.register',
+    'vehicle.create', 'vehicle.update', 'vehicle.delete', 'test.start', 'test.finish',
+    'test.cancel', 'support.create'
+  )) AND (resource_type ~ '^[A-Z][A-Z_]*$' OR resource_type IN (
+    'session', 'user', 'vehicle', 'test', 'supportRequest'
+  ))
+);
 
 -- Esvazia IDs de veículo, instalação e dispositivo antes de removê-los.
 CREATE OR REPLACE FUNCTION scrub_vehicle_audit_resources()
 RETURNS trigger AS $$
 BEGIN
   UPDATE audit_events SET resource_id = NULL
-    WHERE (resource_type = 'VEHICLE' AND resource_id = OLD.id)
+    WHERE (resource_type IN ('VEHICLE', 'vehicle') AND resource_id = OLD.id)
       OR (resource_type = 'INSTALLATION' AND resource_id IN (
         SELECT id FROM vers_installations WHERE vehicle_id = OLD.id
       ))
@@ -57,7 +65,7 @@ CREATE OR REPLACE FUNCTION scrub_user_audit_resources()
 RETURNS trigger AS $$
 BEGIN
   UPDATE audit_events SET resource_id = NULL
-    WHERE resource_type = 'USER' AND resource_id = OLD.id;
+    WHERE resource_type IN ('USER', 'user') AND resource_id = OLD.id;
   RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;

@@ -19,8 +19,10 @@ série/resumo REST, duplicata e recusa após retirada do vínculo. Continuação
 3/3 cenários aprovados também cria veículo e planeja/inicia/encerra teste pela
 API, validando snapshots, CSRF e transições repetidas; recebe telemetria após
 encerramento no mesmo teste. Conta ativa, instalação/configuração/dispositivo
-continuam fixtures; cliente Electron e operação contínua permanecem pendentes.
-Não equivale ao fechamento desta etapa.
+continuam fixtures. Nova continuação com 4/4 cenários aprovados também recebe
+lote durante RUNNING, encerra por HTTP e aguarda varredura real de 60 s criar
+resumo e aviso Socket.IO sem novo MQTT. Cliente Electron e transmissão contínua
+prolongada permanecem pendentes. Não equivale ao fechamento desta etapa.
 
 - usuário cria sessão, veículo, instalação e teste;
 - dispositivo autorizado envia telemetria;

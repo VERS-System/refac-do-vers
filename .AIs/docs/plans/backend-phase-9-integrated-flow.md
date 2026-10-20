@@ -1,6 +1,22 @@
 <!-- Planeja ampliar o ensaio do executável com sessão HTTP, duplicatas e isolamento. -->
 # F09 — Fluxo integrado do backend
 
+## Próximo recorte — recepção durante RUNNING e recuperação após finish
+
+Continuidade NXT autorizada. Parametrizar o cenário HTTP existente para receber
+o lote após encerramento (cobertura atual) e também durante RUNNING. No segundo
+caso, assinar Socket.IO antes do envio, conferir amostras sem resumo TEST,
+encerrar por HTTP e não publicar outro lote. Aguardar a varredura real existente
+de 60 s criar resumo TEST e seu aviso pós-commit, confirmando energia via REST.
+Não chamar recover/recompute manualmente nem reduzir timer/config de produção.
+
+Somente suíte, plano, roadmap e contexto afetados. Limite de espera do teste
+ampliado explicitamente para cobrir uma varredura, mantendo verificações de
+processo filho vivo e limpeza por IDs. Executar unitários, lint, tipos, build e
+quatro cenários reais na mesma bancada autorizada. Avisar antes de Docker e
+preservar demais sistemas/volumes. Não propor nova regra de produto: resumo é
+eventual conforme contrato existente; não prometer atualização imediata.
+
 ## Próximo recorte — veículo e ciclo HTTP
 
 Continuidade autorizada pelo programador. Ampliar a mesma suíte com terceiro
@@ -106,3 +122,31 @@ Este recorte cobre criação de veículo e ciclo de teste pela API, mas não cri
 conta ativa nem instalação por HTTP. Não comprova captura contínua durante teste
 RUNNING, recálculo automático no encerramento sem novo MQTT, sessão Electron,
 auditoria persistida, observabilidade ou operação remota. F09 permanece aberta.
+
+## Resultado RUNNING e recuperação sem MQTT — 19/10/2026
+
+Quatro cenários reais aprovados de primeira em 80,186 s. Cenário adicional
+durou 62,587 s: veículo e teste criados pela API, lote TLS recebido em RUNNING,
+três amostras persistidas e aviso autorizado recebido sem resumo TEST enquanto
+aberto. Após finish HTTP, sem novo publish MQTT, varredura real existente criou
+o resumo e emitiu data.updated para a assinatura do teste. Consulta REST
+confirmou 4/3600 Wh e três amostras; banco confirmou um único bruto PROCESSED.
+Nenhum start/recover/recompute manual, relógio/timer de produção modificado ou
+endpoint novo. Cenário anterior de recepção após encerramento foi preservado
+pela parametrização da mesma implementação do ensaio.
+
+Espera do cenário limitada a 120 s; observação da varredura limitada a 80 s,
+com checagem de processo filho vivo. Sem nova opção de configuração em produção.
+46 suítes/962 testes unitários, lint, build, TypeScript e diff --check aprovados.
+Somente suíte/documentação alteradas; sem novo teste unitário de produção.
+
+Inventário sem containers ativos e portas livres. Usada somente bancada
+autorizada, certificado público renovado e copiado para output ignorado.
+SQL final: zero nas 12 tabelas usadas; limpeza automática por IDs funcionou sem
+intervenção. Bancada parada e volumes preservados. Sem .env, Neon, migration,
+dependência, frontend, commit/push.
+
+Limites atuais: recuperação eventual, não imediata; um lote durante RUNNING,
+sem alegar transmissão contínua prolongada ou escala. Conta ativa e montagem
+são fixtures; integração Electron, ativação de conta, auditoria persistida,
+observabilidade e operação remota seguem separadas. F09 continua aberta.

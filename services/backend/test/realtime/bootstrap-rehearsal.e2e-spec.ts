@@ -20,8 +20,8 @@ const backend = resolve(__dirname, '../..');
 const certificate = resolve(backend, '../../output/realtime-rehearsal/server.crt');
 
 /** Aguarda condição real com prazo e falha segura se o executável filho encerrar prematuramente. */
-async function until(condition: () => Promise<boolean>, child: ChildProcess): Promise<void> {
-  const deadline = Date.now() + 20000;
+async function until(condition: () => Promise<boolean>, child: ChildProcess, timeout = 20000): Promise<void> {
+  const deadline = Date.now() + timeout;
   while (!await condition()) {
     if (child.exitCode !== null || child.signalCode !== null || Date.now() >= deadline) {
       throw new Error('Bootstrap de ensaio indisponível no prazo.');
@@ -225,7 +225,7 @@ describe('F08 — bootstrap compilado com bancada local', () => {
     expect(deniedAck).toEqual({ ok: false, version: 1, code: 'RESOURCE_UNAVAILABLE' });
   }, 60000);
 
-  it('cadastra veículo e executa teste pela API com telemetria e resumo do mesmo recurso', async () => {
+  it.each(['após encerramento', 'durante RUNNING'])('cadastra veículo e executa teste pela API com telemetria %s', async (timing) => {
     const running = await start(true);
     await login();
     const vehicleInput = { licensePlate: `FNV${randomInt(10000).toString().padStart(4, '0')}`, model: 'Modelo sintético F09' };
@@ -261,6 +261,30 @@ describe('F08 — bootstrap compilado com bancada local', () => {
     expect((await post(`tests/${fixture.testId}/start`, {})).status).toBe(409);
     // As três capturas precisam caber no intervalo atribuído pelo relógio do servidor.
     await until(async () => Date.now() > fixture.startedAt.getTime() + 2000, running);
+    publisher = await connectAsync('mqtts://localhost:58883', { username: fixture.deviceUid,
+      password: 'synthetic-two-only', ca: readFileSync(certificate), rejectUnauthorized: true,
+      reconnectPeriod: 0, connectTimeout: 3000 });
+    const message = envelope(fixture);
+    const notices: unknown[] = [];
+    if (timing === 'durante RUNNING') {
+      socket = io(`${url}/realtime`, { transports: ['websocket'], extraHeaders: { Origin: origin, Cookie: cookie },
+        reconnection: false, autoConnect: false, timeout: 3000 });
+      const connection = socket;
+      await new Promise<void>((done, reject) => {
+        connection.once('connect', done); connection.once('connect_error', reject); connection.connect();
+      });
+      connection.on('data.updated', (notice: unknown) => { notices.push(notice); });
+      const ack = await new Promise<unknown>((done, reject) => {
+        connection.timeout(3000).emit('subscribe', { version: 1, resource: { type: 'test', id: fixture.testId } },
+          (error: Error | null, value: unknown) => { if (error) reject(error); else done(value); });
+      });
+      expect(ack).toMatchObject({ ok: true });
+      await publisher.publishAsync(`vers/v1/devices/${fixture.deviceUid}/telemetry`, JSON.stringify(message), { qos: 1 });
+      await until(async () => notices.length >= 1, running);
+      expect(await prisma.telemetrySample.count({ where: { testId: fixture.testId } })).toBe(3);
+      expect(await prisma.energySummary.count({ where: { testId: fixture.testId, periodType: 'TEST' } })).toBe(0);
+      notices.length = 0;
+    }
     const finished = await post(`tests/${fixture.testId}/finish`, { status: 'COMPLETED' });
     expect(finished.status).toBe(200);
     const finishBody = await finished.json() as { data: { status: string; startedAt: string; endedAt: string } };
@@ -269,12 +293,18 @@ describe('F08 — bootstrap compilado com bancada local', () => {
     fixture.endedAt = new Date(finishBody.data.endedAt);
     expect(fixture.endedAt.getTime()).toBeGreaterThan(fixture.startedAt.getTime() + 2000);
     expect((await post(`tests/${fixture.testId}/finish`, { status: 'COMPLETED' })).status).toBe(409);
-    publisher = await connectAsync('mqtts://localhost:58883', { username: fixture.deviceUid,
-      password: 'synthetic-two-only', ca: readFileSync(certificate), rejectUnauthorized: true,
-      reconnectPeriod: 0, connectTimeout: 3000 });
-    const message = envelope(fixture);
-    await publisher.publishAsync(`vers/v1/devices/${fixture.deviceUid}/telemetry`, JSON.stringify(message), { qos: 1 });
-    await until(async () => (await prisma.mqttMessage.findUnique({ where: { messageId: message.messageId } }))?.status === 'PROCESSED', running);
+    if (timing === 'após encerramento') {
+      await publisher.publishAsync(`vers/v1/devices/${fixture.deviceUid}/telemetry`, JSON.stringify(message), { qos: 1 });
+    }
+    // No cenário RUNNING, somente a varredura real pode produzir TEST depois do finish sem novo MQTT.
+    await until(async () => await prisma.energySummary.count({ where: { testId: fixture.testId, periodType: 'TEST' } }) === 1,
+      running, timing === 'durante RUNNING' ? 80000 : 20000);
+    if (timing === 'durante RUNNING') {
+      await until(async () => notices.length >= 1, running);
+      expect(notices).toContainEqual(expect.objectContaining({ type: 'data.updated', resource: { type: 'test', id: fixture.testId } }));
+    }
+    expect(await prisma.mqttMessage.count({ where: { deviceId: fixture.deviceId } })).toBe(1);
+    expect((await prisma.mqttMessage.findUniqueOrThrow({ where: { messageId: message.messageId } })).status).toBe('PROCESSED');
     const summary = await fetch(`${url}/api/v1/tests/${fixture.testId}/energy-summaries`,
       { headers: { Cookie: cookie }, signal: AbortSignal.timeout(3000) });
     expect(summary.status).toBe(200);
@@ -284,5 +314,5 @@ describe('F08 — bootstrap compilado com bancada local', () => {
       { headers: { Cookie: cookie }, signal: AbortSignal.timeout(3000) });
     expect(series.status).toBe(200);
     expect((await series.json() as { data: unknown[] }).data).toHaveLength(3);
-  }, 60000);
+  }, 120000);
 });

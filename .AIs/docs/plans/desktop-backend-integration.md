@@ -1,12 +1,21 @@
 <!-- Planeja a integração incremental do dashboard Electron com o backend real e dados sintéticos. -->
 # Integração Electron ↔ backend VERS
 
+> **20/10/2026 — lote 0 concluído:** [matriz dos37 métodos e lacunas](desktop-backend-contract-matrix-20-10-2026.md).
+> Programador confirmou API local da demonstração e área demonstrativa
+> identificada para campos sem contrato. Sem fallback silencioso em falha real.
+> Lote1 (prova de sessão Electron) ainda não implementado.
+
 ## Objetivo e limites
 
 Planejamento solicitado em 19/10/2026. Conectar o dashboard Electron ao NestJS
 existente, mantendo os dados de demonstração simulados e persistidos no backend.
 Não depende de ESP32, sistema elétrico, CI/CD ou GitHub Actions. Este documento
 não inicia implementação nem autoriza operações no Neon.
+
+Continuidade NXT em20/10 autorizou o inventário após fechar F09 local; decisões
+da primeira entrega: API local e lacunas em demonstração identificada. As
+demais decisões abaixo continuam pendentes antes do lote correspondente.
 
 Entrega em lotes pequenos, revisáveis e testados; commits/push pelo programador.
 Uma tela integrada deve mostrar os dados persistidos ou um estado explícito de
@@ -20,8 +29,8 @@ indisponibilidade, sem cair silenciosamente nos exemplos quando a API falhar.
 - `renderer/services/api.ts` usa Axios, credenciais e `/api/v1`; proxy do Vite
   aponta a localhost:3000. Esse caminho relativo não resolve a API no app
   empacotado, que abre HTML local via `loadFile` em `src/main/index.ts`.
-- Main mantém sandbox, contextIsolation e nodeIntegration desativada; preload
-  expõe apenas plataforma. CSP permite API/socket em localhost:3000.
+- Main mantém sandbox e contextIsolation ativados, nodeIntegration desativada;
+  preload expõe apenas plataforma. CSP permite API/socket em localhost:3000.
 - `renderer/services/mqtt.ts` usa auth.token, namespace raiz e evento telemetry;
   não corresponde ao backend atual. O desktop não deve acessar o broker MQTT.
 - Backend usa cookies HttpOnly, SameSite=Lax, Secure em produção, CSRF e validação

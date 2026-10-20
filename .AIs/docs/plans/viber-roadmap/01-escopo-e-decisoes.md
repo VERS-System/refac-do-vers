@@ -54,8 +54,11 @@ Não implementar lista permanente de conversas recentes ou sincronização.
 | Prazo total | 45 segundos por geração. | Evita espera ilimitada; não é controle financeiro. |
 | Prazo sem texto inicial | Vinte segundos. | Mensagem de indisponibilidade e tentativa manual. |
 
-Gabriel confirma ou ajusta esses valores antes da apresentação e registra aqui.
-Nenhum limite financeiro pode aumentar acima de US$10 sem nova decisão.
+Valores confirmados pelo responsável em 20/10/2026, sem ajustes
+(ver `Context_20_10_2026.md`, seção Viber). A base editorial
+`00-contexto-geral-viber.md` também foi revisada e confirmada sem
+alterações factuais. Nenhum limite financeiro pode aumentar acima de
+US$10 sem nova decisão.
 
 ## Fora do escopo
 
@@ -71,8 +74,8 @@ Nenhum limite financeiro pode aumentar acima de US$10 sem nova decisão.
 
 ## Checklist antes de desenvolver
 
-- [ ] Revisar a base factual com o responsável e identificar pontos desconhecidos.
-- [ ] Confirmar os valores propostos para o ensaio, sem tratá-los como aprovados.
+- [x] Revisar a base factual com o responsável e identificar pontos desconhecidos. (20/10: confirmada sem alterações)
+- [x] Confirmar os valores propostos para o ensaio, sem tratá-los como aprovados. (20/10: confirmados sem ajustes)
 - [ ] Conferir baseline da outra frente e combinar quem conecta os arquivos comuns.
 - [ ] Reservar uma parte dos US$10 para ensaios, no mesmo registro de orçamento.
 - [ ] Registrar versão da base, modelo e versões das dependências usadas.

@@ -10,6 +10,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { PonteSessao } from '../shared/sessao';
 import type { PonteCadastro } from '../shared/cadastro';
 import type { PonteEnsaios } from '../shared/ensaios';
+import type { PonteTempoReal, AvisoTempoReal } from '../shared/realtime';
 
 /** Expõe operações fixas; o renderer nunca escolhe canal, URL ou cabeçalhos. */
 const sessao: PonteSessao = {
@@ -67,9 +68,22 @@ const ensaios: PonteEnsaios = {
   comparar: testIds => ipcRenderer.invoke('vers:ensaios', 'comparar', { testIds }),
 };
 
+/** Limita a ponte a recursos conhecidos e nunca entrega o objeto de evento IPC ao renderer. */
+const tempoReal: PonteTempoReal = {
+  /** Substitui os recursos observados; o main valida limites, identidade e remetente. */
+  observar: dados => ipcRenderer.invoke('vers:tempo-real', dados),
+  /** Instala listener antes da observação e devolve sua remoção exata no unmount. */
+  receber: ouvinte => {
+    const receber = (_evento: unknown, aviso: AvisoTempoReal) => ouvinte(aviso);
+    ipcRenderer.on('vers:tempo-real:aviso', receber);
+    return () => ipcRenderer.removeListener('vers:tempo-real:aviso', receber);
+  },
+};
+
 contextBridge.exposeInMainWorld('vers', {
   plataforma: process.platform,
   sessao,
   cadastro,
   ensaios,
+  tempoReal,
 });

@@ -2,6 +2,7 @@
 import type { LoginRequest, RegisterRequest, UpdateUserProfileRequest, UserProfile } from '@vers/shared-types';
 import type { PonteCadastro } from './cadastro';
 import type { PonteEnsaios } from './ensaios';
+import type { PonteTempoReal } from './realtime';
 
 export type ResultadoSessao =
   | { ok: true; usuario?: UserProfile }
@@ -19,6 +20,6 @@ export interface PonteSessao {
 
 declare global {
   interface Window {
-    vers: { plataforma: string; sessao: PonteSessao; cadastro?: PonteCadastro; ensaios?: PonteEnsaios };
+    vers: { plataforma: string; sessao: PonteSessao; cadastro?: PonteCadastro; ensaios?: PonteEnsaios; tempoReal?: PonteTempoReal };
   }
 }

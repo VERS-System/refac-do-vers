@@ -11,7 +11,9 @@
 > Lote4 concluído na demonstração local: testes/transições, telemetria, resumo
 > TEST, comparação, energia horária por instalação, cobertura e CSV reais.
 > [Plano e evidências de medições](desktop-backend-medicoes-lot4.md).
-> Próximo lote:5 — tempo real e recuperação.
+> Lote5 iniciado: [transporte autenticado e etapas de recuperação](desktop-backend-realtime-lot5.md).
+> Parte A implementada no main/preload; cache das telas e ensaio real ainda pendentes.
+> Reconciliação aprovada: manter telemetria a cada10s e energia a cada60s.
 > Períodos aprovados: America/Sao_Paulo; semana anterior completa, segunda a
 > domingo. Energia em blocos horários completos e cobertura visível;
 > curvas sem contrato permanecem em demonstração identificada.

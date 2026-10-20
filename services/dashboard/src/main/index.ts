@@ -16,11 +16,13 @@ import { criarSessao, remetentePermitido } from './sessao';
 import { fetchDaSessao } from './rede-sessao';
 import { criarCadastro } from './cadastro';
 import { criarEnsaios } from './ensaios';
+import { criarTempoReal } from './realtime';
 
 /** Pasta deste arquivo compilado; substitui `__dirname`, que não existe em ESM. */
 const diretorioAtual = fileURLToPath(new URL('.', import.meta.url));
 
 let janelaPrincipal: BrowserWindow | null = null;
+let encerrarTempoReal: (() => void) | undefined;
 
 /**
  * Cria a janela principal e carrega a interface.
@@ -60,7 +62,10 @@ function criarJanelaPrincipal(): void {
 
   // Mostra a janela só quando a interface está pronta, evitando o flash branco.
   janelaPrincipal.once('ready-to-show', () => janelaPrincipal?.show());
+  // Recarregar remove os ouvintes do renderer; nenhuma assinatura sobrevive à página antiga.
+  janelaPrincipal.webContents.on('did-start-loading', () => encerrarTempoReal?.());
   janelaPrincipal.on('closed', () => {
+    encerrarTempoReal?.();
     janelaPrincipal = null;
   });
 
@@ -84,14 +89,41 @@ void app.whenReady().then(() => {
     ?? pathToFileURL(join(diretorioAtual, '../renderer/index.html')).href;
   // Uma fila mantém CSRF/login/logout/cadastro/ensaios na mesma identidade e ordem.
   let fila: Promise<unknown> = Promise.resolve();
+  /** Ordena sessão, leituras e preparação do socket sem bloquear a fila esperando ACKs. */
+  function enfileirar<T>(operacao: () => Promise<T> | T): Promise<T> {
+    const resultado = fila.then(operacao);
+    fila = resultado.catch(() => undefined);
+    return resultado;
+  }
+  const tempoReal = criarTempoReal(endereco, () => enfileirar(async () => {
+    const acesso = await executar('perfil');
+    if (!acesso.ok) return acesso;
+    const cookies = await sessaoApi.cookies.get({ url: endereco, name: 'vers_access' });
+    if (cookies.length !== 1) return { ok: false as const, status: 0, erro: 'CONEXAO' as const };
+    return { ok: true as const, cookie: `vers_access=${cookies[0].value}` };
+  }), aviso => {
+    if (janelaPrincipal && !janelaPrincipal.webContents.isDestroyed()) {
+      janelaPrincipal.webContents.send('vers:tempo-real:aviso', aviso);
+    }
+  });
+  encerrarTempoReal = tempoReal.encerrar;
+  ipcMain.handle('vers:tempo-real', (evento, dados: unknown) => {
+    if (!janelaPrincipal || !remetentePermitido(evento, janelaPrincipal.webContents, pagina)) {
+      return { ok: false, status: 403, erro: 'REMETENTE_INVALIDO' };
+    }
+    return enfileirar(() => tempoReal.observar(dados));
+  });
   for (const [canal, operacao] of [['vers:sessao', executar], ['vers:cadastro', cadastro], ['vers:ensaios', ensaios]] as const) {
     ipcMain.handle(canal, (evento, acao: unknown, dados: unknown) => {
       if (!janelaPrincipal || !remetentePermitido(evento, janelaPrincipal.webContents, pagina)) {
         return { ok: false, status: 403, erro: 'REMETENTE_INVALIDO' };
       }
-      const resultado = fila.then(() => operacao(acao, dados));
-      fila = resultado.catch(() => undefined);
-      return resultado;
+      return enfileirar(async () => {
+        if (canal === 'vers:sessao' && ['entrar', 'sair', 'sairDeTodas'].includes(String(acao))) tempoReal.encerrar();
+        const resultado = await operacao(acao, dados);
+        if (!resultado.ok && resultado.status === 401) tempoReal.encerrar();
+        return resultado;
+      });
     });
   }
   criarJanelaPrincipal();

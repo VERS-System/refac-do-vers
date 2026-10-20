@@ -6,7 +6,8 @@
 > identificada para campos sem contrato. Sem fallback silencioso em falha real.
 > Lote1 implementado: [prova de sessão dev/build e persistência](desktop-backend-session-lot1.md).
 > Sessão permanece ao reabrir até expirar ou encerrar, conforme decisão do programador.
-> Próximo lote: autenticação real da interface (lote2).
+> Lote2 implementado: [autenticação real da interface](desktop-backend-auth-lot2.md).
+> Próximo lote: veículos/instalação/configuração (lote3).
 
 ## Objetivo e limites
 
@@ -105,6 +106,10 @@ renovação/encerramento reais e nenhum enfraquecimento dos controles existentes
 Falha neste lote bloqueia a adoção do transporte nas telas seguintes.
 
 ### 2 — Cliente HTTP e autenticação da interface
+
+Implementação local registrada no plano do lote2: autenticação/perfil reais,
+cadastro pendente, rotas privadas, renovação limitada, logout e isolamento de
+cache. Demais métodos ainda demonstrativos e identificados até seus lotes.
 
 Implementar cliente e repositório real sobre a interface existente; extrair
 data/meta/requestId e tratar respostas sem body (202/204), timeout, rede e

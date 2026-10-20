@@ -32,10 +32,21 @@ import { usePreferencias } from '@/stores/preferencias';
  * repositório pode vir de fora: os testes usam isso para simular recusas do
  * backend sem mexer no repositório de exemplo.
  */
-export default function App({ repositorio: externo }: { repositorio?: RepositorioVers } = {}) {
+export default function App({ repositorio: externo, autenticado, aoSair, sessaoExpirada }: {
+  repositorio?: RepositorioVers;
+  autenticado?: boolean;
+  aoSair?: () => Promise<void>;
+  sessaoExpirada?: boolean;
+} = {}) {
   const [clienteConsultas] = useState(() => new QueryClient());
   const [repositorio] = useState(() => externo ?? criarRepositorioMock());
   const reduzirMovimento = usePreferencias((estado) => estado.reduzirMovimento);
+
+  // Troca de conta desmonta este App: nenhuma consulta antiga permanece no cache novo.
+  useEffect(() => () => {
+    void clienteConsultas.cancelQueries();
+    clienteConsultas.clear();
+  }, [clienteConsultas]);
 
   // "Reduzir movimento" vira `data-reduzir-movimento` no `<html>`, que o CSS
   // global usa para desligar animações em todas as telas, inclusive no Login.
@@ -54,7 +65,7 @@ export default function App({ repositorio: externo }: { repositorio?: Repositori
         <HashRouter>
           <Suspense fallback={<CarregandoTela />}>
             <Routes>
-              <Route element={<AppShell />}>
+              <Route element={autenticado === false ? <Navigate to={ROTAS.login} replace state={sessaoExpirada ? { aviso: 'sessao-expirada' } : undefined} /> : <AppShell aoSair={aoSair} demonstracao={autenticado !== undefined} />}>
                 <Route path={ROTAS.visaoGeral} element={<TELAS.visaoGeral />} />
                 <Route path={ROTAS.telemetria} element={<TELAS.telemetria />} />
                 <Route path={ROTAS.energia} element={<TELAS.energia />} />
@@ -64,9 +75,9 @@ export default function App({ repositorio: externo }: { repositorio?: Repositori
                 <Route path={ROTAS.viberIa} element={<TELAS.viberIa />} />
                 <Route path={ROTAS.configuracoes} element={<TELAS.configuracoes />} />
               </Route>
-              <Route path={ROTAS.login} element={<TELAS.login />} />
-              <Route path={ROTAS.criarConta} element={<TELAS.criarConta />} />
-              <Route path={ROTAS.primeiroVeiculo} element={<TELAS.primeiroVeiculo />} />
+              <Route path={ROTAS.login} element={autenticado === true ? <Navigate to={ROTAS.visaoGeral} replace /> : <TELAS.login />} />
+              <Route path={ROTAS.criarConta} element={autenticado === true ? <Navigate to={ROTAS.visaoGeral} replace /> : <TELAS.criarConta />} />
+              <Route path={ROTAS.primeiroVeiculo} element={autenticado === false ? <Navigate to={ROTAS.login} replace /> : autenticado === true ? <Navigate to={ROTAS.visaoGeral} replace /> : <TELAS.primeiroVeiculo />} />
               <Route path="*" element={<Navigate to={ROTAS.visaoGeral} replace />} />
             </Routes>
           </Suspense>

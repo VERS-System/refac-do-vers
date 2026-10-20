@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/Button';
 import { EstadoConsulta } from '@/components/ui/EstadoConsulta';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useAcoesPerfil, useUsuarioAtual } from '@/hooks/useDados';
+import { useRepositorio } from '@/data/repositorio';
 import { cn } from '@/lib/cn';
 import { formatarNumero } from '@/lib/format';
 import { consumirDestino } from '@/stores/destinoBusca';
@@ -70,6 +71,7 @@ function rascunhoSalvo(nome: string, foto: string | undefined): Rascunho {
 
 /** Renderiza a tela Configurações. */
 export function ConfiguracoesPage() {
+  const fotoEditavel = useRepositorio().fotoLocalPermitida !== false;
   const usuario = useUsuarioAtual();
   const { atualizar } = useAcoesPerfil();
   const [salvo, setSalvo] = useState<Rascunho | null>(null);
@@ -209,6 +211,7 @@ export function ConfiguracoesPage() {
             {(dados) =>
               rascunho ? (
                 <SecaoPerfil
+                  fotoEditavel={fotoEditavel}
                   usuario={dados}
                   nome={rascunho.nome}
                   foto={rascunho.foto}

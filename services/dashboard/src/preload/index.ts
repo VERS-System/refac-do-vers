@@ -19,6 +19,12 @@ const sessao: PonteSessao = {
   renovar: () => ipcRenderer.invoke('vers:sessao', 'renovar'),
   /** Encerra a sessão no servidor antes de confirmar sucesso. */
   sair: () => ipcRenderer.invoke('vers:sessao', 'sair'),
+  /** Solicita cadastro pendente sem iniciar sessão. */
+  registrar: dados => ipcRenderer.invoke('vers:sessao', 'registrar', dados),
+  /** Salva somente os campos públicos editáveis do perfil. */
+  atualizarPerfil: dados => ipcRenderer.invoke('vers:sessao', 'atualizarPerfil', dados),
+  /** Revoga todas as sessões da conta autenticada. */
+  sairDeTodas: () => ipcRenderer.invoke('vers:sessao', 'sairDeTodas'),
 };
 
 contextBridge.exposeInMainWorld('vers', {

@@ -36,6 +36,21 @@ function perfilPublico(valor: unknown): UserProfile {
     createdAt: p.createdAt, updatedAt: p.updatedAt } as UserProfile;
 }
 
+/** Valida as chaves e tipos no IPC antes de alcançar qualquer endpoint. */
+function dadosPermitidos(acao: string, dados: unknown): boolean {
+  if (!['entrar', 'registrar', 'atualizarPerfil'].includes(acao)) return dados === undefined;
+  if (!dados || typeof dados !== 'object' || Array.isArray(dados)) return false;
+  const p = dados as Record<string, unknown>;
+  if (acao === 'atualizarPerfil') return Object.keys(p).length > 0
+    && Object.keys(p).every(c => ['displayName', 'avatarUrl'].includes(c))
+    && (p.displayName === undefined || p.displayName === null || (typeof p.displayName === 'string' && p.displayName.length <= 120))
+    && (p.avatarUrl === undefined || p.avatarUrl === null || (typeof p.avatarUrl === 'string' && p.avatarUrl.length <= 4096 && /^https?:\/\//.test(p.avatarUrl)));
+  return Object.keys(p).every(c => (acao === 'registrar' ? ['email', 'password', 'displayName'] : ['email', 'password']).includes(c))
+    && typeof p.email === 'string' && p.email.length <= 254
+    && typeof p.password === 'string' && p.password.length <= 1024
+    && (p.displayName === undefined || (typeof p.displayName === 'string' && p.displayName.length <= 120));
+}
+
 /** Serializa a sessão para evitar que CSRF ou rotação concorrentes invalidem cookies. */
 export function criarSessao(rede: Pick<Session, 'fetch'> & { cookies: Pick<Session['cookies'], 'flushStore'> }, endereco: string) {
   const base = validarApiLocal(endereco);
@@ -43,22 +58,28 @@ export function criarSessao(rede: Pick<Session, 'fetch'> & { cookies: Pick<Sessi
 
   /** Executa uma operação validada, sem devolver corpo bruto ou repetir mutações. */
   async function executar(acao: unknown, dados?: unknown): Promise<ResultadoSessao> {
-    if (typeof acao !== 'string' || !['entrar', 'perfil', 'renovar', 'sair'].includes(acao)
-      || (acao !== 'entrar' && dados !== undefined)
-      || (acao === 'entrar' && (!dados || typeof dados !== 'object'
-        || Object.keys(dados).sort().join(',') !== 'email,password'
-        || typeof (dados as Record<string, unknown>).email !== 'string'
-        || typeof (dados as Record<string, unknown>).password !== 'string'
-        || (dados as { email: string }).email.length > 320
-        || (dados as { password: string }).password.length > 1024))) {
+    if (typeof acao !== 'string' || !['entrar', 'perfil', 'renovar', 'sair', 'registrar', 'atualizarPerfil', 'sairDeTodas'].includes(acao)
+      || !dadosPermitidos(acao, dados)) {
       return { ok: false, status: 400, erro: 'REQUISICAO_INVALIDA' };
     }
     const signal = AbortSignal.timeout(10_000);
     const opcoes = { credentials: 'include' as const, redirect: 'error' as const, signal };
     let resposta: Response;
     try {
-      if (acao === 'perfil') resposta = await rede.fetch(`${base}/users/me`, opcoes);
+      if (acao === 'perfil') {
+        resposta = await rede.fetch(`${base}/users/me`, opcoes);
+        if (resposta.status === 401) {
+          const renovacao = await executar('renovar');
+          if (!renovacao.ok) return renovacao;
+          resposta = await rede.fetch(`${base}/users/me`, opcoes);
+        }
+      }
       else {
+        // Verifica acesso antes da mutação; só a leitura pode ser repetida após refresh.
+        if (acao === 'atualizarPerfil' || acao === 'sairDeTodas') {
+          const acesso = await executar('perfil');
+          if (!acesso.ok) return acesso;
+        }
         const csrf = await rede.fetch(`${base}/auth/csrf`, opcoes);
         if (!csrf.ok) return { ok: false, status: csrf.status, erro: 'HTTP' };
         let token: unknown;
@@ -66,16 +87,16 @@ export function criarSessao(rede: Pick<Session, 'fetch'> & { cookies: Pick<Sessi
         if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) {
           return { ok: false, status: 0, erro: 'RESPOSTA_INVALIDA' };
         }
-        const rota = acao === 'entrar' ? 'login' : acao === 'renovar' ? 'refresh' : 'logout';
-        resposta = await rede.fetch(`${base}/auth/${rota}`, { ...opcoes, method: 'POST',
+        const rota = acao === 'atualizarPerfil' ? 'users/me' : `auth/${({ entrar: 'login', renovar: 'refresh', sair: 'logout', registrar: 'register', sairDeTodas: 'logout-all' } as Record<string, string>)[acao]}`;
+        resposta = await rede.fetch(`${base}/${rota}`, { ...opcoes, method: acao === 'atualizarPerfil' ? 'PATCH' : 'POST',
           headers: { Origin: 'http://localhost:5174', 'Content-Type': 'application/json', 'x-csrf-token': token },
-          body: JSON.stringify(acao === 'entrar' ? dados : {}),
+          body: JSON.stringify(['entrar', 'registrar', 'atualizarPerfil'].includes(acao) ? dados : {}),
         });
         await rede.cookies.flushStore();
       }
     } catch { return { ok: false, status: 0, erro: 'CONEXAO' }; }
     if (!resposta.ok) return { ok: false, status: resposta.status, erro: 'HTTP' };
-    if (acao === 'renovar' || acao === 'sair') return resposta.status === 204
+    if (['renovar', 'sair', 'sairDeTodas', 'registrar'].includes(acao)) return resposta.status === (acao === 'registrar' ? 202 : 204)
       ? { ok: true } : { ok: false, status: 0, erro: 'RESPOSTA_INVALIDA' };
     try {
       const { data } = await resposta.json();

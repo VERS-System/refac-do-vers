@@ -22,6 +22,9 @@ const database = 'postgresql://vers_test:vers_test_local_only@127.0.0.1:55432/ve
 const secret = 'desktop-access-somente-sintetico-123';
 const id = randomUUID();
 const email = `${id}@desktop.invalid`;
+const segundoId = randomUUID();
+const segundoEmail = `${segundoId}@desktop.invalid`;
+const novosEmails = ['dev', 'build'].map(modo => `${id}-${modo}@desktop.invalid`);
 const prisma = new PrismaClient({ datasources: { db: { url: database } } });
 const redis = new Redis({ host: '127.0.0.1', port: 56379, lazyConnect: true, retryStrategy: () => null });
 const ambiente = Object.fromEntries(['SystemRoot', 'PATH', 'TEMP', 'TMP', 'APPDATA', 'LOCALAPPDATA'].filter(k => process.env[k]).map(k => [k, process.env[k]]));
@@ -54,6 +57,7 @@ async function provar(modo, etapa, perfil) {
       cwd: dashboard, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...ambiente, VERS_DESKTOP_API_URL: 'http://localhost:53000/api/v1',
         VERS_PROOF_EMAIL: email, VERS_PROOF_ID: id, VERS_PROOF_PROFILE: perfil, VERS_PROOF_STAGE: etapa,
+        VERS_PROOF_SECOND_EMAIL: segundoEmail, VERS_PROOF_NEW_EMAIL: `${id}-${modo}@desktop.invalid`,
         ...(modo === 'dev' ? { ELECTRON_RENDERER_URL: 'http://localhost:5175' } : {}) },
     });
     let evidencia = '';
@@ -75,6 +79,7 @@ try {
   await prisma.$connect(); await redis.connect();
   pasta = await mkdtemp(resolve(tmpdir(), 'vers-desktop-session-'));
   await prisma.user.create({ data: { id, email, passwordHash: await hash('Desktop-Sintetico-123!', 10), status: 'ACTIVE' } });
+  await prisma.user.create({ data: { id: segundoId, email: segundoEmail, passwordHash: await hash('Desktop-Sintetico-123!', 10), status: 'ACTIVE', displayName: 'Segunda conta sintética' } });
   child = spawn(process.execPath, [resolve(backend, 'dist/services/backend/src/main.js')], {
     cwd: backend, windowsHide: true, stdio: 'ignore', env: { ...ambiente,
       NODE_ENV: 'test', PORT: '53000', API_PREFIX: 'api/v1', DATABASE_URL: database,
@@ -86,21 +91,27 @@ try {
   await pronto();
   const configuracao = await loadConfigFromFile({ command: 'serve', mode: 'development' }, resolve(dashboard, 'electron.vite.config.ts'), dashboard);
   vite = await createServer({ ...configuracao.config.renderer, configFile: false, envFile: false,
+    cacheDir: resolve(pasta, 'vite-cache'),
     server: { host: 'localhost', port: 5175, strictPort: true } });
   await vite.listen();
   for (const modo of ['dev', 'build']) {
     const perfil = resolve(pasta, modo);
     for (const etapa of ['login', 'resume', 'logged-out']) await provar(modo, etapa, perfil);
   }
+  assert.equal(await prisma.user.count({ where: { email: { in: novosEmails }, status: 'PENDING_VERIFICATION' } }), 2);
+  assert.equal(await prisma.refreshSession.count({ where: { userId: { in: [id, segundoId] }, revokedAt: null } }), 0);
+  console.log('OK cadastros pendentes e sessões revogadas no banco');
 } finally {
   if (child && child.exitCode === null) {
     await new Promise(ok => { child.once('exit', ok); child.kill(); });
   }
   await vite?.close();
   await prisma.auditEvent.deleteMany({ where: { requestId: id } });
-  await prisma.user.deleteMany({ where: { id } });
-  const digest = createHmac('sha256', secret).update(email).digest('hex');
-  if (redis.status === 'ready') await redis.del(`auth:login:${digest}:count`, `auth:login:${digest}:lock`);
+  await prisma.user.deleteMany({ where: { OR: [{ id: { in: [id, segundoId] } }, { email: { in: novosEmails } }] } });
+  for (const conta of [email, segundoEmail, ...novosEmails]) {
+    const digest = createHmac('sha256', secret).update(conta).digest('hex');
+    if (redis.status === 'ready') await redis.del(`auth:login:${digest}:count`, `auth:login:${digest}:lock`);
+  }
   redis.disconnect(); await prisma.$disconnect();
   if (pasta) {
     assert.ok(dirname(pasta) === tmpdir() && pasta.includes('vers-desktop-session-'));

@@ -1,5 +1,5 @@
 /** Contrato restrito da ponte de sessão; nunca transporta cookies ou JWTs. */
-import type { LoginRequest, UserProfile } from '@vers/shared-types';
+import type { LoginRequest, RegisterRequest, UpdateUserProfileRequest, UserProfile } from '@vers/shared-types';
 
 export type ResultadoSessao =
   | { ok: true; usuario?: UserProfile }
@@ -10,6 +10,9 @@ export interface PonteSessao {
   perfil(): Promise<ResultadoSessao>;
   renovar(): Promise<ResultadoSessao>;
   sair(): Promise<ResultadoSessao>;
+  registrar(dados: RegisterRequest): Promise<ResultadoSessao>;
+  atualizarPerfil(dados: UpdateUserProfileRequest): Promise<ResultadoSessao>;
+  sairDeTodas(): Promise<ResultadoSessao>;
 }
 
 declare global {

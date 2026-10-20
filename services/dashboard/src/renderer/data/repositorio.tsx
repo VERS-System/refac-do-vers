@@ -49,6 +49,8 @@ import type {
 export type PeriodoComDias = Exclude<Periodo, 'hora'>;
 
 export interface RepositorioVers {
+  /** Somente o repositório de demonstração aceita fotos blob sem upload remoto. */
+  readonly fotoLocalPermitida?: boolean;
   /** Relógio do repositório (fixo no exemplo, real na API). */
   agora(): Date;
   /**

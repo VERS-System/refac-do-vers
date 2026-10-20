@@ -137,16 +137,16 @@ describe('CriarContaPage — fluxo completo', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
 
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Confirme seu e-mail' }),
+      await screen.findByRole('heading', { level: 2, name: 'Solicitação recebida' }),
     ).toBeInTheDocument();
     expect(registrar).toHaveBeenCalledWith({
       email: 'novo@vers.com',
       senha: 'Segredo!1',
       nome: 'Novo Pesquisador',
     });
-    expect(screen.getByText(/Se o e-mail novo@vers.com puder ser usado/)).toBeInTheDocument();
+    expect(screen.getByText(/Se os dados de novo@vers.com puderem ser usados/)).toBeInTheDocument();
     expect(screen.getByText(/ABC1D23/)).toHaveTextContent(
-      'fica guardado neste computador e é cadastrado no seu primeiro acesso',
+      'fica guardado neste computador para cadastro posterior',
     );
     // O veículo fica guardado (sem a senha) até o primeiro login.
     expect(lerVeiculoDoCadastro('novo@vers.com')).toEqual({

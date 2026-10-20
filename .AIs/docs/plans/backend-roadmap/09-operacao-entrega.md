@@ -2,14 +2,24 @@
 
 # Fase 09 — Operação, segurança e entrega
 
+> **20/10/2026 — concluída no recorte de demonstração local sintética escolhido
+> pelo programador.** [Matriz de fechamento e limites](../backend-phase-9-closure-20-10-2026.md).
+> 969 testes, audit produção backend zero, imagem/smoke e recuperação local
+> verificados. Os itens de produção abaixo permanecem requisitos futuros;
+> este fechamento não declara sua implementação nem integração Electron/API.
+
 > **Decisão de 19/10/2026:** CI/CD e GitHub Actions fora do escopo por decisão
 > do programador. Workflow proposto removido; verificações continuam locais e
 > entrega permanece manual. [Histórico da decisão](../backend-phase-9-ci-quality.md).
-> Integração, migrations, auditorias e operação continuam pendentes.
+> O histórico abaixo detalha as evidências acumuladas antes do fechamento local.
 
 ## Objetivo
 
 Tornar o backend reproduzível, implantável, observável e recuperável.
+
+Neste fechamento, o alvo é a demonstração local assistida com dados sintéticos.
+As listas A–F preservam o escopo original; a matriz final define os limites
+efetivamente aceitos para esse alvo, incluindo operação manual e fixtures.
 
 ## Etapa A — Testes ponta a ponta
 
@@ -68,6 +78,12 @@ cadeia node-pre-gyp do backend; audit13→1, apenas deepmerge-ts/Prisma alto.
 hash legado no runtime Linux aprovados. Imagem nova construída, sem deploy.
 Bancada limpa/parada; custo e hashes existentes preservados. Aviso restante e
 critérios operacionais ainda impedem declarar fechamento integral da F09.
+
+[Prisma/deepmerge — 20/10](../backend-phase-9-prisma-deepmerge-20-10-2026.md):
+override restrito ao config6.19.3 corrige o merger8.0.0 sem migrar ORM. RED por
+RangeError e GREEN2/2 comprovados;969 unitários, lint/tipos/build e Prisma
+validate/generate aprovados. Audit produção backend1→0. Smoke da imagem final
+e migrations/backup/restore atuais fecham o recorte local conforme matriz.
 
 [Auditoria persistida de auth](../backend-phase-9-audit-persistence.md) validada
 localmente: identificada incompatibilidade de códigos com a constraint SQL,
@@ -128,5 +144,7 @@ com [guia de comandos do backend](../../../../services/backend/README.md).
 
 ## Critério final
 
-Um ambiente limpo pode ser construído, testado, migrado, implantado,
-monitorado e recuperado apenas com artefatos versionados e documentação.
+Para a demonstração local assistida, construção limpa, testes, migrations,
+smoke, diagnóstico e recuperação possuem evidências e documentação versionada.
+Implantação de produção continua dependente das decisões e implementações
+fora desse recorte listadas na matriz de fechamento.

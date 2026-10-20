@@ -1,6 +1,9 @@
 packages:
   - "services/*"
   - "packages/*"
+overrides:
+  # Prisma 6 fixa o merger vulnerável; revisar esta exceção ao atualizar o pai.
+  '@prisma/config@6.19.3>deepmerge-ts': 8.0.0
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true

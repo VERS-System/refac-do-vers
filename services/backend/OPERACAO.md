@@ -74,6 +74,10 @@ fluxo sintético. O responsável decide obrigações legais e comunicação exte
 Sem implantação remota, integração Electron/API comprovada, alertas automáticos,
 SLO, trace distribuído, retenção automática, RPO/RTO acordados ou guarda externa
 de backup. Esses pontos exigem decisões próprias antes de usar dados reais.
-Auditoria de dependências possui avisos pendentes; ensaios funcionais não
-certificam ausência de vulnerabilidades. A imagem deve ser identificada pelo
+O [fechamento local em20/10/2026](../../.AIs/docs/plans/backend-phase-9-closure-20-10-2026.md)
+registra969 testes, audit produção dos caminhos backend zero, smoke e
+recuperação das duas migrations atuais. Isso não abrange todas as dependências
+de desenvolvimento/workspace, nem certifica ausência de vulnerabilidades.
+A imagem atual inclui ferramentas de desenvolvimento; hardening e auditoria
+integral da imagem ficam para produção. A imagem deve ser identificada pelo
 digest para repetição exata: tag Node 24 e pacotes apt podem mudar no futuro.

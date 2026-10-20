@@ -1,7 +1,7 @@
+# Ponto de entrada do serviço de IA da Viber (FastAPI).
+# A configuração vem do ambiente do processo; este módulo não carrega .env
+# automaticamente (regra do repositório — ver etapa 2 do roadmap Viber).
 from fastapi import FastAPI
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = FastAPI(title="VERS AI Service", version="0.1.0")
 

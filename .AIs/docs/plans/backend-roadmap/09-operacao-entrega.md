@@ -49,6 +49,13 @@ removeram quatro avisos de engine.io/proxy-addr/qs sem atualizar pais ou criar
 overrides. Backend ficou com 26 avisos; 964 unitários, lint/build/tipos e oito
 cenários reais passaram. Demais pacotes, imagem de uso e operação pendentes.
 
+[Transitivas restantes — primeiro lote](../backend-phase-9-transitive-dependencies-20-10-2026.md):
+ip-address10.7.4 e brace-expansion1.1.21 dentro das faixas dos pais reduziram
+26→18 avisos backend.964 unitários, lint/build/tipos e imagem Linux nova
+aprovados, sem deploy. Após o programador fechar Electron, instalação congelada
+geral e binários restaurados; tipos dashboard/mobile aprovados. Tar, deepmerge-ts e Multer
+permanecem pendentes, sem alegar auditoria aprovada ou encerramento da F09.
+
 [Auditoria persistida de auth](../backend-phase-9-audit-persistence.md) validada
 localmente: identificada incompatibilidade de códigos com a constraint SQL,
 migration posterior preparada e ensaiada com deploy repetível em banco vazio.

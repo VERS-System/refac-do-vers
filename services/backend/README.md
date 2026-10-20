@@ -1,6 +1,9 @@
 <!-- Orienta início e validação locais do backend e os caminhos existentes de simulação. -->
 # VERS Backend — operação local
 
+Para entrega, retorno, diagnóstico e limites da demonstração, consulte
+[Operação da demonstração local](OPERACAO.md).
+
 O backend usa Node 24 e a versão pnpm declarada no packageManager da raiz.
 REST, ingestão MQTT e tempo real pertencem ao mesmo serviço NestJS. Os dados
 da demonstração são sintéticos; não representam medições do sistema elétrico.

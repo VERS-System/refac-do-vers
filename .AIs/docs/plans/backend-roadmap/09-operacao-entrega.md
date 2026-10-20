@@ -44,6 +44,11 @@ removeu seus quatro avisos, mantendo 30 nos caminhos do backend. Install
 congelado sem scripts, 962 unitários, lint/build/tipos aprovados. Instalação
 limpa e imagem rebuildada não comprovadas; demais pacotes permanecem pendentes.
 
+Ainda em 20/10, [patches transitivos HTTP/Socket.IO](../backend-phase-9-http-socket-dependencies.md)
+removeram quatro avisos de engine.io/proxy-addr/qs sem atualizar pais ou criar
+overrides. Backend ficou com 26 avisos; 964 unitários, lint/build/tipos e oito
+cenários reais passaram. Demais pacotes, imagem de uso e operação pendentes.
+
 [Auditoria persistida de auth](../backend-phase-9-audit-persistence.md) validada
 localmente: identificada incompatibilidade de códigos com a constraint SQL,
 migration posterior preparada e ensaiada com deploy repetível em banco vazio.

@@ -1,0 +1,19 @@
+# Executa somente o servidor Expo; o aplicativo abre no Expo Go do celular/emulador.
+services:
+  mobile:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mobile
+    container_name: vers-mobile
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8080:8080"
+    environment:
+      REACT_NATIVE_PACKAGER_HOSTNAME: ${EXPO_HOST:-localhost}
+      EXPO_NO_DOTENV: "1"
+    volumes:
+      # Mantém as dependências Linux da imagem; não monta node_modules do host Windows.
+      - ./services/mobile/src:/app/services/mobile/src
+      - ./services/mobile/App.tsx:/app/services/mobile/App.tsx
+      - ./services/mobile/index.js:/app/services/mobile/index.js

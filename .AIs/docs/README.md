@@ -12,6 +12,7 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [02 — Arquitetura](02_arquitetura-do-sistema.md)                  | Componentes físicos, fluxo de energia, telemetria e fronteiras técnicas. |
 | [03 — Dados e indicadores](03_dados-e-indicadores.md)             | Informações de testes, métricas e modelo conceitual de armazenamento.    |
 | [04 — Infraestrutura](04-infraestrutura.md)                       | Docker, variáveis de ambiente, core backend e fluxo de dados.           |
+| [Mobile em Docker](plans/mobile-docker-entry-20-10-2026.md) | Entrada Expo, dependências Linux e execução no Expo Go pela rede local. |
 | [Contratos REST](Api/endpoints.md)                                 | Rotas, regras de acesso, estados e erros da API.                        |
 | [OpenAPI 3.1](Api/openapi.yaml)                                     | Especificação dos contratos REST.                                       |
 | [Roadmap MQTT/ESP32](plans/mqtt-esp-roadmap/README.md)            | Firmware, sensores, contrato MQTT, conectividade e testes do ESP32.     |
@@ -37,6 +38,8 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 | [Plano executável F08](plans/backend-phase-8-execution-roadmap.md) | Lotes de eventos internos, Redis, autorização e Socket.IO. |
 | [Contrato de tempo real v1](Api/realtime-contract-v1.md) | Evento interno pós-commit e limites de entrega/recuperação. |
 | [Roadmap de telas do mobile](plans/mobile-roadmap/README.md)      | Tasks por tela, navegação, estados visuais e encaixe com o backend.     |
+| [05 — Esquema elétrico](05_esquema-eletrico.md) | Circuito funcional proposto, medição, dimensionamento e validação de bancada. |
+| [06 — Conceito de funcionamento](06_conceito-de-funcionamento.md) | Fundamentos físicos, balanço energético e interpretação dos experimentos. |
 
 ## Organização
 

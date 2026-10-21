@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/Card';
 import { EstadoConsulta } from '@/components/ui/EstadoConsulta';
 import { Skeleton } from '@/components/ui/Skeleton';
 import type { TesteCampo } from '@/data/tipos';
+import { useRepositorio } from '@/data/repositorio';
 import { useAmostrasTelemetria, useBateria, useTestes } from '@/hooks/useDados';
 import { formatarEnergia, formatarNumero, formatarPotencia } from '@/lib/format';
 import { rotuloUnidade } from '@/lib/unidades';
@@ -61,6 +62,7 @@ function TesteEmAndamento({
   onFinalizar,
   onCancelar,
 }: { teste: TesteCampo } & PainelTesteAtivoProps) {
+  const { ensaiosReais } = useRepositorio();
   const leitura = useAmostrasTelemetria(
     { testeId: teste.id, tamanhoPagina: 1 },
     { intervaloMs: INTERVALO_AO_VIVO_MS },
@@ -72,10 +74,11 @@ function TesteEmAndamento({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[15px] font-semibold text-fg">{`${teste.codigo} · ${teste.nome}`}</p>
+      {leitura.isError && <p role="alert" className="text-xs text-danger">Não foi possível consultar as últimas medições.</p>}
       <div className="grid grid-cols-2 gap-2">
         <Medida rotulo="Tempo decorrido" valor={formatarCronometro(decorrido)} />
         <Medida
-          rotulo="Recuperado"
+          rotulo={ensaiosReais ? 'Contador do dispositivo' : 'Recuperado'}
           valor={formatarEnergia(ultima?.energiaAcumuladaMwh, { unidade: 'mWh' }).valor}
           unidade={rotuloUnidade('energia')}
         />
@@ -88,17 +91,18 @@ function TesteEmAndamento({
           rotulo="Piezos ativos"
           valor={
             ultima
-              ? `${ultima.piezosAtivos ?? '–'}/${ultima.piezosTotal}`
+              ? `${ultima.piezosAtivos ?? '–'}/${ultima.piezosTotal ?? '–'}`
               : String(teste.piezosAtivos)
           }
         />
       </div>
       <div className="flex items-center justify-between gap-3 rounded-control border border-line-subtle px-3 py-2 font-mono text-xs">
         <span className="text-fg-secondary">{`Config v${teste.versaoConfiguracao} · ${teste.piezosAtivos} piezos`}</span>
-        {bateria.data && (
+        {!ensaiosReais && bateria.data && (
           <span className="text-success">{`Bateria ${formatarNumero(bateria.data.cargaPercentual)}%`}</span>
         )}
       </div>
+      {ensaiosReais && <p className="text-xs text-fg-muted">Consulta periódica a cada 10 s. Contador não equivale ao resumo oficial de energia. Bateria sem medição disponível.</p>}
       <div className="flex flex-col gap-2">
         <Button variant="danger" icon={CircleStop} onClick={() => onFinalizar(teste)}>
           Finalizar teste

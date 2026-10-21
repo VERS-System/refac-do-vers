@@ -89,21 +89,21 @@ function ConteudoDispositivo({ dispositivo }: { dispositivo: Dispositivo }) {
   const repositorio = useRepositorio();
   const [logsAbertos, setLogsAbertos] = useState(false);
   const idAviso = useId();
-  const segundos = (repositorio.agora().getTime() - Date.parse(dispositivo.ultimoContato)) / 1000;
+  const segundos = dispositivo.ultimoContato ? (repositorio.agora().getTime() - Date.parse(dispositivo.ultimoContato)) / 1000 : null;
   return (
     <>
       <div className="flex items-center gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-subtle">
           <Cpu aria-hidden="true" className="size-5 text-accent" />
         </span>
-        <p className="flex-1 font-mono text-[15px] font-semibold text-fg">{`${dispositivo.plataforma} · ${dispositivo.id}`}</p>
+        <p className="flex-1 font-mono text-[15px] font-semibold text-fg">{dispositivo.nome ?? `${dispositivo.plataforma} · ${dispositivo.id}`}</p>
         <Badge tone={dispositivo.online ? 'success' : 'neutral'} pulsar={dispositivo.online}>
-          {dispositivo.online ? 'Online' : 'Offline'}
+          {dispositivo.status ? ({ PROVISIONING: 'Provisionando', ONLINE: 'Online', OFFLINE: 'Offline', REVOKED: 'Revogado', FAULT: 'Falha' } as const)[dispositivo.status] : dispositivo.online ? 'Online' : 'Offline'}
         </Badge>
       </div>
       <dl>
         <Dado rotulo="Firmware">{dispositivo.firmware}</Dado>
-        <Dado rotulo="Último contato">{formatarTempoDecorrido(segundos)}</Dado>
+        <Dado rotulo="Último contato">{segundos === null ? 'Não informado' : formatarTempoDecorrido(segundos)}</Dado>
         <Dado rotulo="Protocolo">{dispositivo.protocolo}</Dado>
       </dl>
       <span id={idAviso} className="sr-only">
@@ -119,7 +119,7 @@ function ConteudoDispositivo({ dispositivo }: { dispositivo: Dispositivo }) {
         >
           Reiniciar terminal
         </Button>
-        <Button variant="secondary" icon={ScrollText} onClick={() => setLogsAbertos(true)}>
+        <Button variant="secondary" icon={ScrollText} disabled={repositorio.cadastroReal} title={repositorio.cadastroReal ? 'Logs públicos ainda indisponíveis' : undefined} onClick={() => setLogsAbertos(true)}>
           Ver logs
         </Button>
       </div>
@@ -135,9 +135,10 @@ function ConteudoDispositivo({ dispositivo }: { dispositivo: Dispositivo }) {
 /** Renderiza o card como região "Dispositivo" (o da instalação do veículo principal). */
 export function CardDispositivo() {
   const veiculos = useVeiculos();
-  const principal = veiculos.data?.find((v) => v.principal) ?? veiculos.data?.[0];
+  const principal = veiculos.data?.find((v) => v.principal);
   const instalacao = useInstalacao(principal?.id ?? null);
   const idTitulo = useId();
+  if (!principal) return <Card as="section" aria-labelledby={idTitulo}><h2 id={idTitulo}>Dispositivo</h2><EstadoConsulta consulta={veiculos} nome="os veículos">{() => <p>Nenhum veículo principal definido.</p>}</EstadoConsulta></Card>;
   return (
     <Card as="section" aria-labelledby={idTitulo} className="flex flex-col gap-4">
       <h2
@@ -155,7 +156,7 @@ export function CardDispositivo() {
           dados?.dispositivo ? (
             <ConteudoDispositivo dispositivo={dados.dispositivo} />
           ) : (
-            <p className="text-[13px] text-fg-muted">Nenhum dispositivo nesta instalação.</p>
+            <p className="text-[13px] text-fg-muted">{instalacao.precisaEscolher ? 'Selecione uma instalação para consultar o dispositivo.' : 'Nenhum dispositivo nesta instalação.'}</p>
           )
         }
       </EstadoConsulta>
@@ -166,6 +167,7 @@ export function CardDispositivo() {
 /** Renderiza o histórico de revisões como região "Histórico de revisões". */
 export function CardRevisoes() {
   const revisoes = useRevisoes();
+  const real = useRepositorio().cadastroReal;
   const idTitulo = useId();
   return (
     <Card as="section" aria-labelledby={idTitulo} className="flex flex-col gap-4">
@@ -177,6 +179,7 @@ export function CardRevisoes() {
           <span className="font-mono text-xs text-fg-muted">{`${revisoes.data.length} registros`}</span>
         )}
       </header>
+      {real && <p className="text-xs text-fg-muted">Demonstração: estas revisões não pertencem ao veículo real.</p>}
       <EstadoConsulta
         consulta={revisoes}
         nome="as revisões"

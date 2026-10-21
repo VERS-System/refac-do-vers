@@ -10,10 +10,13 @@
 
 import { resolve } from 'node:path';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
-import type { Plugin } from 'vite';
+import type { InlineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { POLITICA_CSP } from './src/main/seguranca';
+
+// Impede leitura automática de .env, inclusive após os defaults do electron-vite.
+const semArquivoEnv: Pick<InlineConfig, 'envFile'> = { envFile: false };
 
 /**
  * Injeta a CSP no `index.html` só no build: no desenvolvimento o Vite usa
@@ -35,9 +38,11 @@ function politicaDeConteudo(): Plugin {
 
 export default defineConfig({
   main: {
+    ...semArquivoEnv,
     plugins: [externalizeDepsPlugin()],
   },
   preload: {
+    ...semArquivoEnv,
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
@@ -47,6 +52,7 @@ export default defineConfig({
     },
   },
   renderer: {
+    ...semArquivoEnv,
     root: resolve(__dirname, 'src/renderer'),
     resolve: {
       alias: { '@': resolve(__dirname, 'src/renderer') },

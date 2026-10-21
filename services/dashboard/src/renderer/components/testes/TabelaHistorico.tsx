@@ -15,12 +15,14 @@
 
 import { useId, type KeyboardEvent } from 'react';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EstadoConsulta } from '@/components/ui/EstadoConsulta';
 import { Paginacao } from '@/components/ui/Paginacao';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Table, type TableColumn } from '@/components/ui/Table';
 import type { StatusTeste, TesteCampo } from '@/data/tipos';
+import { useRepositorio } from '@/data/repositorio';
 import { useAmostrasTelemetria, useResumoTeste, useTestes } from '@/hooks/useDados';
 import { cn } from '@/lib/cn';
 import {
@@ -38,6 +40,9 @@ export const TAMANHO_PAGINA_HISTORICO = 10;
 export const MAXIMO_SELECIONADOS = 5;
 
 export interface TabelaHistoricoProps {
+  onIniciar: (teste: TesteCampo) => void;
+  onFinalizar: (teste: TesteCampo) => void;
+  onCancelar: (teste: TesteCampo) => void;
   aba: StatusTeste | 'todos';
   onTrocarAba: (aba: StatusTeste | 'todos') => void;
   pagina: number;
@@ -101,24 +106,29 @@ function useUltimaAmostra(teste: TesteCampo) {
 
 /** Célula de energia: resumo do teste encerrado ou acumulada ao vivo. */
 function CelulaEnergia({ teste }: { teste: TesteCampo }) {
+  const { ensaiosReais } = useRepositorio();
   const resumo = useResumoTeste(comparavel(teste) ? teste.id : null);
   const ultima = useUltimaAmostra(teste);
   const energia = comparavel(teste)
     ? resumo.data?.energiaRecuperadaMwh
-    : ultima?.energiaAcumuladaMwh;
-  return <>{formatarEnergia(energia, { unidade: 'mWh' }).valor}</>;
+    : ensaiosReais ? null : ultima?.energiaAcumuladaMwh;
+  if (resumo.isError) return <>Indisponível</>;
+  if (resumo.data?.qualidade === 'invalida') return <>Inválida</>;
+  return <><span>{formatarEnergia(energia, { unidade: 'mWh' }).valor}</span>{resumo.data?.qualidade === 'parcial' && <span className="text-fg-muted"> (parcial)</span>}</>;
 }
 
 /** Célula de potência: média do teste encerrado ou instantânea ao vivo (em destaque). */
 function CelulaPotencia({ teste }: { teste: TesteCampo }) {
   const resumo = useResumoTeste(comparavel(teste) ? teste.id : null);
   const ultima = useUltimaAmostra(teste);
+  if (resumo.isError) return <>Indisponível</>;
+  if (resumo.data?.qualidade === 'invalida') return <>Inválida</>;
   if (teste.estado === 'em-andamento') {
     return (
       <span className="font-medium text-accent">{formatarPotencia(ultima?.potenciaMw).valor}</span>
     );
   }
-  return <>{formatarPotencia(comparavel(teste) ? resumo.data?.potenciaMediaMw : null).valor}</>;
+  return <><span>{formatarPotencia(comparavel(teste) ? resumo.data?.potenciaMediaMw : null).valor}</span>{resumo.data?.qualidade === 'parcial' && <span className="text-fg-muted"> (parcial)</span>}</>;
 }
 
 /** Cabeçalho em duas linhas (nome e unidade), para a tabela caber em 1280 px. */
@@ -135,6 +145,15 @@ function CabecalhoComUnidade({ nome, unidade }: { nome: string; unidade: string 
 function colunas(props: TabelaHistoricoProps): TableColumn<TesteCampo>[] {
   const cheio = props.selecionados.size >= MAXIMO_SELECIONADOS;
   return [
+    {
+      key: 'acoes',
+      header: 'Ações',
+      render: (teste) => <div className="flex gap-1">
+        {teste.estado === 'planejado' && <Button variant="ghost" aria-label={`Iniciar ${teste.codigo}`} onClick={() => props.onIniciar(teste)}>Iniciar</Button>}
+        {teste.estado === 'em-andamento' && <Button variant="ghost" aria-label={`Finalizar ${teste.codigo}`} onClick={() => props.onFinalizar(teste)}>Finalizar</Button>}
+        {['planejado', 'em-andamento'].includes(teste.estado) && <Button variant="ghost" aria-label={`Cancelar ${teste.codigo}`} onClick={() => props.onCancelar(teste)}>Cancelar</Button>}
+      </div>,
+    },
     {
       key: 'selecao',
       header: <span className="sr-only">Comparar</span>,

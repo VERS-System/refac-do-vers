@@ -15,7 +15,9 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import type { ResultadoTeste, Terreno, TesteCampo } from '@/data/tipos';
-import { useAcoesTeste } from '@/hooks/useDados';
+import { useRepositorio } from '@/data/repositorio';
+import { useAcoesTeste, useVeiculoAtivo, useInstalacao, useConfiguracoes } from '@/hooks/useDados';
+import { SeletorInstalacao } from '@/components/veiculo/SeletorInstalacao';
 import { OPCOES_RESULTADO, OPCOES_TERRENO } from './rotulos';
 
 /** Mensagem de erro de uma ação recusada, em destaque no diálogo. */
@@ -62,6 +64,14 @@ export interface DialogoNovoTesteProps {
 /** Planejamento de um teste novo (nome, terreno, local, peso e observações). */
 export function DialogoNovoTeste({ aberto, onFechar }: DialogoNovoTesteProps) {
   const { criar } = useAcoesTeste();
+  const { ensaiosReais } = useRepositorio();
+  const veiculo = useVeiculoAtivo();
+  const instalacao = useInstalacao(ensaiosReais && aberto ? veiculo.data?.id ?? null : null);
+  const configuracoes = useConfiguracoes(ensaiosReais && aberto ? instalacao.data?.id ?? null : null);
+  const [escolha, setEscolha] = useState<{ instalacaoId: string; configuracaoId: string } | null>(null);
+  const [erroConfiguracao, setErroConfiguracao] = useState(false);
+  const configuracaoId = escolha?.instalacaoId === instalacao.data?.id &&
+    configuracoes.data?.some(c => c.id === escolha?.configuracaoId) ? escolha?.configuracaoId ?? '' : '';
   const [nome, setNome] = useState('');
   const [terreno, setTerreno] = useState<Terreno>('rodovia');
   const [local, setLocal] = useState('');
@@ -76,6 +86,8 @@ export function DialogoNovoTeste({ aberto, onFechar }: DialogoNovoTesteProps) {
     setPeso('');
     setObservacoes('');
     setErros({});
+    setEscolha(null);
+    setErroConfiguracao(false);
     criar.reset();
     onFechar();
   }
@@ -93,9 +105,12 @@ export function DialogoNovoTeste({ aberto, onFechar }: DialogoNovoTesteProps) {
           : undefined,
     };
     setErros(novosErros);
-    if (novosErros.nome || novosErros.local || novosErros.peso) return;
+    const semConfiguracao = !!ensaiosReais && (!instalacao.data || !configuracaoId || instalacao.isError || configuracoes.isError);
+    setErroConfiguracao(semConfiguracao);
+    if (novosErros.nome || novosErros.local || novosErros.peso || semConfiguracao) return;
     try {
-      await criar.mutateAsync({ nome, terreno, local, pesoVeiculoKg: pesoKg ?? null, observacoes });
+      await criar.mutateAsync({ nome, terreno, local, pesoVeiculoKg: pesoKg ?? null, observacoes,
+        ...(ensaiosReais ? { instalacaoId: instalacao.data!.id, configuracaoId } : {}) });
       fechar();
     } catch {
       // A mensagem fica em `criar.error`, exibida no diálogo.
@@ -106,10 +121,24 @@ export function DialogoNovoTeste({ aberto, onFechar }: DialogoNovoTesteProps) {
     <Dialog
       aberto={aberto}
       titulo="Planejar teste"
-      descricao="O teste usa o veículo e a configuração atuais da instalação."
+      descricao={ensaiosReais ? 'Escolha a instalação do veículo principal e a versão da configuração usada neste teste.' : 'O teste usa o veículo e a configuração atuais da instalação.'}
       onFechar={fechar}
     >
       <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
+        {ensaiosReais && <>
+          {veiculo.data && <SeletorInstalacao veiculoId={veiculo.data.id} />}
+          {instalacao.data && <p className="text-xs text-fg-secondary">{`Instalação: ${instalacao.data.modelo} · ${instalacao.data.id}`}</p>}
+          <Select label="Configuração do teste" value={configuracaoId}
+            onChange={e => setEscolha({ instalacaoId: instalacao.data!.id, configuracaoId: e.target.value })}
+            disabled={!instalacao.data || configuracoes.isPending || configuracoes.isError}
+            opcoes={[{ valor: '', rotulo: 'Selecione a configuração utilizada' }, ...(configuracoes.data ?? []).map(c => ({ valor: c.id, rotulo: `${c.nome} · versão ${c.versao} · ${c.piezosAtivos} piezos` }))]}
+            helper="A versão mais recente não é considerada ativa automaticamente." />
+          {(veiculo.isError || instalacao.isError || configuracoes.isError) && <p role="alert">Não foi possível consultar o cadastro. Feche e reabra o formulário para tentar novamente.</p>}
+          {veiculo.data === null && <p role="status">Defina um veículo principal antes de planejar.</p>}
+          {instalacao.data === null && !instalacao.precisaEscolher && <p role="status">Nenhuma instalação disponível para este veículo.</p>}
+          {instalacao.data && configuracoes.data?.length === 0 && <p role="status">Nenhuma configuração disponível nesta instalação.</p>}
+          {erroConfiguracao && <p role="alert">Escolha uma instalação e a configuração usada no teste.</p>}
+        </>}
         <Input
           label="Nome do teste"
           value={nome}
@@ -186,7 +215,7 @@ export function DialogoIniciar({ teste, onFechar }: DialogoTesteProps) {
       titulo={`Iniciar teste ${teste?.codigo ?? ''}`}
       descricao={
         teste
-          ? `${teste.nome} · ${teste.local}. O ESP32 passa a registrar as amostras neste teste.`
+          ? `${teste.nome} · ${teste.local}. O servidor confirma o início; a chegada de amostras depende do dispositivo ou simulador.`
           : undefined
       }
       onFechar={fechar}

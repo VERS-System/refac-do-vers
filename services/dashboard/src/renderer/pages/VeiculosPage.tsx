@@ -22,12 +22,14 @@ import { DialogoRemoverVeiculo, PainelDetalhes } from '@/components/veiculos/Pai
 import type { Veiculo } from '@/data/tipos';
 import { useVeiculos } from '@/hooks/useDados';
 import { consumirDestino } from '@/stores/destinoBusca';
+import { useRepositorio } from '@/data/repositorio';
 
 /** O que ocupa o lado direito da tela. */
 type Modo = 'detalhes' | 'novo' | 'editar';
 
 /** Renderiza a tela Veículos. */
 export function VeiculosPage() {
+  const real = useRepositorio().cadastroReal;
   const veiculos = useVeiculos();
   // Aberta pela busca geral, a tela começa no veículo escolhido.
   const [selecionadoId, setSelecionadoId] = useState<string | null>(
@@ -41,7 +43,7 @@ export function VeiculosPage() {
   const lista = veiculos.data ?? [];
   // Sem seleção (ou se o selecionado saiu), mostra o principal.
   const selecionado =
-    lista.find((v) => v.id === selecionadoId) ?? lista.find((v) => v.principal) ?? lista[0] ?? null;
+    lista.find((v) => v.id === selecionadoId) ?? lista.find((v) => v.principal) ?? null;
 
   /** Mostra os detalhes de um carro e apaga o aviso anterior. */
   function selecionar(veiculo: Veiculo) {
@@ -54,6 +56,7 @@ export function VeiculosPage() {
     <Page
       title="Veículos"
       subtitle="Cadastro dos carros da conta"
+      sampleData={!real}
       actions={
         <Button
           icon={Plus}
@@ -69,6 +72,7 @@ export function VeiculosPage() {
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-6">
         <ListaVeiculos selecionadoId={selecionado?.id ?? null} onSelecionar={selecionar} />
         <div className="flex flex-col gap-4">
+          {modo === 'detalhes' && !selecionado && lista.length > 0 && <p role="status">Selecione um veículo para consultar os detalhes.</p>}
           {mensagem && (
             <p
               role="status"

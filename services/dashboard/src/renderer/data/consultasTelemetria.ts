@@ -11,26 +11,47 @@ import type { AmostraTelemetria, ConsultaTelemetria } from './tipos';
 
 /** Maior página aceita pelo backend. */
 const TAMANHO_PAGINA_EXPORTACAO = 100;
+/** Limita memória e duração; exportações maiores precisam de contrato dedicado. */
+const LIMITE_AMOSTRAS_EXPORTACAO = 10_000;
 
 /**
  * Busca todas as amostras que atendem à consulta, página por página.
  *
  * Mantém os filtros (teste, qualidade, intervalo) e ignora a paginação
- * recebida. Para quando já juntou o total ou uma página vem vazia, o que
- * evita laço infinito se o total mudar no meio da busca.
+ * recebida. Recusa paginação inconsistente para não baixar um CSV parcial.
+ * shortcut: total/IDs não equivalem a snapshot; evoluir API se houver edição concorrente com total constante.
  */
 export async function buscarTodasAmostras(
   repositorio: RepositorioVers,
   consulta: ConsultaTelemetria,
 ): Promise<AmostraTelemetria[]> {
   const todas: AmostraTelemetria[] = [];
-  for (let pagina = 1; ; pagina++) {
+  const ids = new Set<string>();
+  let total: number | undefined;
+  for (let pagina = 1; pagina <= LIMITE_AMOSTRAS_EXPORTACAO / TAMANHO_PAGINA_EXPORTACAO; pagina++) {
     const resposta = await repositorio.obterAmostrasTelemetria({
       ...consulta,
       pagina,
       tamanhoPagina: TAMANHO_PAGINA_EXPORTACAO,
     });
-    todas.push(...resposta.itens);
-    if (resposta.itens.length === 0 || todas.length >= resposta.total) return todas;
+    if (!Number.isSafeInteger(resposta.total) || resposta.total < 0 ||
+      resposta.total > LIMITE_AMOSTRAS_EXPORTACAO) {
+      throw new Error('Exportação indisponível: limite de 10.000 amostras ou total inválido.');
+    }
+    total ??= resposta.total;
+    const esperado = Math.min(TAMANHO_PAGINA_EXPORTACAO, total - todas.length);
+    if (resposta.total !== total || resposta.pagina !== pagina ||
+      resposta.tamanhoPagina !== TAMANHO_PAGINA_EXPORTACAO || resposta.itens.length !== esperado) {
+      throw new Error('Exportação interrompida: paginação alterada ou incompleta.');
+    }
+    for (const amostra of resposta.itens) {
+      if (!amostra.id || ids.has(amostra.id) || amostra.testeId !== consulta.testeId) {
+        throw new Error('Exportação interrompida: amostra repetida ou de outro teste.');
+      }
+      ids.add(amostra.id);
+      todas.push(amostra);
+    }
+    if (todas.length === total) return todas;
   }
+  throw new Error('Exportação interrompida: limite de páginas excedido.');
 }

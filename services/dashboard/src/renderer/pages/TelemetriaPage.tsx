@@ -1,23 +1,24 @@
 /**
  * Tela Telemetria do app desktop (referência: design-reference/02-telemetria).
  *
- * Amostras validadas do ESP32 (uma a cada 10 s) de um teste de campo: o
+ * Amostras persistidas de um teste de campo, consultadas a cada 10 s: o
  * sinal dos últimos 10 minutos, as últimas leituras com o estado da conexão
  * e a tabela paginada com filtros e exportação em CSV. Plano e decisões em
  * `.AIs/docs/plans/desktop-frontend-telemetria.md`:
  * - a telemetria é por teste (padrão: o em andamento), como a task D05; o
- *   seletor lista os testes iniciados hoje (busca com `inicioDe`);
+ *   seletor real percorre o histórico; no exemplo, lista os iniciados hoje;
  * - "Ao vivo" repete as consultas a cada 10 s; "Pausado" congela a tela;
  * - não há seletor de período (a referência não tem).
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download } from 'lucide-react';
 import { Page } from '@/components/layout/Page';
 import { CardSinal } from '@/components/telemetria/CardSinal';
 import { CardUltimasLeituras } from '@/components/telemetria/CardUltimasLeituras';
 import { TabelaAmostras } from '@/components/telemetria/TabelaAmostras';
 import { Button } from '@/components/ui/Button';
+import { Paginacao } from '@/components/ui/Paginacao';
 import { estadoConexao } from '@/data/calculos';
 import { buscarTodasAmostras } from '@/data/consultasTelemetria';
 import { csvAmostrasTelemetria, nomeArquivoTelemetria } from '@/data/exportacao';
@@ -27,7 +28,7 @@ import { useAmostrasTelemetria, useTestes } from '@/hooks/useDados';
 import { cn } from '@/lib/cn';
 import { baixarArquivo } from '@/lib/download';
 
-/** Intervalo entre amostras do ESP32 e, portanto, da atualização ao vivo. */
+/** Intervalo de consulta; não pressupõe a frequência de aquisição do dispositivo. */
 const INTERVALO_AO_VIVO_MS = 10_000;
 /** Janela do gráfico do sinal. */
 const JANELA_SINAL_MS = 10 * 60 * 1000;
@@ -96,10 +97,28 @@ export function TelemetriaPage() {
   const [testeEscolhido, setTesteEscolhido] = useState<string | null>(null);
   const [qualidade, setQualidade] = useState<QualidadeAmostra | ''>('');
   const [pagina, setPagina] = useState(1);
+  const [paginaTestes, setPaginaTestes] = useState(1);
   const [exportando, setExportando] = useState(false);
+  const [erroExportacao, setErroExportacao] = useState(false);
+  const [agoraJanela, setAgoraJanela] = useState(() => repositorio.agora());
+  const ativa = useRef(false);
 
-  const hoje = dataEmBrasilia(repositorio.agora());
-  const testes = useTestes({ inicioDe: `${hoje}T00:00:00${FUSO_BRASILIA}` });
+  // A resposta atrasada de uma conta/tela encerrada nunca inicia um download.
+  useEffect(() => {
+    ativa.current = true;
+    return () => { ativa.current = false; };
+  }, []);
+
+  // O relógio avança só no intervalo da consulta; Date.now no render recriaria a chave a cada resposta.
+  useEffect(() => {
+    if (!aoVivo) return;
+    const timer = setInterval(() => setAgoraJanela(repositorio.agora()), INTERVALO_AO_VIVO_MS);
+    return () => clearInterval(timer);
+  }, [aoVivo, repositorio]);
+
+  const hoje = dataEmBrasilia(agoraJanela);
+  const testes = useTestes(repositorio.ensaiosReais ? { pagina: paginaTestes, tamanhoPagina: 100 }
+    : { inicioDe: `${hoje}T00:00:00${FUSO_BRASILIA}` });
   const listaTestes = testes.data?.itens;
   const teste = testeExibido(listaTestes, testeEscolhido);
   const intervaloMs = aoVivo ? INTERVALO_AO_VIVO_MS : false;
@@ -119,7 +138,8 @@ export function TelemetriaPage() {
   );
   const sinal = useAmostrasTelemetria(
     teste
-      ? { testeId: teste.id, de: inicioDaJanela(teste, repositorio.agora()), tamanhoPagina: 100 }
+      ? { testeId: teste.id, de: inicioDaJanela(teste, agoraJanela), tamanhoPagina: 100,
+          ...(repositorio.ensaiosReais ? { ate: new Date(teste.fim ?? agoraJanela).toISOString() } : {}) }
       : null,
     { intervaloMs },
   );
@@ -146,25 +166,29 @@ export function TelemetriaPage() {
   const exportar = async () => {
     if (!teste) return;
     setExportando(true);
+    setErroExportacao(false);
     try {
       const amostras = await buscarTodasAmostras(repositorio, {
         testeId: teste.id,
         qualidade: filtroQualidade,
       });
+      if (!ativa.current) return;
       baixarArquivo(
         nomeArquivoTelemetria(teste.codigo, teste.inicio ?? teste.criadoEm),
-        csvAmostrasTelemetria(amostras, teste.codigo),
+        csvAmostrasTelemetria(amostras, teste.codigo, repositorio.ensaiosReais),
         'text/csv;charset=utf-8',
       );
+    } catch {
+      if (ativa.current) setErroExportacao(true);
     } finally {
-      setExportando(false);
+      if (ativa.current) setExportando(false);
     }
   };
 
   return (
     <Page
       title="Telemetria"
-      subtitle="Amostras validadas do ESP32 · intervalo 10 s"
+      subtitle={repositorio.ensaiosReais ? 'Consulta periódica a cada 10 s · horários de Brasília' : 'Amostras validadas do ESP32 · intervalo 10 s'}
       actions={
         <>
           <Button
@@ -180,8 +204,19 @@ export function TelemetriaPage() {
       }
     >
       <div className="flex flex-col gap-4">
+        {repositorio.ensaiosReais && testes.data && <section aria-label="Páginas do seletor de testes">
+          <Paginacao pagina={testes.data.pagina} tamanho={testes.data.tamanhoPagina} total={testes.data.total} unidade="testes no seletor"
+            onTrocar={p => { setPaginaTestes(p); setTesteEscolhido(null); setPagina(1); }} />
+          <p className="text-xs text-fg-muted">Consulta REST periódica; o estado da consulta não confirma conexão com o dispositivo. Pausar não interrompe a aquisição.</p>
+        </section>}
+        {erroExportacao && (
+          <p role="alert" className="text-sm text-fg-muted">
+            Não foi possível exportar o CSV completo. O limite é de 10.000 amostras;
+            confira a conexão e tente novamente com a aquisição pausada ou um filtro de qualidade.
+          </p>
+        )}
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <CardSinal consulta={sinal} />
+          <CardSinal consulta={sinal} real={repositorio.ensaiosReais} />
           <CardUltimasLeituras consulta={recentes} conexao={conexao} />
         </div>
         <TabelaAmostras

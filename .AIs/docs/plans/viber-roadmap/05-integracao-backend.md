@@ -128,3 +128,15 @@ após conferir que não fará leitura de `.env` por ferramentas do agente.
 Rodar `npm run test:unit`, `npm run lint` e `npm run build` no backend.
 Depois provar stream real passando pelo bootstrap usado na bancada.
 Commit sugerido: `feat: expor Viber autenticada pelo backend`.
+
+## 9. Execução em lotes (decisões aprovadas em 20/10/2026)
+
+| Lote | Escopo | Situação |
+| --- | --- | --- |
+| C1 | Config Joi (`VIBER_ENABLED` padrão **false**, `VIBER_AI_URL`/`VIBER_INTERNAL_TOKEN` exigidas só ao habilitar) + `.env.example`; módulo `src/modules/viber/` (module/dto/controller/service) com `JwtAuthGuard`+`RolesGuard` sem ADMIN; DTO do contrato da etapa 3; rota 503 quando desabilitada; specs TDD. | Aprovado e concluído. |
+| C2 | `fetch` do Node ao ai-service, parser/encaminhamento SSE validado, resposta crua `@Res()` somente neste controller, mapeamento seguro de status upstream, abort na desconexão, pós-headers sem JSON novo; specs com upstream falso. | Pendente. |
+| C3 | Patch único do Compose (env do backend) + docs (`openapi.yaml`, `endpoints.md`); linhas prontas das três variáveis para o programador habilitar na bancada. | Pendente. |
+
+Decisões do programador: lote C1 aprovado em separado (não C1+C2 juntos) e
+habilitar em dev com `VIBER_ENABLED=false` por padrão — o `.env` real é
+preenchido pelo programador apenas quando for testar o fluxo completo (C3).

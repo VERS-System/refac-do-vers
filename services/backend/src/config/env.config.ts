@@ -15,6 +15,15 @@ export function parseMqttUrl(value: string): URL {
   return url;
 }
 
+/** Aceita apenas URL http(s) do ai-service, sem credenciais, query ou fragmento. */
+export function parseViberUrl(value: string): URL {
+  let url: URL;
+  try { url = new URL(value); } catch { throw new Error('VIBER_AI_URL_INVALIDA'); }
+  if ((url.protocol !== 'http:' && url.protocol !== 'https:') || !url.hostname ||
+    url.username || url.password || url.search || url.hash) throw new Error('VIBER_AI_URL_INVALIDA');
+  return url;
+}
+
 const defaultCorsOrigins = [
   'http://localhost:3001',
   'http://localhost:3050',
@@ -48,6 +57,17 @@ export const envValidationSchema = Joi.object({
   MQTT_PASSWORD: Joi.string().min(1).when('MQTT_ENABLED', { is: true, then: Joi.required() }),
   MQTT_CLIENT_ID: Joi.string().pattern(/^[A-Za-z0-9_-]{1,64}$/)
     .when('MQTT_ENABLED', { is: true, then: Joi.required() }),
+
+  // Viber (assistente): desabilitada por padrão; URL do ai-service e token
+  // interno só são exigidos quando habilitada, sem segredos em versionamento.
+  VIBER_ENABLED: Joi.boolean().default(false),
+  VIBER_AI_URL: Joi.string().custom((value: string, helpers) => {
+    try { parseViberUrl(value); } catch { return helpers.error('any.invalid'); }
+    return value;
+  }).when('VIBER_ENABLED', { is: true, then: Joi.required() }),
+  VIBER_INTERNAL_TOKEN: Joi.string().min(16)
+    .messages({ 'string.min': 'VIBER_INTERNAL_TOKEN deve ter no mínimo 16 caracteres' })
+    .when('VIBER_ENABLED', { is: true, then: Joi.required() }),
 
   // Aplicação
   NODE_ENV: Joi.string()

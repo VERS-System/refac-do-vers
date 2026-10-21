@@ -23,6 +23,7 @@ import { TestsModule } from './modules/tests/tests.module';
 import { SupportModule } from './modules/support/support.module';
 import { DataModule } from './modules/data/data.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { ViberModule } from './modules/viber/viber.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     SupportModule,
     DataModule,
     RealtimeModule,
+    ViberModule,
   ],
   providers: [
     AuditPolicyService,

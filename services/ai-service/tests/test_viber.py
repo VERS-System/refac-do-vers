@@ -7,11 +7,12 @@
 import asyncio
 import json
 import os
+import tempfile
 import unittest
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import openai
@@ -23,6 +24,7 @@ from src.knowledge.carregador import (
     BaseInvalidaError,
     carregar_base,
 )
+from src.orcamento import inicializar
 from src.viber import ContextoInvalidoError, montar_contexto, slot_geracao
 from src.main import app
 
@@ -255,20 +257,37 @@ class RotaViberInternaTests(unittest.TestCase):
     token = "token-interno-teste-abc123"
 
     def setUp(self):
-        # Configura o token interno no ambiente do teste e cria o cliente
-        # HTTP de teste do FastAPI. O slot global começa livre em cada caso.
+        # Configura o token interno, o orçamento durável temporário e a
+        # contagem de tokens simulada (etapa 4). O slot global começa
+        # livre em cada caso e nenhuma chamada real à OpenAI ocorre.
         self._token_anterior = os.environ.get("VIBER_INTERNAL_TOKEN")
         os.environ["VIBER_INTERNAL_TOKEN"] = self.token
         slot_geracao.liberar()
+        self._tmp_orcamento = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp_orcamento.cleanup)
+        self.caminho_orcamento = Path(self._tmp_orcamento.name) / "budget.json"
+        self._caminho_anterior = os.environ.get("VIBER_BUDGET_PATH")
+        os.environ["VIBER_BUDGET_PATH"] = str(self.caminho_orcamento)
+        inicializar(self.caminho_orcamento)
+        contagem = patch(
+            "src.api.viber.contar_tokens_entrada",
+            new=AsyncMock(return_value=100),
+        )
+        contagem.start()
+        self.addCleanup(contagem.stop)
         self.cliente_teste = TestClient(app)
 
     def tearDown(self):
-        # Restaura o ambiente e garante que nenhum teste vaze o slot ocupado
-        # para os próximos casos da mesma descoberta de testes.
+        # Restaura o ambiente e garante que nenhum teste vaze o slot ou
+        # a env de caminho do orçamento para os próximos casos.
         if self._token_anterior is None:
             os.environ.pop("VIBER_INTERNAL_TOKEN", None)
         else:
             os.environ["VIBER_INTERNAL_TOKEN"] = self._token_anterior
+        if self._caminho_anterior is None:
+            os.environ.pop("VIBER_BUDGET_PATH", None)
+        else:
+            os.environ["VIBER_BUDGET_PATH"] = self._caminho_anterior
         slot_geracao.liberar()
 
     def _cabecalhos(self, token=None):
@@ -593,10 +612,12 @@ def _evento_sdk(tipo, **campos):
     return SimpleNamespace(type=tipo, **campos)
 
 
-def _cliente_falso(eventos=None, erro_criacao=None, erro_iteracao=None):
+def _cliente_falso(eventos=None, erro_criacao=None, erro_iteracao=None, ao_criar=None):
     # Cria um cliente falso no formato usado pela rota (cliente.responses
     # .create(...)); devolve um stream de eventos sintéticos. erro_criacao
-    # é levantado ao abrir o stream; erro_iteracao, ao consumir os eventos.
+    # é levantado ao abrir o stream; erro_iteracao, ao consumir os eventos;
+    # ao_criar é um callback chamado no início de create (usado para
+    # inspecionar o orçamento antes da geração abrir).
     class IteradorFalso:
         def __init__(self):
             self._eventos = list(eventos or [])
@@ -617,6 +638,8 @@ def _cliente_falso(eventos=None, erro_criacao=None, erro_iteracao=None):
             self.responses = self
 
         async def create(self, **kwargs):
+            if ao_criar is not None:
+                ao_criar()
             self.chamadas.append(kwargs)
             if erro_criacao is not None:
                 raise erro_criacao

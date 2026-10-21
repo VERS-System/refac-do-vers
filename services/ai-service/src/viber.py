@@ -25,6 +25,10 @@ MODELO_VIBER = "gpt-5.5"
 MAX_TOKENS_SAIDA = 400
 ESFORCO_RACIOCINIO = "none"
 PAUSA_SEGUNDOS = 10
+# Prazos da etapa 4: limite total da tentativa e prazo para o primeiro
+# texto; timeout encerra a falha e conserva a reserva (sem retomar).
+TEMPO_TOTAL_SEG = 45
+TEMPO_TEXTO_INICIAL_SEG = 20
 # Código de erro do contrato de stream Viber; não ampliar o enum global
 # ApiErrorCode do núcleo (etapa 3 do roadmap).
 CODIGO_ERRO_UPSTREAM = "UPSTREAM_UNAVAILABLE"
@@ -173,14 +177,35 @@ def normalizar_evento_sdk(evento: object) -> dict | None:
             return None
         return {"type": "delta", "text": texto}
     if tipo == "response.completed":
-        return {"type": "completed", "finishReason": "completed"}
+        return _completado(evento, finish_reason="completed")
     if tipo == "response.incomplete":
         resposta = getattr(evento, "response", None)
         detalhes = getattr(resposta, "incomplete_details", None)
         motivo = getattr(detalhes, "reason", None)
-        if motivo == "max_output_tokens":
-            return {"type": "completed", "finishReason": "output_limit"}
-        return {"type": "completed", "finishReason": "completed"}
+        finish_reason = "output_limit" if motivo == "max_output_tokens" else "completed"
+        return _completado(evento, finish_reason=finish_reason)
     if tipo == "response.failed":
         raise FalhaUpstreamError("Provedor reportou falha no stream")
+    return None
+
+
+def _completado(evento: object, finish_reason: str) -> dict:
+    # Monta o evento normalizado de término; quando o provedor entrega
+    # usage confiável, anexa (entrada, saída) para o fechamento de
+    # orçamento do B3b — o usage não é exposto no SSE público.
+    evento_norm: dict = {"type": "completed", "finishReason": finish_reason}
+    usage = _extrair_usage(getattr(evento, "response", None))
+    if usage is not None:
+        evento_norm["usage"] = usage
+    return evento_norm
+
+
+def _extrair_usage(resposta: object) -> tuple[int, int] | None:
+    # Extrai (input_tokens, output_tokens) do objeto response do SDK;
+    # reasoning_tokens já integram output_tokens e não são somados de novo.
+    uso = getattr(resposta, "usage", None)
+    entrada = getattr(uso, "input_tokens", None)
+    saida = getattr(uso, "output_tokens", None)
+    if type(entrada) is int and type(saida) is int and entrada >= 0 and saida >= 0:
+        return (entrada, saida)
     return None

@@ -1,11 +1,14 @@
-# Rota interna de streaming da Viber no ai-service (etapa 3 do roadmap).
+# Rota interna de streaming da Viber no ai-service (etapas 3 e 4).
 #
 # Este módulo expõe POST /internal/v1/viber/responses, chamada apenas pelo
 # backend autenticado por token compartilhado (header X-Viber-Internal-Token).
-# Antes dos headers SSE, falhas viram HTTP fixo (400/401/403/429/503); depois
-# de admitida a tentativa, a resposta vira text/event-stream com eventos
-# started/delta/completed/error normalizados em src/viber.py. Nenhum dado de
-# usuário, cookie, CSRF ou perfil atravessa esta rota.
+# Antes dos headers SSE, falhas viram HTTP fixo (400/401/403/409/429/503);
+# depois de admitida a tentativa — com reserva de orçamento durável gravada
+# — a resposta vira text/event-stream com eventos started/delta/completed/
+# error. O fechamento converte a reserva em consumo com o usage real do
+# provedor (sem usage, conserva a reserva inteira). Nenhum dado de usuário,
+# cookie, CSRF ou perfil atravessa esta rota.
+import asyncio
 import json
 import os
 import secrets
@@ -18,10 +21,30 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from typing import Literal
 
+from src.contagem import ContagemIndisponivelError, contar_tokens_entrada
 from src.knowledge.carregador import (
     KNOWLEDGE_VERSION,
     BaseInvalidaError,
     carregar_base,
+)
+from src.orcamento import (
+    MAX_ENTRADA_TOKENS,
+    GravacaoFalhouError,
+    Orcamento,
+    OrcamentoError,
+    OrcamentoIndisponivelError,
+    PausaAtivaError,
+    ReservaExcedidaError,
+    SaldoInsuficienteError,
+    TentativaRepetidaError,
+    caminho_orcamento,
+    carregar,
+    fechar_reserva,
+    liberar,
+    marcar_bloqueio_memoria,
+    reservar,
+    salvar,
+    verificar_admissao,
 )
 from src.viber import (
     CODIGO_ERRO_UPSTREAM,
@@ -31,6 +54,8 @@ from src.viber import (
     MENSAGEM_ERRO_FIXA,
     MODELO_VIBER,
     PAUSA_SEGUNDOS,
+    TEMPO_TEXTO_INICIAL_SEG,
+    TEMPO_TOTAL_SEG,
     ContextoInvalidoError,
     FalhaUpstreamError,
     montar_contexto,
@@ -85,65 +110,133 @@ def _formatar_evento_sse(nome: str, dados: dict) -> str:
     return f"event: {nome}\ndata: {json.dumps(dados, ensure_ascii=False)}\n\n"
 
 
-async def _gerar_sse(stream, client_request_id: str):
-    # Consome o stream do provedor e emite os eventos do contrato.
-    # Por que existe: separar o ciclo de vida do slot e o mapeamento de
-    # falhas do corpo da rota. Como funciona: envia started; para cada
-    # evento normalizado emite delta ou completed; falha do provedor ou
-    # EOF sem terminal viram evento error fixo; o slot é liberado sempre
-    # no fim, inclusive quando o cliente desconecta.
-    terminal_enviado = False
+def _fechar_com_seguranca(
+    orcamento: Orcamento,
+    caminho,
+    tentativa_id: str,
+    usage: tuple[int, int] | None,
+) -> None:
+    # Fecha a reserva e persiste o estado; falhas nunca quebram o stream
+    # que o cliente já está recebendo, mas bloqueiam gerações futuras.
+    try:
+        fechar_reserva(orcamento, tentativa_id, usage=usage)
+    except ReservaExcedidaError:
+        # Usage superou a reserva: o bloqueio já está marcado no objeto;
+        # a tentativa atual foi entregue, as próximas exigem operador.
+        pass
+    except OrcamentoError:
+        # Estado inesperado da reserva; preserva o stream do cliente.
+        return
+    try:
+        salvar(caminho, orcamento)
+    except GravacaoFalhouError:
+        marcar_bloqueio_memoria("falha ao gravar o fechamento da reserva")
+
+
+async def _abortar_stream(stream) -> None:
+    # Aborta o stream upstream quando a tentativa encerra por timeout ou
+    # desconexão; o provedor pararia de gerar mesmo sem consumir a UI.
+    fechar = getattr(stream, "close", None)
+    if fechar is None:
+        return
+    try:
+        await fechar()
+    except Exception:
+        pass
+
+
+async def _gerar_sse(stream, tentativa_id: str, orcamento: Orcamento, caminho):
+    # Consome o stream do provedor e emite os eventos do contrato sob os
+    # prazos da etapa 4. Por que existe: orquestrar textos incrementais,
+    # fechamento financeiro e timeouts num único gerador testável. Como
+    # funciona: envia started; espera o primeiro texto em 20s e o total
+    # em 45s; delta/completed conforme o provedor; qualquer falha, EOF
+    # sem terminal ou timeout vira evento error fixo; a reserva é fechada
+    # com usage quando houver e conservada integralmente nos demais casos;
+    # desconexão do cliente também fecha a reserva no finally.
+    fechado = False
     try:
         yield _formatar_evento_sse(
             "started",
             {
-                "clientRequestId": client_request_id,
+                "clientRequestId": tentativa_id,
                 "knowledgeVersion": KNOWLEDGE_VERSION,
             },
         )
-        async for evento in stream:
-            normalizado = normalizar_evento_sdk(evento)
-            if normalizado is None:
-                continue
-            if normalizado["type"] == "delta":
+        async with asyncio.timeout(TEMPO_TOTAL_SEG):
+            iterator = stream.__aiter__()
+            primeiro_texto = False
+            terminal_enviado = False
+            while True:
+                try:
+                    if primeiro_texto:
+                        evento = await iterator.__anext__()
+                    else:
+                        evento = await asyncio.wait_for(
+                            iterator.__anext__(), TEMPO_TEXTO_INICIAL_SEG
+                        )
+                except StopAsyncIteration:
+                    break
+                normalizado = normalizar_evento_sdk(evento)
+                if normalizado is None:
+                    continue
+                if normalizado["type"] == "delta":
+                    primeiro_texto = True
+                    yield _formatar_evento_sse(
+                        "delta",
+                        {
+                            "clientRequestId": tentativa_id,
+                            "text": normalizado["text"],
+                        },
+                    )
+                elif normalizado["type"] == "completed":
+                    terminal_enviado = True
+                    _fechar_com_seguranca(
+                        orcamento,
+                        caminho,
+                        tentativa_id,
+                        normalizado.get("usage"),
+                    )
+                    fechado = True
+                    yield _formatar_evento_sse(
+                        "completed",
+                        {
+                            "clientRequestId": tentativa_id,
+                            "finishReason": normalizado["finishReason"],
+                            "retryAfterSeconds": PAUSA_SEGUNDOS,
+                        },
+                    )
+            if not terminal_enviado:
+                _fechar_com_seguranca(orcamento, caminho, tentativa_id, None)
+                fechado = True
                 yield _formatar_evento_sse(
-                    "delta",
+                    "error",
                     {
-                        "clientRequestId": client_request_id,
-                        "text": normalizado["text"],
-                    },
-                )
-            elif normalizado["type"] == "completed":
-                terminal_enviado = True
-                yield _formatar_evento_sse(
-                    "completed",
-                    {
-                        "clientRequestId": client_request_id,
-                        "finishReason": normalizado["finishReason"],
+                        "clientRequestId": tentativa_id,
+                        "code": CODIGO_ERRO_UPSTREAM,
+                        "message": MENSAGEM_ERRO_FIXA,
                         "retryAfterSeconds": PAUSA_SEGUNDOS,
                     },
                 )
-        if not terminal_enviado:
+    except (FalhaUpstreamError, openai.OpenAIError, TimeoutError):
+        if not fechado:
+            _fechar_com_seguranca(orcamento, caminho, tentativa_id, None)
+            fechado = True
             yield _formatar_evento_sse(
                 "error",
                 {
-                    "clientRequestId": client_request_id,
+                    "clientRequestId": tentativa_id,
                     "code": CODIGO_ERRO_UPSTREAM,
                     "message": MENSAGEM_ERRO_FIXA,
                     "retryAfterSeconds": PAUSA_SEGUNDOS,
                 },
             )
-    except (FalhaUpstreamError, openai.OpenAIError):
-        yield _formatar_evento_sse(
-            "error",
-            {
-                "clientRequestId": client_request_id,
-                "code": CODIGO_ERRO_UPSTREAM,
-                "message": MENSAGEM_ERRO_FIXA,
-                "retryAfterSeconds": PAUSA_SEGUNDOS,
-            },
-        )
     finally:
+        if not fechado:
+            # Cancelamento/desconexão depois do envio: sem usage final
+            # confiável, a reserva inteira vira despesa potencial.
+            _fechar_com_seguranca(orcamento, caminho, tentativa_id, None)
+        await _abortar_stream(stream)
         slot_geracao.liberar()
 
 
@@ -151,10 +244,12 @@ async def _gerar_sse(stream, client_request_id: str):
 async def respostas_viber(request: Request):
     # Endpoint interno de geração streaming da Viber.
     # Por que existe: único ponto de entrada do backend para o modelo,
-    # com autenticação entre serviços e contrato SSE próprio. Como
-    # funciona: valida token, corpo e contexto (erros antes dos headers
-    # viram HTTP fixo); ocupa o slot global (429 se ocupado); abre o
-    # stream com parâmetros fixos do servidor; devolve text/event-stream.
+    # com autenticação entre serviços, contrato SSE próprio e trava
+    # financeira da etapa 4. Como funciona: valida token, corpo e
+    # contexto; ocupa o slot; carrega o orçamento durável e verifica
+    # bloqueio/replay/pausa; conta a entrada no endpoint oficial; grava
+    # a reserva antes de abrir geração; emite o stream; fecha a reserva
+    # com usage real ou conservador.
     token_configurado = obter_token_interno()
     if not token_configurado:
         raise HTTPException(503, "Recurso indisponível")
@@ -189,24 +284,72 @@ async def respostas_viber(request: Request):
             "Geração em andamento",
             headers={"Retry-After": str(PAUSA_SEGUNDOS)},
         )
+    caminho = caminho_orcamento()
+    tentativa_id = str(payload.clientRequestId)
     try:
-        cliente = _obter_cliente()
-        stream = await cliente.responses.create(
-            model=MODELO_VIBER,
-            input=mensagens,
-            stream=True,
-            store=False,
-            max_output_tokens=MAX_TOKENS_SAIDA,
-            reasoning={"effort": ESFORCO_RACIOCINIO},
-        )
-    except (ConfigIndisponivelError, openai.OpenAIError) as exc:
-        slot_geracao.liberar()
-        raise HTTPException(503, "Não foi possível concluir a resposta.") from exc
-    except Exception:
+        try:
+            orcamento = carregar(caminho)
+        except OrcamentoIndisponivelError as exc:
+            raise HTTPException(503, "Recurso indisponível") from exc
+        try:
+            verificar_admissao(orcamento, tentativa_id)
+        except PausaAtivaError as exc:
+            raise HTTPException(
+                429,
+                "Pausa ativa",
+                headers={"Retry-After": str(exc.segundos)},
+            ) from exc
+        except TentativaRepetidaError as exc:
+            raise HTTPException(409, "Tentativa já encerrada") from exc
+        except OrcamentoIndisponivelError as exc:
+            raise HTTPException(503, "Recurso indisponível") from exc
+        try:
+            cliente = _obter_cliente()
+        except ConfigIndisponivelError as exc:
+            raise HTTPException(503, "Recurso indisponível") from exc
+        try:
+            tokens_entrada = await contar_tokens_entrada(cliente, mensagens)
+        except ContagemIndisponivelError as exc:
+            raise HTTPException(503, "Recurso indisponível") from exc
+        if tokens_entrada > MAX_ENTRADA_TOKENS:
+            raise HTTPException(400, "Entrada acima do limite de tokens")
+        try:
+            reservar(orcamento, tentativa_id, tokens_entrada)
+            salvar(caminho, orcamento)
+        except SaldoInsuficienteError as exc:
+            raise HTTPException(503, "Recurso indisponível") from exc
+        except GravacaoFalhouError as exc:
+            marcar_bloqueio_memoria("falha ao gravar a reserva")
+            raise HTTPException(503, "Recurso indisponível") from exc
+        try:
+            stream = await cliente.responses.create(
+                model=MODELO_VIBER,
+                input=mensagens,
+                stream=True,
+                store=False,
+                max_output_tokens=MAX_TOKENS_SAIDA,
+                reasoning={"effort": ESFORCO_RACIOCINIO},
+            )
+        except (ConfigIndisponivelError, openai.OpenAIError) as exc:
+            # Falha comprovada antes de enviar geração: libera a reserva.
+            try:
+                liberar(orcamento, tentativa_id)
+                salvar(caminho, orcamento)
+            except (OrcamentoError, GravacaoFalhouError):
+                marcar_bloqueio_memoria("falha ao liberar a reserva")
+            raise HTTPException(503, "Não foi possível concluir a resposta.") from exc
+        except Exception:
+            try:
+                liberar(orcamento, tentativa_id)
+                salvar(caminho, orcamento)
+            except (OrcamentoError, GravacaoFalhouError):
+                marcar_bloqueio_memoria("falha ao liberar a reserva")
+            raise
+    except HTTPException:
         slot_geracao.liberar()
         raise
     return StreamingResponse(
-        _gerar_sse(stream, str(payload.clientRequestId)),
+        _gerar_sse(stream, tentativa_id, orcamento, caminho),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-store"},
     )

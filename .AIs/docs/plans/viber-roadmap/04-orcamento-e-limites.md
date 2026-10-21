@@ -144,3 +144,31 @@ Guardar somente metadados de custo e estado, sem conteúdo das conversas.
 
 Commit sugerido: `feat: limitar custo da Viber com reserva persistente`.
 Esta etapa é necessária antes de expor o serviço ao computador da apresentação.
+
+## 9. Decisões de implementação (20/10/2026)
+
+Registradas com o programador antes do Lote B3:
+
+- **Divisão em dois lotes**: B3a = módulo de orçamento (armazenamento
+  durável, aritmética em milionésimos, reservas, CLI de inicialização),
+  testado sem tocar a rota; B3b = integração na rota SSE (reserva antes
+  de gerar, uso final no evento `completed`, pausa 10s, prazos 45s/20s).
+- **Inicialização**: CLI local do serviço
+  (`python -m src.orcamento_cli init|status`), sem rota HTTP pública e
+  sem comando de reset — segunda inicialização falha se o arquivo já
+  existir.
+- **Caminho**: env `VIBER_BUDGET_PATH`, default
+  `/var/lib/vers-viber/budget.json`; testes usam diretório temporário;
+  volume dedicado no compose fica no B3b.
+- **Contagem de tokens de entrada**: endpoint oficial da OpenAI chamado
+  pelo próprio cliente (`max_retries=0`), isolado em função testável com
+  mock; falha de contagem bloqueia a geração (503). Verificação com
+  chamada real (custo mínimo) fica a cargo do programador antes de
+  declarar o teto ativo em produção.
+- **Mapeamento HTTP adicionado ao contrato da etapa 3**: pausa ativa =
+  429 + `Retry-After`; saldo insuficiente/teto = 503; UUID de tentativa
+  já encerrada = 409 (novo status, registrado aqui e no backend antes do
+  lote 5); qualquer bloqueio interno de orçamento = 503.
+- **Aritmética**: inteiros em milionésimos de dólar; entrada 5, saída 30
+  por token; margem técnica 1.000 (US$0,001); teto padrão 10.000.000.
+  Reserva = entrada × 5 + 400 × 30 + margem.

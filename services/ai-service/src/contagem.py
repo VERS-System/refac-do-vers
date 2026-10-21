@@ -27,7 +27,7 @@ async def contar_tokens_entrada(cliente, mensagens, modelo: str = MODELO_VIBER) 
     try:
         resposta = await cliente.post(
             "/v1/tokenizer",
-            json={"model": modelo, "input": mensagens},
+            body={"model": modelo, "input": mensagens},
         )
     except Exception as exc:
         raise ContagemIndisponivelError("Falha ao chamar a contagem") from exc

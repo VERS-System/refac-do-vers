@@ -428,13 +428,29 @@ class DesconexaoTests(BaseRotaOrcamentoTests):
 class ContagemOficialTests(unittest.TestCase):
     """Unidade da contagem oficial de tokens de entrada (mock de rede)."""
 
-    def _cliente(self, resposta=None, excecao=None):
+    def _cliente(self, resposta=None, excecao=None, chamadas=None):
         async def post(*args, **kwargs):
+            if chamadas is not None:
+                chamadas.append((args, kwargs))
             if excecao is not None:
                 raise excecao
             return resposta
 
         return SimpleNamespace(post=post)
+
+    def test_chamada_usa_body_nao_json(self):
+        # O post cru do SDK aceita body=; json= levantaria TypeError e
+        # bloquearia toda geração (bugo pego pela verificação real).
+        chamadas = []
+        cliente = self._cliente(
+            resposta=httpx.Response(200, json={"tokens": [1]}),
+            chamadas=chamadas,
+        )
+        asyncio.run(contar_tokens_entrada(cliente, [{"role": "user", "content": "oi"}]))
+        _, kwargs = chamadas[0]
+        self.assertIn("body", kwargs)
+        self.assertNotIn("json", kwargs)
+        self.assertEqual(kwargs["body"]["model"], "gpt-5.5")
 
     def test_lista_de_tokens_contada(self):
         cliente = self._cliente(

@@ -172,3 +172,11 @@ Registradas com o programador antes do Lote B3:
 - **Aritmética**: inteiros em milionésimos de dólar; entrada 5, saída 30
   por token; margem técnica 1.000 (US$0,001); teto padrão 10.000.000.
   Reserva = entrada × 5 + 400 × 30 + margem.
+
+## 10. Tarifas do provedor Gemini (20/10/2026)
+
+A migração de provedor decidida no plano `09-migracao-gemini.md` altera
+apenas as tarifas desta página: entrada **1**, saída **3** micros por token
+(preço real US$0,50/US$3,00 por milhão; 0,5 arredondado para cima por ser
+não inteiro). Margem, teto, reserva (2.300 micros por geração padrão) e
+mapeamento HTTP do §9 seguem inalterados.

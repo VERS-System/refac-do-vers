@@ -76,7 +76,7 @@ services:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       VIBER_BUDGET_PATH: /var/lib/vers-viber/budget.json
     volumes:
       - viberorcamento:/var/lib/vers-viber

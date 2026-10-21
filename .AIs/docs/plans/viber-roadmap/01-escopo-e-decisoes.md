@@ -85,3 +85,15 @@ US$10 sem nova decisão.
 Um commit documental sugerido: `docs: definir escopo consultivo da Viber`.
 O programador realiza commit/push. Não escrever serviço ou mudar tela nesta
 etapa. Aceite: decisões claras e ausência de dúvida que altere o contrato central.
+
+## Addendum (20/10/2026) — provedor e modelo
+
+A linha V11 ("Online com GPT-5.5") foi substituída pela decisão do
+programador registrada no plano `09-migracao-gemini.md`:
+
+- **Provedor**: Google Gemini (a chave disponível é do Google; a OpenAI
+  recusou com 401). **Modelo**: `gemini-3-flash-preview`.
+- Tarifas usadas no orçamento: entrada US$0,50/M arredondado para cima
+  (1 micros/token), saída US$3,00/M (3 micros/token); teto US$10 e demais
+  parâmetros desta página permanecem válidos.
+- Todo o restante do escopo (V01–V12, fora do escopo, limites) inalterado.

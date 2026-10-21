@@ -1,8 +1,9 @@
 # Testes do módulo de orçamento da Viber (etapa 4 do roadmap, lote B3a).
 # Cobrem aritmética em milionésimos, inicialização explícita pelo operador,
 # persistência durável e atômica, admissão sob trava, pausa, fechamento
-# conservador de reservas e bloqueios. Nenhuma chamada à OpenAI: o módulo
-# não conhece rede, HTTP nem o provedor.
+# conservador de reservas e bloqueios. Nenhuma chamada ao provedor: o
+# módulo não conhece rede, HTTP nem o provedor. Tarifas do Gemini
+# (plano 09-migracao-gemini): entrada 1, saída 3 micros por token.
 import json
 import math
 import os
@@ -45,22 +46,23 @@ class AritmeticaTests(unittest.TestCase):
 
     def test_constantes_do_contrato(self):
         self.assertEqual(TETO_PADRAO_MICROS, 10_000_000)
-        self.assertEqual(PRECO_ENTRADA_MICROS, 5)
-        self.assertEqual(PRECO_SAIDA_MICROS, 30)
+        self.assertEqual(PRECO_ENTRADA_MICROS, 1)
+        self.assertEqual(PRECO_SAIDA_MICROS, 3)
         self.assertEqual(MARGEM_TECNICA_MICROS, 1_000)
         self.assertEqual(VERSAO_FORMATO, 1)
 
     def test_custo_exato_do_cenario_de_referencia(self):
-        # 2.000 entrada + 200 saída = US$0,016 = 16.000 milionésimos.
-        self.assertEqual(calcular_custo_micros(2000, 200), 16_000)
+        # 2.000 entrada × 1 + 200 saída × 3 = 2.600 milionésimos
+        # (US$0,0026; entrada real US$0,50/M arredondada para cima).
+        self.assertEqual(calcular_custo_micros(2000, 200), 2_600)
 
     def test_custo_usa_inteiros_sem_float(self):
         self.assertIsInstance(calcular_custo_micros(1, 1), int)
-        self.assertEqual(calcular_custo_micros(1, 1), 35)
+        self.assertEqual(calcular_custo_micros(1, 1), 4)
 
     def test_reserva_inclui_saida_inteira_e_margem(self):
-        # Entrada 2.000 × 5 + saída teto 400 × 30 + margem 1.000 = 23.000.
-        self.assertEqual(calcular_reserva_micros(2000), 23_000)
+        # Entrada 2.000 × 1 + saída teto 400 × 3 + margem 1.000 = 4.200.
+        self.assertEqual(calcular_reserva_micros(2000), 4_200)
 
 
 class BaseTemporariaTests(unittest.TestCase):
@@ -80,7 +82,7 @@ class InicializacaoTests(BaseTemporariaTests):
         self.assertEqual(orc.consumo, 0)
         self.assertEqual(orc.reservas, {})
         self.assertEqual(orc.teto, TETO_PADRAO_MICROS)
-        self.assertEqual(orc.modelo, "gpt-5.5")
+        self.assertEqual(orc.modelo, "gemini-3-flash-preview")
         self.assertIsNone(orc.bloqueio)
         self.assertTrue(self.caminho.exists())
 
@@ -268,16 +270,16 @@ class FechamentoTests(BaseTemporariaTests):
         reservar(self.orc, self.id_tentativa, 2000)
 
     def test_usage_menor_libera_somente_a_diferenca(self):
-        # Reserva 23.000; usage (2.000, 100) custa 13.000; diferença 10.000.
+        # Reserva 4.200; usage (2.000, 100) custa 2.300; diferença 1.900.
         fechar_reserva(
             self.orc, self.id_tentativa, agora=5.0, usage=(2000, 100)
         )
-        self.assertEqual(self.orc.consumo, 13_000)
+        self.assertEqual(self.orc.consumo, 2_300)
         self.assertEqual(self.orc.reservas, {})
 
     def test_falta_de_usage_conserva_reserva_inteira(self):
         fechar_reserva(self.orc, self.id_tentativa, agora=5.0, usage=None)
-        self.assertEqual(self.orc.consumo, 23_000)
+        self.assertEqual(self.orc.consumo, 4_200)
         self.assertEqual(self.orc.reservas, {})
 
     def test_usage_maior_que_reserva_bloqueia(self):
@@ -286,7 +288,7 @@ class FechamentoTests(BaseTemporariaTests):
                 self.orc, self.id_tentativa, agora=5.0, usage=(100_000, 400)
             )
         self.assertIsNotNone(self.orc.bloqueio)
-        self.assertEqual(self.orc.consumo, 23_000)
+        self.assertEqual(self.orc.consumo, 4_200)
 
     def test_fechamento_registra_tentativa_encerrada(self):
         fechar_reserva(self.orc, self.id_tentativa, agora=5.0, usage=None)

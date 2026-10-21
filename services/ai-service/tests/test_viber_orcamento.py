@@ -1,8 +1,8 @@
 # Testes da integração financeira da rota interna da Viber (etapa 4,
 # lote B3b): reserva durável antes de gerar, fechamento com usage real
 # ou conservador, pausa imposta no servidor, replay de UUID, bloqueios,
-# prazos de tempo e contagem oficial de tokens. Nenhuma chamada paga à
-# OpenAI: SDK e contagem são simulados em todos os casos.
+# prazos de tempo e contagem oficial de tokens. Nenhuma chamada paga ao
+# Gemini: SDK e contagem são simulados em todos os casos.
 import asyncio
 import json
 import os
@@ -13,8 +13,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-import httpx
-import openai
 from fastapi.testclient import TestClient
 
 from src.contagem import ContagemIndisponivelError, contar_tokens_entrada
@@ -28,7 +26,7 @@ from src.orcamento import (
 from src.viber import slot_geracao
 from src.main import app
 
-from test_viber import _cliente_falso, _evento_sdk
+from test_viber import _chunk, _cliente_falso, _falha_sdk
 
 TOKEN_TESTE = "token-interno-orcamento-xyz"
 CONTAGEM_TESTE = 100
@@ -49,8 +47,8 @@ class BaseRotaOrcamentoTests(unittest.TestCase):
         self._caminho_anterior = os.environ.get("VIBER_BUDGET_PATH")
         os.environ["VIBER_BUDGET_PATH"] = str(self.caminho)
         inicializar(self.caminho)
-        self._chave_anterior = os.environ.get("OPENAI_API_KEY")
-        os.environ["OPENAI_API_KEY"] = "sk-teste-fake-sem-rede"
+        self._chave_anterior = os.environ.get("GEMINI_API_KEY")
+        os.environ["GEMINI_API_KEY"] = "AIza-teste-fake-sem-rede"
         contagem = patch(
             "src.api.viber.contar_tokens_entrada",
             new=AsyncMock(return_value=CONTAGEM_TESTE),
@@ -72,9 +70,9 @@ class BaseRotaOrcamentoTests(unittest.TestCase):
         else:
             os.environ["VIBER_BUDGET_PATH"] = self._caminho_anterior
         if self._chave_anterior is None:
-            os.environ.pop("OPENAI_API_KEY", None)
+            os.environ.pop("GEMINI_API_KEY", None)
         else:
-            os.environ["OPENAI_API_KEY"] = self._chave_anterior
+            os.environ["GEMINI_API_KEY"] = self._chave_anterior
         import src.orcamento as orcamento_mod
 
         orcamento_mod._BLOQUEIO_MEMORIA = None
@@ -129,30 +127,23 @@ class FechamentoFinanceiroTests(BaseRotaOrcamentoTests):
     """Fechamento da reserva com usage real, conservador ou ausente."""
 
     def _cliente_completed(self, usage=None):
-        campos = {}
-        if usage is not None:
-            campos["response"] = SimpleNamespace(
-                usage=SimpleNamespace(
-                    input_tokens=usage[0], output_tokens=usage[1]
-                )
-            )
-        else:
-            campos["response"] = SimpleNamespace(usage=None)
+        # Chunk final com finish STOP e usage opcional (entrada, saída);
+        # sem usage, o fechamento conserva a reserva inteira.
         return _cliente_falso(
             eventos=[
-                _evento_sdk("response.output_text.delta", delta="Olá"),
-                _evento_sdk("response.completed", **campos),
+                _chunk(texto="Olá"),
+                _chunk(finish="STOP", usage=usage),
             ]
         )
 
     def test_fechamento_com_usage_cobra_custo_real(self):
-        # Reserva de 100 tokens = 13.500 micros; usage (2.000, 100) custa
-        # 13.000 — cabe na reserva e a diferença é liberada.
-        cliente = self._cliente_completed(usage=(2000, 100))
+        # Reserva de 100 tokens = 2.300 micros; usage (1.500, 100) custa
+        # 1.800 — cabe na reserva e a diferença é liberada.
+        cliente = self._cliente_completed(usage=(1500, 100))
         corpo, status, texto = self._fluxo_completo(cliente)
         self.assertEqual(status, 200)
         orcamento = carregar(self.caminho)
-        self.assertEqual(orcamento.consumo, calcular_custo_micros(2000, 100))
+        self.assertEqual(orcamento.consumo, calcular_custo_micros(1500, 100))
         self.assertEqual(orcamento.reservas, {})
         self.assertIn(corpo["clientRequestId"], orcamento.tentativas_encerradas)
         self.assertIsNotNone(orcamento.proxima_admissao)
@@ -167,11 +158,9 @@ class FechamentoFinanceiroTests(BaseRotaOrcamentoTests):
         )
 
     def test_erro_apos_inicio_conserva_reserva(self):
-        falha = openai.APIConnectionError(
-            request=httpx.Request("POST", "http://openai.local")
-        )
+        falha = _falha_sdk()
         cliente = _cliente_falso(
-            eventos=[_evento_sdk("response.output_text.delta", delta="x")],
+            eventos=[_chunk(texto="x")],
             erro_iteracao=falha,
         )
         _, status, texto = self._fluxo_completo(cliente)
@@ -182,9 +171,7 @@ class FechamentoFinanceiroTests(BaseRotaOrcamentoTests):
         )
 
     def test_falha_antes_de_enviar_libera_reserva(self):
-        falha = openai.APIConnectionError(
-            request=httpx.Request("POST", "http://openai.local")
-        )
+        falha = _falha_sdk()
         cliente = _cliente_falso(erro_criacao=falha)
         _, status, _ = self._fluxo_completo(cliente)
         self.assertEqual(status, 503)
@@ -194,7 +181,8 @@ class FechamentoFinanceiroTests(BaseRotaOrcamentoTests):
         self.assertIsNone(orcamento.proxima_admissao)
 
     def test_reserva_ja_gravada_quando_a_geracao_abre(self):
-        # Nenhuma chamada OpenAI começa antes da persistência da reserva.
+        # Nenhuma chamada ao provedor começa antes da persistência da
+        # reserva de orçamento.
         orcamento_no_momento = {}
 
         def ao_criar():
@@ -202,10 +190,7 @@ class FechamentoFinanceiroTests(BaseRotaOrcamentoTests):
 
         cliente = _cliente_falso(
             eventos=[
-                _evento_sdk(
-                    "response.completed",
-                    response=SimpleNamespace(usage=None),
-                ),
+                _chunk(finish="STOP"),
             ],
             ao_criar=ao_criar,
         )
@@ -237,10 +222,7 @@ class TravaEBloqueiosTests(BaseRotaOrcamentoTests):
         inicializar(self.caminho, teto=1_000)
         cliente = _cliente_falso(
             eventos=[
-                _evento_sdk(
-                    "response.completed",
-                    response=SimpleNamespace(usage=None),
-                ),
+                _chunk(finish="STOP"),
             ]
         )
         with patch("src.api.viber._obter_cliente", return_value=cliente):
@@ -253,10 +235,7 @@ class TravaEBloqueiosTests(BaseRotaOrcamentoTests):
     def test_pausa_apos_geracao_retorna_429_com_retry_after(self):
         cliente = _cliente_falso(
             eventos=[
-                _evento_sdk(
-                    "response.completed",
-                    response=SimpleNamespace(usage=None),
-                ),
+                _chunk(finish="STOP"),
             ]
         )
         _, status, _ = self._fluxo_completo(cliente)
@@ -272,10 +251,7 @@ class TravaEBloqueiosTests(BaseRotaOrcamentoTests):
     def test_uuid_encerrado_retorna_409_sem_replay(self):
         cliente = _cliente_falso(
             eventos=[
-                _evento_sdk(
-                    "response.completed",
-                    response=SimpleNamespace(usage=None),
-                ),
+                _chunk(finish="STOP"),
             ]
         )
         corpo = self._corpo()
@@ -351,22 +327,33 @@ class PrazosTests(BaseRotaOrcamentoTests):
             if self._eventos:
                 return self._eventos.pop(0)
             if self._infinito:
-                return _evento_sdk("response.output_text.delta", delta="x")
+                return _chunk(texto="x")
             raise StopAsyncIteration
 
     class ClienteLento:
         def __init__(self, iterador):
             self._iterador = iterador
             self.chamadas = []
-            self.responses = self
+            self.estado = SimpleNamespace(fechado=False)
+            dono = self
 
-        async def create(self, **kwargs):
-            self.chamadas.append(kwargs)
-            return self._iterador
+            async def generate_content_stream(**kwargs):
+                dono.chamadas.append(kwargs)
+                return dono._iterador
+
+            async def close():
+                dono.estado.fechado = True
+
+            self.aio = SimpleNamespace(
+                models=SimpleNamespace(
+                    generate_content_stream=generate_content_stream
+                ),
+                close=close,
+            )
 
     def test_texto_inicial_tardio_emite_error_e_conserva(self):
         iterador = self.IteradorLento(
-            [_evento_sdk("response.output_text.delta", delta="tarde")],
+            [_chunk(texto="tarde")],
             atraso_inicial=1.0,
         )
         cliente = self.ClienteLento(iterador)
@@ -383,7 +370,7 @@ class PrazosTests(BaseRotaOrcamentoTests):
 
     def test_tempo_total_tardio_emite_error_e_conserva(self):
         iterador = self.IteradorLento(
-            [_evento_sdk("response.output_text.delta", delta="x")],
+            [_chunk(texto="x")],
             atraso=0.06,
             infinito=True,
         )
@@ -405,12 +392,9 @@ class DesconexaoTests(BaseRotaOrcamentoTests):
     def test_desconexao_no_meio_conserva_reserva(self):
         cliente = _cliente_falso(
             eventos=[
-                _evento_sdk("response.output_text.delta", delta="parcial"),
-                _evento_sdk("response.output_text.delta", delta=" demais"),
-                _evento_sdk(
-                    "response.completed",
-                    response=SimpleNamespace(usage=None),
-                ),
+                _chunk(texto="parcial"),
+                _chunk(texto=" demais"),
+                _chunk(finish="STOP"),
             ]
         )
         with patch("src.api.viber._obter_cliente", return_value=cliente):
@@ -429,57 +413,61 @@ class ContagemOficialTests(unittest.TestCase):
     """Unidade da contagem oficial de tokens de entrada (mock de rede)."""
 
     def _cliente(self, resposta=None, excecao=None, chamadas=None):
-        async def post(*args, **kwargs):
+        # Cliente falso só com o caminho usado pela contagem oficial:
+        # cliente.aio.models.count_tokens(model=..., contents=..., config=...).
+        async def count_tokens(**kwargs):
             if chamadas is not None:
-                chamadas.append((args, kwargs))
+                chamadas.append(kwargs)
             if excecao is not None:
                 raise excecao
             return resposta
 
-        return SimpleNamespace(post=post)
+        return SimpleNamespace(
+            aio=SimpleNamespace(
+                models=SimpleNamespace(count_tokens=count_tokens)
+            )
+        )
 
-    def test_chamada_usa_body_nao_json(self):
-        # O post cru do SDK aceita body=; json= levantaria TypeError e
-        # bloquearia toda geração (bugo pego pela verificação real).
+    def test_chamada_espelha_formato_do_gemini(self):
+        # system_instruction separado; papéis user/model; modelo fixo.
         chamadas = []
         cliente = self._cliente(
-            resposta=httpx.Response(200, json={"tokens": [1]}),
-            chamadas=chamadas,
+            resposta=SimpleNamespace(total_tokens=12), chamadas=chamadas
         )
-        asyncio.run(contar_tokens_entrada(cliente, [{"role": "user", "content": "oi"}]))
-        _, kwargs = chamadas[0]
-        self.assertIn("body", kwargs)
-        self.assertNotIn("json", kwargs)
-        self.assertEqual(kwargs["body"]["model"], "gpt-5.5")
+        mensagens = [
+            {"role": "system", "content": "Instruções da Viber"},
+            {"role": "user", "content": "oi"},
+            {"role": "assistant", "content": "olá"},
+            {"role": "user", "content": "tudo bem?"},
+        ]
+        quantidade = asyncio.run(contar_tokens_entrada(cliente, mensagens))
+        self.assertEqual(quantidade, 12)
+        kwargs = chamadas[0]
+        self.assertEqual(kwargs["model"], "gemini-3-flash-preview")
+        self.assertEqual(
+            kwargs["config"].system_instruction, "Instruções da Viber"
+        )
+        self.assertEqual(
+            [m["role"] for m in kwargs["contents"]], ["user", "model", "user"]
+        )
 
-    def test_lista_de_tokens_contada(self):
-        cliente = self._cliente(
-            resposta=httpx.Response(200, json={"tokens": [1, 2, 3, 4, 5]})
-        )
-        quantidade = asyncio.run(
-            contar_tokens_entrada(cliente, [{"role": "user", "content": "oi"}])
-        )
-        self.assertEqual(quantidade, 5)
-
-    def test_usage_total_tokens_aceito(self):
-        cliente = self._cliente(
-            resposta=httpx.Response(200, json={"usage": {"total_tokens": 42}})
-        )
+    def test_total_tokens_aceito(self):
+        cliente = self._cliente(resposta=SimpleNamespace(total_tokens=42))
         quantidade = asyncio.run(contar_tokens_entrada(cliente, []))
         self.assertEqual(quantidade, 42)
 
-    def test_status_diferente_de_200_bloqueia(self):
-        cliente = self._cliente(resposta=httpx.Response(404, json={}))
+    def test_total_tokens_negativo_bloqueia(self):
+        cliente = self._cliente(resposta=SimpleNamespace(total_tokens=-1))
         with self.assertRaises(ContagemIndisponivelError):
             asyncio.run(contar_tokens_entrada(cliente, []))
 
-    def test_formato_desconhecido_bloqueia(self):
-        cliente = self._cliente(resposta=httpx.Response(200, json={"outra": 1}))
+    def test_resposta_sem_total_tokens_bloqueia(self):
+        cliente = self._cliente(resposta=SimpleNamespace(outra_coisa=1))
         with self.assertRaises(ContagemIndisponivelError):
             asyncio.run(contar_tokens_entrada(cliente, []))
 
-    def test_excecao_de_rede_bloqueia(self):
-        cliente = self._cliente(excecao=httpx.ConnectError("sem rede"))
+    def test_excecao_do_sdk_bloqueia(self):
+        cliente = self._cliente(excecao=RuntimeError("rede fora"))
         with self.assertRaises(ContagemIndisponivelError):
             asyncio.run(contar_tokens_entrada(cliente, []))
 

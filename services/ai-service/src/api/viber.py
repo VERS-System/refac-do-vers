@@ -7,17 +7,20 @@
 # — a resposta vira text/event-stream com eventos started/delta/completed/
 # error. O fechamento converte a reserva em consumo com o usage real do
 # provedor (sem usage, conserva a reserva inteira). Nenhum dado de usuário,
-# cookie, CSRF ou perfil atravessa esta rota.
+# cookie, CSRF ou perfil atravessa esta rota. O provedor é o Gemini via
+# SDK google-genai (plano 09-migracao-gemini), com uma única tentativa
+# por requisição (sem retry pago automático).
 import asyncio
 import json
 import os
 import secrets
 import uuid
 
-import openai
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from openai import AsyncOpenAI
+from google import genai
+from google.genai import types
+from google.genai.errors import APIError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from typing import Literal
 
@@ -48,7 +51,6 @@ from src.orcamento import (
 )
 from src.viber import (
     CODIGO_ERRO_UPSTREAM,
-    ESFORCO_RACIOCINIO,
     LIMITE_CORPO_BYTES,
     MAX_TOKENS_SAIDA,
     MENSAGEM_ERRO_FIXA,
@@ -57,9 +59,9 @@ from src.viber import (
     TEMPO_TEXTO_INICIAL_SEG,
     TEMPO_TOTAL_SEG,
     ContextoInvalidoError,
-    FalhaUpstreamError,
     montar_contexto,
     normalizar_evento_sdk,
+    preparar_entrada,
     slot_geracao,
 )
 
@@ -67,7 +69,7 @@ router = APIRouter()
 
 
 class ConfigIndisponivelError(Exception):
-    """Configuração do serviço ausente (token interno ou chave OpenAI)."""
+    """Configuração do serviço ausente (token interno ou chave Gemini)."""
 
 
 class HistoricoItem(BaseModel):
@@ -96,13 +98,31 @@ def obter_token_interno() -> str | None:
     return os.getenv("VIBER_INTERNAL_TOKEN")
 
 
-def _obter_cliente() -> AsyncOpenAI:
-    # Constrói o cliente da OpenAI com retry automático desativado: o
-    # contrato de orçamento da etapa 4 não paga tentativas silenciosas.
-    chave = os.getenv("OPENAI_API_KEY")
+def _obter_cliente():
+    # Constrói o cliente do Gemini com uma única tentativa por requisição:
+    # o contrato de orçamento da etapa 4 não paga tentativas silenciosas
+    # (HttpRetryOptions attempts=1 equivale ao antigo max_retries=0).
+    chave = os.getenv("GEMINI_API_KEY")
     if not chave:
-        raise ConfigIndisponivelError("OPENAI_API_KEY ausente")
-    return AsyncOpenAI(api_key=chave, max_retries=0)
+        raise ConfigIndisponivelError("GEMINI_API_KEY ausente")
+    return genai.Client(
+        api_key=chave,
+        http_options=types.HttpOptions(
+            retry_options=types.HttpRetryOptions(attempts=1)
+        ),
+    )
+
+
+async def _fechar_cliente(cliente) -> None:
+    # Fecha o transporte assíncrono do cliente do Gemini após o uso;
+    # falha de fechamento nunca interrompe o stream do cliente.
+    fechar = getattr(getattr(cliente, "aio", None), "close", None)
+    if fechar is None:
+        return
+    try:
+        await fechar()
+    except Exception:
+        pass
 
 
 def _formatar_evento_sse(nome: str, dados: dict) -> str:
@@ -145,15 +165,19 @@ async def _abortar_stream(stream) -> None:
         pass
 
 
-async def _gerar_sse(stream, tentativa_id: str, orcamento: Orcamento, caminho):
+async def _gerar_sse(
+    stream, tentativa_id: str, orcamento: Orcamento, caminho, cliente
+):
     # Consome o stream do provedor e emite os eventos do contrato sob os
     # prazos da etapa 4. Por que existe: orquestrar textos incrementais,
     # fechamento financeiro e timeouts num único gerador testável. Como
     # funciona: envia started; espera o primeiro texto em 20s e o total
-    # em 45s; delta/completed conforme o provedor; qualquer falha, EOF
+    # em 45s; cada chunk do Gemini pode render um ou mais eventos
+    # (delta/completed) via normalizar_evento_sdk; qualquer falha, EOF
     # sem terminal ou timeout vira evento error fixo; a reserva é fechada
     # com usage quando houver e conservada integralmente nos demais casos;
-    # desconexão do cliente também fecha a reserva no finally.
+    # desconexão do cliente também fecha a reserva no finally; o cliente
+    # do SDK é fechado no fim em todos os caminhos.
     fechado = False
     try:
         yield _formatar_evento_sse(
@@ -170,42 +194,40 @@ async def _gerar_sse(stream, tentativa_id: str, orcamento: Orcamento, caminho):
             while True:
                 try:
                     if primeiro_texto:
-                        evento = await iterator.__anext__()
+                        chunk = await iterator.__anext__()
                     else:
-                        evento = await asyncio.wait_for(
+                        chunk = await asyncio.wait_for(
                             iterator.__anext__(), TEMPO_TEXTO_INICIAL_SEG
                         )
                 except StopAsyncIteration:
                     break
-                normalizado = normalizar_evento_sdk(evento)
-                if normalizado is None:
-                    continue
-                if normalizado["type"] == "delta":
-                    primeiro_texto = True
-                    yield _formatar_evento_sse(
-                        "delta",
-                        {
-                            "clientRequestId": tentativa_id,
-                            "text": normalizado["text"],
-                        },
-                    )
-                elif normalizado["type"] == "completed":
-                    terminal_enviado = True
-                    _fechar_com_seguranca(
-                        orcamento,
-                        caminho,
-                        tentativa_id,
-                        normalizado.get("usage"),
-                    )
-                    fechado = True
-                    yield _formatar_evento_sse(
-                        "completed",
-                        {
-                            "clientRequestId": tentativa_id,
-                            "finishReason": normalizado["finishReason"],
-                            "retryAfterSeconds": PAUSA_SEGUNDOS,
-                        },
-                    )
+                for normalizado in normalizar_evento_sdk(chunk):
+                    if normalizado["type"] == "delta":
+                        primeiro_texto = True
+                        yield _formatar_evento_sse(
+                            "delta",
+                            {
+                                "clientRequestId": tentativa_id,
+                                "text": normalizado["text"],
+                            },
+                        )
+                    elif normalizado["type"] == "completed":
+                        terminal_enviado = True
+                        _fechar_com_seguranca(
+                            orcamento,
+                            caminho,
+                            tentativa_id,
+                            normalizado.get("usage"),
+                        )
+                        fechado = True
+                        yield _formatar_evento_sse(
+                            "completed",
+                            {
+                                "clientRequestId": tentativa_id,
+                                "finishReason": normalizado["finishReason"],
+                                "retryAfterSeconds": PAUSA_SEGUNDOS,
+                            },
+                        )
             if not terminal_enviado:
                 _fechar_com_seguranca(orcamento, caminho, tentativa_id, None)
                 fechado = True
@@ -218,7 +240,10 @@ async def _gerar_sse(stream, tentativa_id: str, orcamento: Orcamento, caminho):
                         "retryAfterSeconds": PAUSA_SEGUNDOS,
                     },
                 )
-    except (FalhaUpstreamError, openai.OpenAIError, TimeoutError):
+    except Exception:
+        # Qualquer falha do provedor no meio do stream (APIError do
+        # Gemini, timeout, EOF inesperado) vira o evento error fixo sem
+        # vazar detalhe técnico ao cliente público.
         if not fechado:
             _fechar_com_seguranca(orcamento, caminho, tentativa_id, None)
             fechado = True
@@ -237,6 +262,7 @@ async def _gerar_sse(stream, tentativa_id: str, orcamento: Orcamento, caminho):
             # confiável, a reserva inteira vira despesa potencial.
             _fechar_com_seguranca(orcamento, caminho, tentativa_id, None)
         await _abortar_stream(stream)
+        await _fechar_cliente(cliente)
         slot_geracao.liberar()
 
 
@@ -286,6 +312,7 @@ async def respostas_viber(request: Request):
         )
     caminho = caminho_orcamento()
     tentativa_id = str(payload.clientRequestId)
+    cliente = None
     try:
         try:
             orcamento = carregar(caminho)
@@ -321,16 +348,20 @@ async def respostas_viber(request: Request):
         except GravacaoFalhouError as exc:
             marcar_bloqueio_memoria("falha ao gravar a reserva")
             raise HTTPException(503, "Recurso indisponível") from exc
+        # Entrada espelhada para o Gemini: system_instruction separado e
+        # papéis user/model, idênticos ao que a contagem oficial mediu.
+        system, contents = preparar_entrada(mensagens)
         try:
-            stream = await cliente.responses.create(
+            stream = await cliente.aio.models.generate_content_stream(
                 model=MODELO_VIBER,
-                input=mensagens,
-                stream=True,
-                store=False,
-                max_output_tokens=MAX_TOKENS_SAIDA,
-                reasoning={"effort": ESFORCO_RACIOCINIO},
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=system,
+                    max_output_tokens=MAX_TOKENS_SAIDA,
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
+                ),
             )
-        except (ConfigIndisponivelError, openai.OpenAIError) as exc:
+        except (ConfigIndisponivelError, APIError) as exc:
             # Falha comprovada antes de enviar geração: libera a reserva.
             try:
                 liberar(orcamento, tentativa_id)
@@ -346,10 +377,12 @@ async def respostas_viber(request: Request):
                 marcar_bloqueio_memoria("falha ao liberar a reserva")
             raise
     except HTTPException:
+        if cliente is not None:
+            await _fechar_cliente(cliente)
         slot_geracao.liberar()
         raise
     return StreamingResponse(
-        _gerar_sse(stream, tentativa_id, orcamento, caminho),
+        _gerar_sse(stream, tentativa_id, orcamento, caminho, cliente),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-store"},
     )

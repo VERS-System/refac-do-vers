@@ -2,9 +2,8 @@
 # de streaming da Viber (etapas 2 e 3 do roadmap). Cobrem validação do
 # arquivo empacotado, knowledgeVersion, limites do histórico/pergunta,
 # autenticação por token interno, mapeamento de falhas antes dos headers e
-# normalização dos eventos SSE. Nenhuma chamada paga à OpenAI: o SDK é
+# normalização dos eventos SSE. Nenhuma chamada paga ao Gemini: o SDK é
 # substituído por um cliente falso em todos os testes (regra do plano).
-import asyncio
 import json
 import os
 import tempfile
@@ -14,9 +13,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-import httpx
-import openai
 from fastapi.testclient import TestClient
+from google.genai.errors import APIError
 
 from src.knowledge.carregador import (
     KNOWLEDGE_VERSION,
@@ -25,7 +23,12 @@ from src.knowledge.carregador import (
     carregar_base,
 )
 from src.orcamento import inicializar
-from src.viber import ContextoInvalidoError, montar_contexto, slot_geracao
+from src.viber import (
+    ContextoInvalidoError,
+    montar_contexto,
+    preparar_entrada,
+    slot_geracao,
+)
 from src.main import app
 
 
@@ -250,6 +253,53 @@ class MontarContextoTests(unittest.TestCase):
         )
 
 
+class PrepararEntradaTests(unittest.TestCase):
+    """Conversão das mensagens para o formato de entrada do Gemini."""
+
+    def test_system_vira_system_instruction_e_papéis_gemini(self):
+        mensagens = [
+            {"role": "system", "content": "Instruções fixas do servidor"},
+            {"role": "user", "content": "oi"},
+            {"role": "assistant", "content": "olá"},
+            {"role": "user", "content": "tudo bem?"},
+        ]
+        system, contents = preparar_entrada(mensagens)
+        self.assertEqual(system, "Instruções fixas do servidor")
+        self.assertEqual(
+            [m["role"] for m in contents], ["user", "model", "user"]
+        )
+        self.assertEqual(contents[1]["parts"][0]["text"], "olá")
+        self.assertEqual(contents[2]["parts"][0]["text"], "tudo bem?")
+
+    def test_system_nunca_entra_nos_contents(self):
+        mensagens = [
+            {"role": "system", "content": "base da Viber"},
+            {"role": "user", "content": "pergunta"},
+        ]
+        _, contents = preparar_entrada(mensagens)
+        self.assertTrue(
+            all(m["role"] != "system" for m in contents)
+        )
+
+    def test_sem_system_instrucao_fica_none(self):
+        mensagens = [{"role": "user", "content": "oi"}]
+        system, contents = preparar_entrada(mensagens)
+        self.assertIsNone(system)
+        self.assertEqual(len(contents), 1)
+
+    def test_uma_mensagem_de_assistant_vira_model(self):
+        mensagens = [
+            {"role": "system", "content": "sistema"},
+            {"role": "user", "content": "oi"},
+            {"role": "assistant", "content": "resposta"},
+            {"role": "user", "content": "ok"},
+        ]
+        system, contents = preparar_entrada(mensagens)
+        self.assertEqual(system, "sistema")
+        self.assertEqual(contents[1]["role"], "model")
+        self.assertEqual(contents[1]["parts"][0]["text"], "resposta")
+
+
 class RotaViberInternaTests(unittest.TestCase):
     """Valida a rota interna POST /internal/v1/viber/responses (etapa 3)."""
 
@@ -259,7 +309,7 @@ class RotaViberInternaTests(unittest.TestCase):
     def setUp(self):
         # Configura o token interno, o orçamento durável temporário e a
         # contagem de tokens simulada (etapa 4). O slot global começa
-        # livre em cada caso e nenhuma chamada real à OpenAI ocorre.
+        # livre em cada caso e nenhuma chamada real ao Gemini ocorre.
         self._token_anterior = os.environ.get("VIBER_INTERNAL_TOKEN")
         os.environ["VIBER_INTERNAL_TOKEN"] = self.token
         slot_geracao.liberar()
@@ -393,13 +443,13 @@ class RotaViberInternaTests(unittest.TestCase):
         self.assertEqual(resposta.status_code, 429)
         self.assertEqual(resposta.headers.get("retry-after"), "10")
 
-    def test_sem_api_key_retorna_503_e_libera_slot(self):
-        chave = os.environ.pop("OPENAI_API_KEY", None)
+    def test_sem_chave_retorna_503_e_libera_slot(self):
+        chave = os.environ.pop("GEMINI_API_KEY", None)
         try:
             resposta = self._postar(self._corpo_valido())
         finally:
             if chave is not None:
-                os.environ["OPENAI_API_KEY"] = chave
+                os.environ["GEMINI_API_KEY"] = chave
         self.assertEqual(resposta.status_code, 503)
         self.assertTrue(slot_geracao.ocupar())
         slot_geracao.liberar()
@@ -414,16 +464,15 @@ class RotaViberInternaTests(unittest.TestCase):
 
     def test_erro_de_conexao_antes_do_stream_retorna_503(self):
         # Falha do SDK ao abrir o stream ainda não tem headers SSE: HTTP 503.
-        falha = openai.APIConnectionError(
-            request=httpx.Request("POST", "http://openai.local")
-        )
-        cliente_falso = _cliente_falso(erro_criacao=falha)
+        cliente_falso = _cliente_falso(erro_criacao=_falha_sdk())
         with patch("src.api.viber._obter_cliente", return_value=cliente_falso):
             resposta = self._postar(self._corpo_valido())
         self.assertEqual(resposta.status_code, 503)
         # A chamada ao SDK foi tentada uma única vez e falhou; nada além
-        # disso aconteceu (sem retry, sem stream aberto).
+        # disso aconteceu (sem retry, sem stream aberto) e o cliente foi
+        # fechado sem vazar conexão.
         self.assertEqual(len(cliente_falso.chamadas), 1)
+        self.assertTrue(cliente_falso.estado.fechado)
         self.assertTrue(slot_geracao.ocupar())
         slot_geracao.liberar()
 
@@ -432,13 +481,9 @@ class RotaViberInternaTests(unittest.TestCase):
         # fixos do servidor enviados ao SDK (nunca do cliente).
         cliente_falso = _cliente_falso(
             eventos=[
-                _evento_sdk("response.created"),
-                _evento_sdk("response.output_text.delta", delta="A ponte "),
-                _evento_sdk("response.output_text.delta", delta="retifica."),
-                _evento_sdk(
-                    "response.completed",
-                    response=SimpleNamespace(),
-                ),
+                _chunk(texto="A ponte "),
+                _chunk(texto="retifica."),
+                _chunk(finish="STOP", usage=(120, 40)),
             ]
         )
         corpo = self._corpo_valido(message="Como a ponte retificadora funciona?")
@@ -468,16 +513,24 @@ class RotaViberInternaTests(unittest.TestCase):
         # O SDK recebe apenas parâmetros fixos do servidor.
         self.assertEqual(len(cliente_falso.chamadas), 1)
         chamada = cliente_falso.chamadas[0]
-        self.assertEqual(chamada["model"], "gpt-5.5")
-        self.assertIs(chamada["stream"], True)
-        self.assertIs(chamada["store"], False)
-        self.assertEqual(chamada["max_output_tokens"], 400)
-        self.assertEqual(chamada["reasoning"], {"effort": "none"})
-        self.assertEqual(chamada["input"][0]["role"], "system")
+        self.assertEqual(chamada["model"], "gemini-3-flash-preview")
+        config = chamada["config"]
+        self.assertEqual(config.max_output_tokens, 400)
+        self.assertEqual(config.thinking_config.thinking_budget, 0)
+        self.assertIn("Viber", config.system_instruction)
+        self.assertNotIn("stream", chamada)
+        self.assertNotIn("store", chamada)
+        # O system_instruction sai do conteúdo; só user/model entram.
+        self.assertTrue(
+            all(m["role"] != "system" for m in chamada["contents"])
+        )
+        self.assertEqual(chamada["contents"][-1]["role"], "user")
         self.assertEqual(
-            chamada["input"][-1]["content"],
+            chamada["contents"][-1]["parts"][0]["text"],
             "Como a ponte retificadora funciona?",
         )
+        # O cliente é fechado ao fim do stream (sem vazar conexão).
+        self.assertTrue(cliente_falso.estado.fechado)
         self.assertTrue(slot_geracao.ocupar())
         slot_geracao.liberar()
 
@@ -485,14 +538,7 @@ class RotaViberInternaTests(unittest.TestCase):
         # Término por max_output_tokens vira completed com output_limit.
         cliente_falso = _cliente_falso(
             eventos=[
-                _evento_sdk(
-                    "response.incomplete",
-                    response=SimpleNamespace(
-                        incomplete_details=SimpleNamespace(
-                            reason="max_output_tokens"
-                        )
-                    ),
-                ),
+                _chunk(finish="MAX_TOKENS"),
             ]
         )
         with patch("src.api.viber._obter_cliente", return_value=cliente_falso):
@@ -504,15 +550,13 @@ class RotaViberInternaTests(unittest.TestCase):
         self.assertEqual([nome for nome, _ in eventos], ["started", "completed"])
         self.assertEqual(eventos[-1][1]["finishReason"], "output_limit")
 
-    def test_falha_apos_inicio_emite_evento_error(self):
+    def test_falha_apos_inicio_emite_evento_error_sem_detalhe(self):
         # Exceção do SDK depois de iniciado o stream vira evento error com
         # mensagem fixa do contrato, sem vazar detalhes do provedor.
-        falha = openai.APIConnectionError(
-            request=httpx.Request("POST", "http://openai.local")
-        )
+        falha = _falha_sdk("detalhe interno do provedor")
         cliente_falso = _cliente_falso(
             eventos=[
-                _evento_sdk("response.output_text.delta", delta="Parcial"),
+                _chunk(texto="Parcial"),
             ],
             erro_iteracao=falha,
         )
@@ -527,35 +571,13 @@ class RotaViberInternaTests(unittest.TestCase):
         self.assertEqual(erro["code"], "UPSTREAM_UNAVAILABLE")
         self.assertEqual(erro["message"], "Não foi possível concluir a resposta.")
         self.assertEqual(erro["retryAfterSeconds"], 10)
-
-    def test_response_failed_emite_evento_error_sem_corpo_bruto(self):
-        # Evento response.failed do provedor também vira error fixo, sem
-        # repassar texto técnico bruto ao cliente público.
-        cliente_falso = _cliente_falso(
-            eventos=[
-                _evento_sdk(
-                    "response.failed",
-                    response=SimpleNamespace(
-                        error=SimpleNamespace(message="detalhe interno")
-                    ),
-                ),
-            ]
-        )
-        with patch("src.api.viber._obter_cliente", return_value=cliente_falso):
-            with self.cliente_teste.stream(
-                "POST", self.url, headers=self._cabecalhos(), json=self._corpo_valido()
-            ) as resposta:
-                texto = "".join(linha + "\n" for linha in resposta.iter_lines())
-        eventos = self._eventos_sse(texto)
-        self.assertEqual([nome for nome, _ in eventos], ["started", "error"])
-        self.assertEqual(eventos[-1][1]["code"], "UPSTREAM_UNAVAILABLE")
-        self.assertNotIn("detalhe interno", texto)
+        self.assertNotIn("detalhe interno do provedor", texto)
 
     def test_eof_sem_terminal_emite_evento_error(self):
-        # Stream que termina sem evento terminal produz error seguro.
+        # Stream que termina sem finish do provedor produz error seguro.
         cliente_falso = _cliente_falso(
             eventos=[
-                _evento_sdk("response.output_text.delta", delta="Sem fim"),
+                _chunk(texto="Sem fim"),
             ]
         )
         with patch("src.api.viber._obter_cliente", return_value=cliente_falso):
@@ -567,14 +589,11 @@ class RotaViberInternaTests(unittest.TestCase):
         self.assertEqual([nome for nome, _ in eventos], ["started", "delta", "error"])
 
     def test_eventos_ignorados_nao_viram_delta(self):
-        # Eventos intermediários desconhecidos não viram texto do bot.
+        # Chunks sem texto e sem finish não viram texto do bot.
         cliente_falso = _cliente_falso(
             eventos=[
-                _evento_sdk("response.output_text.done", text="x"),
-                _evento_sdk(
-                    "response.completed",
-                    response=SimpleNamespace(),
-                ),
+                _chunk(),
+                _chunk(finish="STOP"),
             ]
         )
         with patch("src.api.viber._obter_cliente", return_value=cliente_falso):
@@ -585,39 +604,55 @@ class RotaViberInternaTests(unittest.TestCase):
         eventos = self._eventos_sse(texto)
         self.assertEqual([nome for nome, _ in eventos], ["started", "completed"])
 
-    def test_cliente_openai_sem_retry_automatico(self):
-        # O cliente real é construído com max_retries=0: sem retry pago
-        # automático da OpenAI (contrato de orçamento da etapa 4).
-        chave = os.environ.get("OPENAI_API_KEY")
-        os.environ["OPENAI_API_KEY"] = "sk-teste-nao-usado"
+    def test_cliente_gemini_sem_retry_automatico(self):
+        # O cliente real é construído com 1 tentativa única: sem retry
+        # pago automático (contrato de orçamento da etapa 4).
+        chave = os.environ.get("GEMINI_API_KEY")
+        os.environ["GEMINI_API_KEY"] = "AIza-teste-nao-usado"
         try:
             from src.api.viber import _obter_cliente
 
-            cliente = _obter_cliente()
+            with patch("src.api.viber.genai.Client") as construtor:
+                _obter_cliente()
         finally:
             if chave is None:
-                os.environ.pop("OPENAI_API_KEY", None)
+                os.environ.pop("GEMINI_API_KEY", None)
             else:
-                os.environ["OPENAI_API_KEY"] = chave
-        try:
-            self.assertEqual(cliente.max_retries, 0)
-        finally:
-            # close() do cliente async é uma coroutine: executa num
-            # loop próprio de teste.
-            asyncio.run(cliente.close())
+                os.environ["GEMINI_API_KEY"] = chave
+        kwargs = construtor.call_args.kwargs
+        self.assertEqual(kwargs["api_key"], "AIza-teste-nao-usado")
+        self.assertEqual(kwargs["http_options"].retry_options.attempts, 1)
 
 
-def _evento_sdk(tipo, **campos):
-    # Monta um objeto que imita o formato dos eventos do SDK da OpenAI.
-    return SimpleNamespace(type=tipo, **campos)
+def _falha_sdk(mensagem="falha simulada do provedor"):
+    # Monta um erro real do SDK do Gemini (APIError) para simular falhas
+    # de rede/serviço sem depender da rede no teste.
+    return APIError(503, {"error": {"message": mensagem}})
+
+
+def _chunk(texto=None, usage=None, finish=None):
+    # Monta um chunk sintético no formato do stream do Gemini: .text
+    # (texto parcial do chunk), .usage_metadata (entrada + total) e
+    # .candidates[0].finish_reason (None, "STOP" ou "MAX_TOKENS").
+    usage_metadata = None
+    if usage is not None:
+        usage_metadata = SimpleNamespace(
+            prompt_token_count=usage[0],
+            total_token_count=usage[0] + usage[1],
+        )
+    return SimpleNamespace(
+        text=texto,
+        usage_metadata=usage_metadata,
+        candidates=[SimpleNamespace(finish_reason=finish)],
+    )
 
 
 def _cliente_falso(eventos=None, erro_criacao=None, erro_iteracao=None, ao_criar=None):
-    # Cria um cliente falso no formato usado pela rota (cliente.responses
-    # .create(...)); devolve um stream de eventos sintéticos. erro_criacao
-    # é levantado ao abrir o stream; erro_iteracao, ao consumir os eventos;
-    # ao_criar é um callback chamado no início de create (usado para
-    # inspecionar o orçamento antes da geração abrir).
+    # Cria um cliente falso no formato usado pela rota (cliente.aio.models
+    # .generate_content_stream(...)); devolve um stream de chunks
+    # sintéticos. erro_criacao é levantado ao abrir o stream; erro_iteracao,
+    # ao consumir os chunks; ao_criar é um callback chamado no início da
+    # geração (usado para inspecionar o orçamento antes de abrir).
     class IteradorFalso:
         def __init__(self):
             self._eventos = list(eventos or [])
@@ -632,20 +667,30 @@ def _cliente_falso(eventos=None, erro_criacao=None, erro_iteracao=None, ao_criar
                 raise StopAsyncIteration
             return self._eventos.pop(0)
 
-    class ClienteFalso:
-        def __init__(self):
-            self.chamadas = []
-            self.responses = self
+    chamadas = []
+    estado = SimpleNamespace(fechado=False)
 
-        async def create(self, **kwargs):
-            if ao_criar is not None:
-                ao_criar()
-            self.chamadas.append(kwargs)
-            if erro_criacao is not None:
-                raise erro_criacao
-            return IteradorFalso()
+    async def generate_content_stream(**kwargs):
+        if ao_criar is not None:
+            ao_criar()
+        chamadas.append(kwargs)
+        if erro_criacao is not None:
+            raise erro_criacao
+        return IteradorFalso()
 
-    return ClienteFalso()
+    async def close():
+        estado.fechado = True
+
+    return SimpleNamespace(
+        chamadas=chamadas,
+        estado=estado,
+        aio=SimpleNamespace(
+            models=SimpleNamespace(
+                generate_content_stream=generate_content_stream
+            ),
+            close=close,
+        ),
+    )
 
 
 if __name__ == "__main__":

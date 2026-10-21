@@ -25,12 +25,14 @@ from src.viber import MODELO_VIBER, PAUSA_SEGUNDOS, MAX_TOKENS_SAIDA
 
 # Versão do formato do arquivo; versões diferentes bloqueiam a geração.
 VERSAO_FORMATO = 1
-# Teto total em milionésimos de dólar (US$10) e tarifas por token
-# (entrada US$5/milhão = 5; saída US$30/milhão = 30), sem desconto de
-# cache — decisão deliberada da etapa 4 (bloqueia antes, nunca excede).
+# Teto total em milionésimos de dólar (US$10) e tarifas por token do
+# Gemini gemini-3-flash-preview (entrada US$0,50/milhão, saída
+# US$3,00/milhão — plano 09-migracao-gemini). A entrada 0,5 não é
+# inteira em milionésimos: arredondada para cima (1) por ser conservador
+# (bloqueia antes, nunca excede); sem desconto de cache.
 TETO_PADRAO_MICROS = 10_000_000
-PRECO_ENTRADA_MICROS = 5
-PRECO_SAIDA_MICROS = 30
+PRECO_ENTRADA_MICROS = 1
+PRECO_SAIDA_MICROS = 3
 # Margem técnica por reserva em milionésimos (US$0,001).
 MARGEM_TECNICA_MICROS = 1_000
 # Teto proposto de tokens de entrada já com base e instruções; acima

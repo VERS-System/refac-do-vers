@@ -15,6 +15,7 @@ import { criarRepositorioMock } from '@/data/repositorioMock';
 import { formatarEnergia } from '@/lib/format';
 import { PERIODO_PADRAO, usePeriodoStore } from '@/stores/periodo';
 import { VisaoGeralPage } from './VisaoGeralPage';
+import { carregarEnergia } from '@/data/energia';
 
 /** Renderiza a tela com um cache novo e o repositório informado. */
 function renderizar(repositorio: RepositorioVers = criarRepositorioMock()) {
@@ -37,6 +38,17 @@ async function regiaoCom(nome: string | RegExp, texto: string | RegExp) {
 }
 
 describe('VisaoGeralPage — Dia (padrão)', () => {
+  /** A entrada do app usa a mesma leitura oficial da Energia e não monta os KPIs simulados. */
+  it('prioriza energia real e mantém a cadeia de demonstração recolhida', async () => {
+    const base = criarRepositorioMock();
+    const exemplos = vi.spyOn(base, 'obterResumoEnergia');
+    renderizar({ ...base, obterEnergiaInstalacao: (id, janela) => carregarEnergia(id, janela, async () => ({
+      data: [], meta: { page: 1, pageSize: 100, totalItems: 0, totalPages: 0 },
+    })) });
+    expect(await screen.findByRole('region', { name: 'Energia real por instalação' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /Cadeia de conversão/ })).not.toBeInTheDocument();
+    expect(exemplos).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     usePeriodoStore.getState().setPeriodo(PERIODO_PADRAO);
   });

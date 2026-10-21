@@ -280,14 +280,14 @@ function Concluido({ email, veiculo }: { email: string; veiculo: string }) {
       <span className="grid size-12 place-items-center rounded-full bg-accent-subtle text-accent">
         <MailCheck aria-hidden="true" size={22} />
       </span>
-      <TituloEtapa descricao="Falta só um passo para entrar no VERS.">
-        Confirme seu e-mail
+      <TituloEtapa descricao="O cadastro foi recebido para análise.">
+        Solicitação recebida
       </TituloEtapa>
       <p className="mt-5 text-sm leading-6 text-fg-secondary">
-        {`Se o e-mail ${email} puder ser usado, você receberá um link de confirmação. Depois de confirmar, entre com seu e-mail e senha.`}
+        {`Se os dados de ${email} puderem ser usados, a conta ficará pendente de ativação. Na demonstração local, a ativação depende do responsável pela bancada.`}
       </p>
       <p className="mt-3 text-[13px] leading-5 text-fg-muted">
-        {`O veículo ${veiculo} fica guardado neste computador e é cadastrado no seu primeiro acesso.`}
+        {`O veículo ${veiculo} fica guardado neste computador para cadastro posterior.`}
       </p>
       <Link to={ROTAS.login} className={cn(classesDoBotao({ size: 'lg' }), 'mt-6 flex w-full')}>
         Ir para o Login

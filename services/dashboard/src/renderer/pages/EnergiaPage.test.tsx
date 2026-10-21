@@ -8,7 +8,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -20,6 +20,7 @@ import { ROTAS } from '@/routes/navegacao';
 import { usePeriodoStore, type Periodo } from '@/stores/periodo';
 import { usePreferencias } from '@/stores/preferencias';
 import { EnergiaPage } from './EnergiaPage';
+import { carregarEnergia } from '@/data/energia';
 
 /** Renderiza a tela no período pedido, com rota para Configurações (atalho da tarifa). */
 function renderizar(periodo: Periodo, repositorio: RepositorioVers = criarRepositorioMock()) {
@@ -48,6 +49,19 @@ async function regiaoCom(nome: string | RegExp, texto: string | RegExp) {
 }
 
 describe('EnergiaPage — Semana (referência)', () => {
+  /** O painel de API substitui os exemplos; a demonstração depende de abertura explícita. */
+  it('separa energia real da demonstração recolhida', async () => {
+    const base = criarRepositorioMock();
+    const exemplos = vi.spyOn(base, 'obterResumoEnergia');
+    renderizar('semana', { ...base, obterEnergiaInstalacao: (id, janela) => carregarEnergia(id, janela, async () => ({
+      data: [], meta: { page: 1, pageSize: 100, totalItems: 0, totalPages: 0 },
+    })) });
+    const real = await screen.findByRole('region', { name: 'Energia real por instalação' });
+    expect(await within(real).findByText('0 de 168 horas utilizáveis')).toBeInTheDocument();
+    expect(exemplos).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByText('Área de demonstração — curvas, bateria e demais métricas sem contrato'));
+    await waitFor(() => expect(exemplos).toHaveBeenCalled());
+  });
   /** Os quatro KPIs com os números aprovados. */
   it('mostra os KPIs da semana', async () => {
     renderizar('semana');

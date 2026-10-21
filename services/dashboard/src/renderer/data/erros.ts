@@ -15,7 +15,9 @@ export type CodigoErro =
   | 'nao-encontrado'
   | 'indisponivel'
   | 'credenciais-invalidas'
-  | 'limite-tentativas';
+  | 'limite-tentativas'
+  | 'sessao-expirada'
+  | 'acesso-negado';
 
 /**
  * Erro com código e mensagem em português pronta para a tela.

@@ -61,6 +61,47 @@ async function finalizarO023() {
 }
 
 describe('TestesPage — histórico', () => {
+  /** Energia sem qualidade utilizável não aparece como zero medido. */
+  it('identifica resumo inválido nas células de medição', async () => {
+    const base = criarRepositorioMock();
+    const obter = base.obterResumoTeste;
+    vi.spyOn(base, 'obterResumoTeste').mockImplementation(async id => {
+      const r = await obter(id); return r ? { ...r, qualidade: 'invalida' } : null;
+    });
+    renderizar(base);
+    const linha = await linhaDo('#022');
+    await waitFor(() => expect(within(linha).getAllByText('Inválida')).toHaveLength(2));
+  });
+  /** As ações do histórico permitem operar um teste específico entre várias instalações. */
+  it('abre a ação do teste escolhido no histórico', async () => {
+    renderizar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Iniciar #024' }));
+    expect(screen.getByRole('dialog', { name: 'Iniciar teste #024' })).toBeInTheDocument();
+  });
+  /** Uma instalação não é escolhida por status, nem a versão mais recente vira configuração ativa. */
+  it('exige escolha explícita da instalação e da configuração no cadastro real', async () => {
+    const base = criarRepositorioMock();
+    const veiculo = (await base.obterVeiculoAtivo())!;
+    const instalacao = (await base.obterInstalacao(veiculo.id))!;
+    const configuracao = (await base.obterConfiguracoes(instalacao.id))[0];
+    const criar = vi.spyOn(base, 'criarTeste');
+    renderizar({ ...base, ensaiosReais: true, cadastroReal: true,
+      listarInstalacoes: async () => [{ ...instalacao, id: 'inst-a' }, { ...instalacao, id: 'inst-b' }],
+      obterConfiguracoes: async (id) => [{ ...configuracao, id: `cfg-${id}`, instalacaoId: id }],
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Novo teste' }));
+    const dialogo = screen.getByRole('dialog', { name: 'Planejar teste' });
+    await userEvent.type(within(dialogo).getByLabelText('Nome do teste'), 'Bancada real');
+    await userEvent.type(within(dialogo).getByLabelText('Local'), 'Pista sintética');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Planejar' }));
+    expect(criar).not.toHaveBeenCalled();
+    await userEvent.selectOptions(await within(dialogo).findByLabelText('Instalação exibida'), 'inst-b');
+    await within(dialogo).findByRole('option', { name: new RegExp(configuracao.nome) });
+    expect(within(dialogo).getByLabelText('Configuração do teste')).toHaveValue('');
+    await userEvent.selectOptions(within(dialogo).getByLabelText('Configuração do teste'), 'cfg-inst-b');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Planejar' }));
+    await waitFor(() => expect(criar).toHaveBeenCalledWith(expect.objectContaining({ instalacaoId: 'inst-b', configuracaoId: 'cfg-inst-b' })));
+  });
   /** Barra superior: comparar (desativado sem seleção) e novo teste. */
   it('mostra a barra superior', () => {
     renderizar();
@@ -175,6 +216,13 @@ describe('TestesPage — histórico', () => {
 });
 
 describe('TestesPage — teste em andamento', () => {
+  /** Dados reais nunca recebem bateria demonstrativa ou contador com rótulo de resumo oficial. */
+  it('separa contador e desconhecidos no painel real', async () => {
+    renderizar({ ...criarRepositorioMock(), ensaiosReais: true });
+    expect(await within(painel()).findByText('Contador do dispositivo')).toBeInTheDocument();
+    expect(painel()).not.toHaveTextContent('Bateria 68%');
+    expect(painel()).not.toHaveTextContent('Recuperado');
+  });
   /** Só o que é medido: tempo, energia, potência, configuração e bateria. */
   it('mostra o painel ao vivo', async () => {
     renderizar();

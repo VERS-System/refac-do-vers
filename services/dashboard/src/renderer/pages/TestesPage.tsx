@@ -92,6 +92,9 @@ export function TestesPage() {
     >
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <TabelaHistorico
+          onIniciar={teste => setDialogo({ tipo: 'iniciar', teste })}
+          onFinalizar={teste => setDialogo({ tipo: 'finalizar', teste })}
+          onCancelar={teste => setDialogo({ tipo: 'cancelar', teste })}
           aba={aba}
           onTrocarAba={trocarAba}
           pagina={pagina}

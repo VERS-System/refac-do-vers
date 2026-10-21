@@ -43,6 +43,10 @@ Este diretório concentra a documentação do **VERS (Vibration Energy Recovery 
 
 ## Organização
 
+- [Roadmap da Viber consultiva](plans/viber-roadmap/README.md): escopo aprovado,
+  base geral do VERS, GPT-5.5 online, streaming no Electron, teto de US$10,
+  testes e coordenação com a integração do núcleo.
+
 - [Integração Electron com backend](plans/desktop-backend-integration.md): lotes,
   contratos, sessão, dados, tempo real e critérios de validação ponta a ponta.
 

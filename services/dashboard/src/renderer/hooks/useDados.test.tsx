@@ -51,6 +51,18 @@ function criarWrapper(repositorio: RepositorioVers) {
 }
 
 describe('hooks de dados', () => {
+  /** A troca de recurso não pode mostrar uma leitura anterior enquanto a nova está pendente. */
+  it('não reutiliza telemetria de outro teste como placeholder', async () => {
+    const repositorio = criarRepositorioMock();
+    const original = repositorio.obterAmostrasTelemetria;
+    vi.spyOn(repositorio, 'obterAmostrasTelemetria').mockImplementation(c => c.testeId === 'outro' ? new Promise(() => {}) : original(c));
+    const { result, rerender } = renderHook(({ id }) => useAmostrasTelemetria({ testeId: id }), {
+      wrapper: criarWrapper(repositorio), initialProps: { id: 'teste-023' },
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    rerender({ id: 'outro' });
+    expect(result.current.data).toBeUndefined();
+  });
   beforeEach(() => {
     usePeriodoStore.getState().setPeriodo(PERIODO_PADRAO);
   });

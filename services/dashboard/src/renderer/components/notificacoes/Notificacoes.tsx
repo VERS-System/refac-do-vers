@@ -46,6 +46,7 @@ function useNotificacoes() {
   const dispositivo = useQuery({
     queryKey: chavesConsulta.dispositivo,
     queryFn: () => repositorio.obterDispositivo(),
+    enabled: !repositorio.cadastroReal,
   });
   const hoje = useResumoEnergia('dia');
   const vibracao = useVibracao();
@@ -55,7 +56,7 @@ function useNotificacoes() {
       montarNotificacoes({
         alertas,
         agora: repositorio.agora(),
-        dispositivo: dispositivo.data,
+        dispositivo: repositorio.cadastroReal ? undefined : dispositivo.data,
         eficienciaHojePercentual: hoje.data?.eficienciaPercentual,
         temperaturaBlocoC: vibracao.data?.temperaturaBlocoC,
         testes: testes.data?.itens,
@@ -93,6 +94,7 @@ function ItemNotificacao({ notificacao, lida }: { notificacao: Notificacao; lida
 
 /** Sino com o ponto de não lidas e o painel das notificações. */
 export function Notificacoes() {
+  const repositorio = useRepositorio();
   const navegar = useNavigate();
   const { disparados, eventos } = useNotificacoes();
   const lidas = useNotificacoesLidas((estado) => estado.lidas);
@@ -159,7 +161,7 @@ export function Notificacoes() {
         >
           <header className="flex items-center justify-between gap-3 px-1">
             <h2 id={idTitulo} className="text-base font-semibold text-fg">
-              Notificações
+              {repositorio.ensaiosReais ? 'Testes reais e alertas de demonstração' : repositorio.cadastroReal ? 'Notificações de demonstração' : 'Notificações'}
             </h2>
             <Button
               variant="ghost"

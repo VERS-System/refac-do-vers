@@ -77,6 +77,7 @@ export function Secao({
 }
 
 export interface SecaoPerfilProps {
+  fotoEditavel?: boolean;
   usuario: Usuario;
   nome: string;
   foto: string | undefined;
@@ -88,7 +89,7 @@ export interface SecaoPerfilProps {
  * Perfil: foto, nome (editáveis), e-mail e função (só leitura, como no
  * contrato `UserProfile`). A foto fica em memória como URL local.
  */
-export function SecaoPerfil({ usuario, nome, foto, onNome, onFoto }: SecaoPerfilProps) {
+export function SecaoPerfil({ usuario, nome, foto, onNome, onFoto, fotoEditavel = true }: SecaoPerfilProps) {
   const idFoto = useId();
   const [erroFoto, setErroFoto] = useState<string | null>(null);
 
@@ -115,18 +116,19 @@ export function SecaoPerfil({ usuario, nome, foto, onNome, onFoto }: SecaoPerfil
       <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-[auto_minmax(0,1fr)]">
         <div className="flex flex-col items-center gap-2">
           <Avatar name={nome || usuario.nome} src={foto} size={64} />
-          <label
+          {fotoEditavel && <label
             htmlFor={idFoto}
             className="cursor-pointer rounded-full border border-line px-3 py-1 text-xs text-fg hover:bg-hover"
           >
             Trocar foto
-          </label>
+          </label>}
           <input
             id={idFoto}
             type="file"
             accept="image/png,image/jpeg"
             className="sr-only"
             onChange={escolherFoto}
+            disabled={!fotoEditavel}
           />
           <span
             className={
@@ -135,7 +137,7 @@ export function SecaoPerfil({ usuario, nome, foto, onNome, onFoto }: SecaoPerfil
                 : 'font-mono text-[11px] text-fg-muted'
             }
           >
-            {erroFoto ?? 'PNG/JPG até 2 MB'}
+            {fotoEditavel ? (erroFoto ?? 'PNG/JPG até 2 MB') : 'Envio de foto ainda indisponível'}
           </span>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -334,9 +336,11 @@ export function SecaoSessoes() {
 
   /** Encerra as sessões e leva ao Login, que avisa o motivo. */
   async function encerrar() {
-    await encerrarSessoes.mutateAsync();
-    setConfirmando(false);
-    navegar(ROTAS.login, { state: { aviso: 'sessoes-encerradas' } });
+    try {
+      await encerrarSessoes.mutateAsync();
+      setConfirmando(false);
+      navegar(ROTAS.login, { state: { aviso: 'sessoes-encerradas' } });
+    } catch { /* A recusa aparece no diálogo; a sessão permanece aberta. */ }
   }
 
   return (
@@ -363,6 +367,7 @@ export function SecaoSessoes() {
         descricao="Você sairá deste computador e de todos os outros terminais."
         onFechar={() => setConfirmando(false)}
       >
+        {encerrarSessoes.isError && <p role="alert" className="mb-4 text-sm text-danger">Não foi possível encerrar as sessões. Tente de novo.</p>}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setConfirmando(false)}>
             Voltar

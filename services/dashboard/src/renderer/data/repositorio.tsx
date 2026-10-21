@@ -8,6 +8,7 @@
 
 import { createContext, useContext, type ReactNode } from 'react';
 import type { Periodo } from '@/stores/periodo';
+import type { EnergiaInstalacao, JanelaEnergia } from './energia';
 import type {
   AmostraTelemetria,
   AtualizacaoPerfil,
@@ -49,6 +50,14 @@ import type {
 export type PeriodoComDias = Exclude<Periodo, 'hora'>;
 
 export interface RepositorioVers {
+  /** Somente o repositório de demonstração aceita fotos blob sem upload remoto. */
+  readonly fotoLocalPermitida?: boolean;
+  readonly cadastroReal?: boolean;
+  readonly ensaiosReais?: boolean;
+  /** Presente somente no adaptador real; resumos horários oficiais e cobertura da instalação. */
+  obterEnergiaInstalacao?(instalacaoId: string, janela: JanelaEnergia): Promise<EnergiaInstalacao>;
+  /** Disponível no cadastro real para permitir escolha explícita de instalação. */
+  listarInstalacoes?(veiculoId: string): Promise<Instalacao[]>;
   /** Relógio do repositório (fixo no exemplo, real na API). */
   agora(): Date;
   /**
@@ -79,7 +88,7 @@ export interface RepositorioVers {
   obterCadeiaAoVivo(): Promise<CadeiaConversao>;
   obterBateria(): Promise<Bateria>;
   obterVibracao(): Promise<Vibracao>;
-  obterVeiculoAtivo(): Promise<Veiculo>;
+  obterVeiculoAtivo(): Promise<Veiculo | null>;
   obterVeiculos(): Promise<Veiculo[]>;
   criarVeiculo(novo: NovoVeiculo): Promise<Veiculo>;
   atualizarVeiculo(veiculoId: string, atualizacao: AtualizacaoVeiculo): Promise<Veiculo>;
@@ -97,7 +106,7 @@ export interface RepositorioVers {
   obterMensagensViber(conversaId: string): Promise<MensagemViber[]>;
   criarConversaViber(): Promise<ConversaViber>;
   enviarMensagemViber(envio: EnvioViber): Promise<MensagemViber[]>;
-  obterDispositivo(): Promise<Dispositivo>;
+  obterDispositivo(): Promise<Dispositivo | null>;
   obterUsuarioAtual(): Promise<Usuario>;
   atualizarPerfil(atualizacao: AtualizacaoPerfil): Promise<Usuario>;
   encerrarSessoes(): Promise<void>;

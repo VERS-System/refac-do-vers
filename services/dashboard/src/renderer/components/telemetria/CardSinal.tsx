@@ -26,6 +26,7 @@ function botoes(): { chave: keyof SeriesSinal; rotulo: string }[] {
 }
 
 export interface CardSinalProps {
+  real?: boolean;
   /** Consulta das amostras da janela de 10 minutos. */
   consulta: ConsultaBasica<PaginaDe<AmostraTelemetria>>;
 }
@@ -36,7 +37,7 @@ export interface CardSinalProps {
  * Cada botão é um alternador (`aria-pressed`); a escolha fica só nesta tela
  * (é preferência de visualização, não dado).
  */
-export function CardSinal({ consulta }: CardSinalProps) {
+export function CardSinal({ consulta, real = false }: CardSinalProps) {
   const [series, setSeries] = useState<SeriesSinal>({
     potencia: true,
     tensao: true,
@@ -75,7 +76,7 @@ export function CardSinal({ consulta }: CardSinalProps) {
   return (
     <ChartCard
       title="Sinal em tempo real"
-      subtitle="Últimos 10 minutos · intervalo 10 s"
+      subtitle={real ? 'Últimos 10 minutos · até 100 amostras recentes · consulta a cada 10 s' : 'Últimos 10 minutos · intervalo 10 s'}
       actions={alternadores}
     >
       <EstadoConsulta
@@ -83,7 +84,10 @@ export function CardSinal({ consulta }: CardSinalProps) {
         nome="o sinal recente"
         carregando={<Skeleton className="h-[264px] w-full" />}
       >
-        {(pagina) => <GraficoSinal amostras={pagina.itens} series={series} />}
+        {(pagina) => <>
+          {pagina.total > pagina.itens.length && <p role="status" className="text-xs text-fg-muted">{`Exibindo ${pagina.itens.length} de ${pagina.total} amostras da janela. Consulte a tabela e o CSV para o conjunto completo.`}</p>}
+          <GraficoSinal amostras={pagina.itens} series={series} />
+        </>}
       </EstadoConsulta>
     </ChartCard>
   );

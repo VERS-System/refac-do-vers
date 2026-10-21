@@ -357,7 +357,7 @@ export function criarViberEmMemoria(fontes: FontesViber) {
     const agendada = fontes.revisoes.find((r) => r.status === 'agendada' || r.status === 'aberta');
     const ativa = [...fontes.configuracoes].sort((a, b) => b.versao - a.versao)[0];
     const inativos = ativa?.piezosInativos ?? [];
-    const capacidade = ativa ? Math.round((ativa.piezosAtivos / ativa.piezosTotal) * 100) : 100;
+    const capacidade = ativa?.piezosTotal ? Math.round((ativa.piezosAtivos / ativa.piezosTotal) * 100) : null;
     const partes = [
       agendada
         ? `Há uma revisão ${agendada.status === 'agendada' ? 'agendada' : 'aberta'} desde ${formatarDataCurta(agendada.criadaEm.slice(0, 10))}: ${agendada.motivo}`

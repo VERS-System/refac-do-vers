@@ -21,6 +21,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { AcoesGlobaisProvider, InicioBarraProvider } from './AcoesGlobais';
 import { CarregandoTela } from './CarregandoTela';
 import { Sidebar } from './Sidebar';
+import { useRepositorio } from '@/data/repositorio';
 
 /** Ações da barra superior em todas as telas internas (Fase 5). */
 const ACOES_GLOBAIS = (
@@ -41,13 +42,17 @@ const ACOES_GLOBAIS = (
  * botão "Abrir menu" da barra superior abre a mesma sidebar num painel
  * lateral, que fecha sozinho ao trocar de tela.
  */
-export function AppShell() {
+export function AppShell({ aoSair, demonstracao = false }: { aoSair?: () => Promise<void>; demonstracao?: boolean }) {
+  const { ensaiosReais, obterEnergiaInstalacao } = useRepositorio();
   const navegar = useNavigate();
   const local = useLocation();
   const { data: usuario } = useUsuarioAtual();
-  const { data: dispositivo } = useDispositivo();
+  const consultaDispositivo = useDispositivo();
+  const dispositivo = consultaDispositivo.data;
   const unidades = usePreferencias((estado) => estado.unidades);
   const [menuAberto, setMenuAberto] = useState(false);
+  const [erroSaida, setErroSaida] = useState<string | null>(null);
+  const [saindo, setSaindo] = useState(false);
 
   // Escolher uma tela no menu lateral fecha o menu.
   useEffect(() => {
@@ -65,7 +70,18 @@ export function AppShell() {
     ),
     [],
   );
-  const sair = () => navegar(ROTAS.login);
+  /** Aguarda revogação real; falha mantém a conta e informa que a saída não foi confirmada. */
+  async function sair() {
+    if (!aoSair) { navegar(ROTAS.login); return; }
+    if (saindo) return;
+    setSaindo(true); setErroSaida(null);
+    try {
+      await aoSair();
+      navegar(ROTAS.login);
+    } catch {
+      setErroSaida('Não foi possível confirmar a saída. Tente de novo.');
+    } finally { setSaindo(false); }
+  }
 
   const conteudo = useRef<HTMLElement>(null);
 
@@ -90,8 +106,8 @@ export function AppShell() {
       </a>
       <Sidebar
         usuario={usuario}
-        dispositivo={dispositivo}
-        onSair={sair}
+        dispositivo={dispositivo ?? undefined}
+        onSair={() => void sair()}
         className="hidden lg:flex"
       />
       <Dialog
@@ -100,7 +116,7 @@ export function AppShell() {
         variante="lateral"
         onFechar={() => setMenuAberto(false)}
       >
-        <Sidebar usuario={usuario} dispositivo={dispositivo} onSair={sair} />
+        <Sidebar usuario={usuario} dispositivo={dispositivo ?? undefined} onSair={() => void sair()} />
       </Dialog>
       <main
         id="conteudo"
@@ -109,6 +125,14 @@ export function AppShell() {
         key={`${unidades.potencia}-${unidades.energia}-${unidades.aceleracao}`}
         className="flex min-w-0 flex-1 flex-col outline-none"
       >
+        {demonstracao && <p role="status" className="border-b border-line px-4 py-2 text-xs text-fg-secondary">{obterEnergiaInstalacao
+          ? 'Autenticação e cadastro reais · testes, telemetria e resumos oficiais de energia reais. Curvas sem contrato, bateria, revisões e Viber em demonstração identificada.' : ensaiosReais
+          ? 'Autenticação e cadastro reais · testes, resumos por teste e telemetria reais. Painéis gerais de energia, bateria, revisões e Viber em demonstração, sem vínculo com o veículo real.'
+          : 'Autenticação e cadastro reais · medições, testes, revisões e Viber em demonstração, sem vínculo com o veículo real.'}</p>}
+        {demonstracao && !consultaDispositivo.isError && dispositivo === null && <p className="px-4 py-2 text-xs text-fg-muted">Nenhum dispositivo selecionado.</p>}
+        {demonstracao && consultaDispositivo.isError && <p role="alert" className="px-4 py-2 text-xs text-danger">Não foi possível consultar o dispositivo.</p>}
+        {saindo && <p role="status" className="px-4 py-2 text-sm">Encerrando sessão…</p>}
+        {erroSaida && <p role="alert" className="px-4 py-2 text-sm text-danger">{erroSaida}</p>}
         <InicioBarraProvider value={botaoMenu}>
           <AcoesGlobaisProvider value={ACOES_GLOBAIS}>
             {/* A tela chega sob demanda; enquanto isso, só o conteúdo mostra o esqueleto. */}

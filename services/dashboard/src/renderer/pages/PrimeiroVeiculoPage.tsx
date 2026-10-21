@@ -27,7 +27,9 @@ import { AuthCard, AuthLayout } from '@/components/layout/AuthLayout';
 import { Button } from '@/components/ui/Button';
 import { ErroRepositorio } from '@/data/erros';
 import { apagarVeiculoDoCadastro, lerVeiculoDoCadastro } from '@/data/veiculoDoCadastro';
-import { useAcoesVeiculo } from '@/hooks/useDados';
+import { useAcoesVeiculo, useUsuarioAtual } from '@/hooks/useDados';
+import { useRepositorio } from '@/data/repositorio';
+import { EstadoErro } from '@/components/ui/EstadoConsulta';
 import { ROTAS } from '@/routes/navegacao';
 
 /** Mensagem da recusa: a do repositório quando explica o motivo (placa repetida, validação). */
@@ -43,9 +45,18 @@ function mensagemDeRecusa(erro: unknown): string {
 
 /** Renderiza a tela Primeiro veículo (ou leva à Visão geral, se não houver o que gravar). */
 export function PrimeiroVeiculoPage() {
+  const real = useRepositorio().cadastroReal;
+  const usuario = useUsuarioAtual();
+  if (real && usuario.isPending) return <p role="status">Consultando conta…</p>;
+  if (real && usuario.isError) return <EstadoErro mensagem="Não foi possível consultar a conta." onTentarNovamente={() => void usuario.refetch()} />;
+  return <ConteudoPrimeiroVeiculo key={real ? usuario.data?.email : 'demo'} email={real ? usuario.data?.email : undefined} />;
+}
+
+/** Lê o rascunho somente da conta confirmada, mantendo o formulário isolado por email. */
+function ConteudoPrimeiroVeiculo({ email }: { email?: string }) {
   const navegar = useNavigate();
   const { criar } = useAcoesVeiculo();
-  const [guardado] = useState(() => lerVeiculoDoCadastro());
+  const [guardado] = useState(() => lerVeiculoDoCadastro(email));
   const [veiculo, setVeiculo] = useState<CamposVeiculo>(guardado ?? VEICULO_VAZIO);
   const [erros, setErros] = useState<ErrosVeiculo>({});
   const [recusa, setRecusa] = useState<string | null>(null);

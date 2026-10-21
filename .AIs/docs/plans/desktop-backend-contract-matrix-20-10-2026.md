@@ -1,6 +1,14 @@
 <!-- Inventaria os 37 metodos do desktop e delimita sua correspondencia com a API atual. -->
 # Electron/backend — lote 0: matriz de contratos
 
+> Atualização do lote4: autenticação, cadastro, testes/transições, resumos TEST,
+> comparação, telemetria e energia horária por instalação têm adaptadores reais
+> na AplicacaoConectada. O método adicional `obterEnergiaInstalacao` atende as
+> telas Energia/Visão geral; métodos antigos de curvas/cadeia/bateria continuam
+> restritos à demonstração identificada. Suporte e Viber não integrados aqui.
+> As tabelas abaixo preservam o
+> inventário original; estado de execução no [plano do lote4](desktop-backend-medicoes-lot4.md).
+
 ## Escopo e decisões
 
 Continuidade NXT após fechamento da F09 local. Este lote é documental: conferir

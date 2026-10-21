@@ -94,6 +94,14 @@ const AMOSTRAS: AmostraTelemetria[] = [
 ];
 
 describe('csvAmostrasTelemetria', () => {
+  /** A exportação real identifica fuso e contador sem fabricar total de piezos. */
+  it('identifica dados reais e preserva total físico desconhecido', () => {
+    const csv = csvAmostrasTelemetria([{ ...AMOSTRAS[0], piezosTotal: null }], 'uuid-do-teste', true);
+    expect(csv).toContain('Capturado em (America/Sao_Paulo)');
+    expect(csv).toContain('Contador do dispositivo (mWh)');
+    expect(csv).not.toContain('null');
+    expect(csv).toContain(';6;Válida');
+  });
   /** Mesmas colunas da tabela; valores ausentes ficam vazios (não "–"), para não virar texto no Excel. */
   it('gera as linhas como na tabela', () => {
     const linhas = csvAmostrasTelemetria(AMOSTRAS, '#023')

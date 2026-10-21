@@ -59,6 +59,8 @@ Valores confirmados pelo responsável em 20/10/2026, sem ajustes
 `00-contexto-geral-viber.md` também foi revisada e confirmada sem
 alterações factuais. Nenhum limite financeiro pode aumentar acima de
 US$10 sem nova decisão.
+Gabriel confirma ou ajusta esses valores antes da apresentação e registra aqui.
+Nenhum limite financeiro pode aumentar acima de US$10 sem nova decisão.
 
 ## Fora do escopo
 
@@ -76,6 +78,8 @@ US$10 sem nova decisão.
 
 - [x] Revisar a base factual com o responsável e identificar pontos desconhecidos. (20/10: confirmada sem alterações)
 - [x] Confirmar os valores propostos para o ensaio, sem tratá-los como aprovados. (20/10: confirmados sem ajustes)
+- [ ] Revisar a base factual com o responsável e identificar pontos desconhecidos.
+- [ ] Confirmar os valores propostos para o ensaio, sem tratá-los como aprovados.
 - [ ] Conferir baseline da outra frente e combinar quem conecta os arquivos comuns.
 - [ ] Reservar uma parte dos US$10 para ensaios, no mesmo registro de orçamento.
 - [ ] Registrar versão da base, modelo e versões das dependências usadas.

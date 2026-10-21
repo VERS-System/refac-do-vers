@@ -374,7 +374,7 @@ describe('repositório de exemplo: tela Veículo e instalação', () => {
       ['ABC1D23', true, 'proprietario'],
       ['DEF4G56', false, 'motorista'],
     ]);
-    expect((await repositorio.obterVeiculoAtivo()).placa).toBe('ABC1D23');
+    expect((await repositorio.obterVeiculoAtivo())?.placa).toBe('ABC1D23');
   });
 
   /** Trocar o principal desmarca o anterior; editar não mexe na placa. */
@@ -384,7 +384,7 @@ describe('repositório de exemplo: tela Veículo e instalação', () => {
 
     const novoPrincipal = await proprio.atualizarVeiculo(strada.id, { principal: true });
     expect(novoPrincipal.principal).toBe(true);
-    expect((await proprio.obterVeiculoAtivo()).placa).toBe('DEF4G56');
+    expect((await proprio.obterVeiculoAtivo())?.placa).toBe('DEF4G56');
     expect((await proprio.obterVeiculos()).find((v) => v.id === civic.id)?.principal).toBe(false);
 
     const editado = await proprio.atualizarVeiculo(civic.id, {

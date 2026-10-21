@@ -217,8 +217,8 @@ export interface Configuracao {
   nome: string;
   versao: number;
   piezosAtivos: number;
-  piezosTotal: number;
-  piezosInativos: number[];
+  piezosTotal: number | null;
+  piezosInativos: number[] | null;
   associacao: AssociacaoPiezos;
   pontoInstalacao: string;
   armazenamento: TipoArmazenamento;
@@ -248,12 +248,14 @@ export interface LinhaLog {
 }
 
 export interface Dispositivo {
+  nome?: string;
+  status?: 'PROVISIONING' | 'ONLINE' | 'OFFLINE' | 'REVOKED' | 'FAULT';
   id: string;
   plataforma: string;
   firmware: string;
   online: boolean;
   /** Última mensagem recebida (ISO 8601). */
-  ultimoContato: string;
+  ultimoContato: string | null;
   protocolo: string;
 }
 
@@ -317,7 +319,7 @@ export interface SerieTensaoBateria {
 export type QualidadeAmostra = 'valida' | 'parcial' | 'suspeita' | 'invalida';
 
 /**
- * Amostra validada de telemetria enviada pelo ESP32 a cada 10 s.
+ * Amostra validada de telemetria; a frequência real depende da aquisição.
  *
  * Espelha o `TelemetrySample` do backend nas unidades das telas (mW, mA,
  * mWh). Medidas ausentes vêm como `null` (amostras inválidas não têm
@@ -331,12 +333,12 @@ export interface AmostraTelemetria {
   tensaoV: number | null;
   correnteMa: number | null;
   potenciaMw: number | null;
-  /** Energia recuperada desde o início do teste. */
+  /** Contador acumulado do dispositivo; não equivale ao resumo oficial do teste. */
   energiaAcumuladaMwh: number | null;
   vibracaoRmsMs2: number | null;
   temperaturaC: number | null;
   piezosAtivos: number | null;
-  piezosTotal: number;
+  piezosTotal: number | null;
   qualidade: QualidadeAmostra;
 }
 
@@ -385,7 +387,7 @@ export interface ConsultaTestes {
   pagina?: number;
   tamanhoPagina?: number;
   status?: StatusTeste;
-  /** Intervalo do início do teste (ISO, inclusivo). */
+  /** Intervalo do início do teste: início inclusivo, fim exclusivo. */
   inicioDe?: string;
   inicioAte?: string;
 }
@@ -409,8 +411,11 @@ export interface ItemComparacao {
   resumo: ResumoTeste | null;
 }
 
-/** Planejamento de um teste (`CreateTestRequest`; instalação e configuração são as atuais). */
+/** Planejamento de teste; instalação/configuração explícitas são obrigatórias na API real. */
 export interface NovoTeste {
+  /** Obrigatórios na API real; o exemplo mantém sua configuração sintética. */
+  instalacaoId?: string;
+  configuracaoId?: string;
   nome: string;
   terreno: Terreno;
   local: string;
@@ -441,7 +446,7 @@ export interface ConsultaTelemetria {
   /** Itens por página, de 1 a 100 (padrão 20). */
   tamanhoPagina?: number;
   qualidade?: QualidadeAmostra;
-  /** Intervalo de captura (ISO, inclusivo). */
+  /** Intervalo de captura: início inclusivo, fim exclusivo. */
   de?: string;
   ate?: string;
 }

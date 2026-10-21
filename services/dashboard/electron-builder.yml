@@ -8,7 +8,7 @@ productName: VERS Dashboard
 copyright: Copyright © 2026
 
 directories:
-  output: release
+  output: ../../output/desktop-delivery
   buildResources: build
 
 # O electron-vite gera main, preload e renderer em out/.
@@ -16,23 +16,25 @@ files:
   - out/**/*
   - package.json
 
+# As dependências de execução são JavaScript; não recompilar módulos nativos opcionais.
+npmRebuild: false
+
 win:
   target:
     - target: nsis
       arch: [x64]
-  icon: build/icon.ico
+  # Demonstração local sem assinatura; usa o ícone padrão até existir asset próprio.
+  signAndEditExecutable: false
 
 mac:
   target:
     - target: dmg
       arch: [x64, arm64]
-  icon: build/icon.icns
 
 linux:
   target:
     - target: AppImage
       arch: [x64]
-  icon: build/icon.png
 
 nsis:
   oneClick: false

@@ -6,17 +6,17 @@ const { resolve } = require('node:path');
 
 app.setPath('userData', process.env.VERS_PROOF_PROFILE);
 BrowserWindow.prototype.show = function manterOculta() { /* O ensaio não abre janela visível. */ };
-const prazo = setTimeout(() => { console.error('Prazo do Electron excedido'); app.exit(1); }, 80000);
+const prazo = setTimeout(() => { console.error('Prazo do Electron excedido'); app.exit(1); }, process.env.VERS_PROOF_STAGE === 'mqtt' ? 120000 : 80000);
 let renovacoes = 0;
 
 /** Invoca somente a API pública do preload, no renderer real. */
 async function executar(janela) {
   const chamar = codigo => janela.webContents.executeJavaScript(codigo);
-  const nomePerfil = `${process.env.ELECTRON_RENDERER_URL ? 'Dev' : 'Build'} Perfil Electron real`;
+  const nomePerfil = `${process.env.VERS_PROOF_INSTALLED ? 'Instalado' : process.env.VERS_PROOF_PACKAGED_MAIN ? 'Pacote' : process.env.ELECTRON_RENDERER_URL ? 'Dev' : 'Build'} Perfil Electron real`;
   const perfil = () => chamar('window.vers.sessao.perfil()');
   /** Aguarda estado da interface real, sem depender de temporização fixa do React. */
-  async function esperar(codigo, descricao) {
-    const limite = Date.now() + 10000;
+  async function esperar(codigo, descricao, duracao = 10000) {
+    const limite = Date.now() + duracao;
     while (!await chamar(codigo)) {
       if (Date.now() > limite) throw new Error(`Interface não chegou a: ${descricao}`);
       await new Promise(ok => setTimeout(ok, 50));
@@ -57,7 +57,9 @@ async function executar(janela) {
     await clicar('Entrar');
     await esperar(`document.body.textContent.includes('Autenticação e cadastro reais')`, 'área autenticada');
   }
-  if (process.env.VERS_PROOF_STAGE === 'realtime') {
+  if (process.env.VERS_PROOF_STAGE === 'mqtt') {
+    await require('./mqtt-electron.cjs')(janela, { chamar, esperar, selecionar, clicar });
+  } else if (process.env.VERS_PROOF_STAGE === 'realtime') {
     await require('./realtime-electron.cjs')(janela, { chamar, esperar, selecionar, clicar, entrarPelaTela });
   } else if (process.env.VERS_PROOF_STAGE === 'login') {
     const inicial = await perfil();
@@ -237,4 +239,5 @@ app.whenReady().then(() => {
     concluir({ requestHeaders: { ...detalhes.requestHeaders, 'X-Request-Id': process.env.VERS_PROOF_ID } });
   });
 });
-void import(pathToFileURL(resolve(__dirname, '../out/main/index.js')).href);
+if (!process.env.VERS_PROOF_INSTALLED) void import(pathToFileURL(process.env.VERS_PROOF_PACKAGED_MAIN ?? resolve(__dirname, '../out/main/index.js')).href)
+  .catch(() => { console.log('PROVA_FALHA Falha ao carregar main do aplicativo'); app.exit(1); });

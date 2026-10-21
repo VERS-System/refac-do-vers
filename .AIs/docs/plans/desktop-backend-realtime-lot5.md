@@ -3,6 +3,8 @@
 
 Alvo: demonstração local com dados sintéticos, sem deploy. O REST permanece
 fonte dos valores; Socket.IO transmite apenas avisos por recurso.
+Escopo reafirmado em20/10/2026: somente simuladores; hardware físico não integra
+o aceite e não constitui pendência deste lote ou do lote6.
 
 Decisão do responsável em 20/10/2026: manter telemetria REST a cada 10 s e
 energia a cada 60 s, antecipando consultas por eventos. Não ampliar polling.

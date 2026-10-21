@@ -14,7 +14,8 @@
 > Lote5 concluído na demonstração local: [tempo real, cache e recuperação](desktop-backend-realtime-lot5.md).
 > Validado em Electron dev/build: eventos, telemetria positiva, retomada, revogação e isolamento.
 > Reconciliação aprovada: manter telemetria a cada10s e energia a cada60s.
-> Próximo lote6: fluxo MQTT/TLS completo e instalador Windows.
+> Lote6 concluído: [MQTT/TLS com simuladores e instalador Windows](desktop-backend-delivery-lot6.md).
+> Núcleo dos lotes0–6 concluído no escopo local; [instalação Windows também validada](desktop-installed-validation.md).
 > Períodos aprovados: America/Sao_Paulo; semana anterior completa, segunda a
 > domingo. Energia em blocos horários completos e cobertura visível;
 > curvas sem contrato permanecem em demonstração identificada.
@@ -25,6 +26,11 @@ Planejamento solicitado em 19/10/2026. Conectar o dashboard Electron ao NestJS
 existente, mantendo os dados de demonstração simulados e persistidos no backend.
 Não depende de ESP32, sistema elétrico, CI/CD ou GitHub Actions. Este documento
 não inicia implementação nem autoriza operações no Neon.
+
+Escopo reafirmado pelo responsável em20/10/2026: somente simuladores, sem
+hardware real. Aquisição física, firmware embarcado e calibração elétrica estão
+fora do escopo atual; sua validação não é pendência nem critério para fechar
+esta integração. O fluxo completo usa mensagens sintéticas no protocolo real.
 
 Continuidade NXT em20/10 autorizou o inventário após fechar F09 local; decisões
 da primeira entrega: API local e lacunas em demonstração identificada. As
@@ -204,6 +210,7 @@ mantém consultas REST; distinguir falta de eventos de erro de autenticação.
 ### 6 — Ensaio completo e entrega manual
 
 Usar bancada local autorizada e contas sintéticas com vínculos conhecidos.
+O publicador é um simulador de dispositivo; nenhum hardware físico é requerido.
 Testar pelo Electron: login → veículo/instalação → teste iniciado → publicação
 simulada MQTT/TLS → persistência → aviso → atualização REST na tela → término
 e consulta do resumo. Provar que duplicata não soma energia e outra conta não

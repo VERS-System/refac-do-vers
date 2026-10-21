@@ -114,9 +114,13 @@ def _obter_cliente():
 
 
 async def _fechar_cliente(cliente) -> None:
-    # Fecha o transporte assíncrono do cliente do Gemini após o uso;
-    # falha de fechamento nunca interrompe o stream do cliente.
-    fechar = getattr(getattr(cliente, "aio", None), "close", None)
+    # Fecha o transporte assíncrono do cliente do Gemini após o uso
+    # (o SDK real expõe aclose; close é aceito como alternativa); falha
+    # de fechamento nunca interrompe o stream do cliente.
+    transporte = getattr(cliente, "aio", None)
+    fechar = getattr(transporte, "aclose", None) or getattr(
+        transporte, "close", None
+    )
     if fechar is None:
         return
     try:

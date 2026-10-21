@@ -341,14 +341,14 @@ class PrazosTests(BaseRotaOrcamentoTests):
                 dono.chamadas.append(kwargs)
                 return dono._iterador
 
-            async def close():
+            async def aclose():
                 dono.estado.fechado = True
 
             self.aio = SimpleNamespace(
                 models=SimpleNamespace(
                     generate_content_stream=generate_content_stream
                 ),
-                close=close,
+                aclose=aclose,
             )
 
     def test_texto_inicial_tardio_emite_error_e_conserva(self):
@@ -429,7 +429,9 @@ class ContagemOficialTests(unittest.TestCase):
         )
 
     def test_chamada_espelha_formato_do_gemini(self):
-        # system_instruction separado; papéis user/model; modelo fixo.
+        # A Gemini Developer API recusa system_instruction no countTokens
+        # (só Enterprise): o system entra como conteúdo de usuário e não
+        # há config. Papéis user/model e modelo fixo preservados.
         chamadas = []
         cliente = self._cliente(
             resposta=SimpleNamespace(total_tokens=12), chamadas=chamadas
@@ -444,12 +446,15 @@ class ContagemOficialTests(unittest.TestCase):
         self.assertEqual(quantidade, 12)
         kwargs = chamadas[0]
         self.assertEqual(kwargs["model"], "gemini-3-flash-preview")
+        self.assertNotIn("config", kwargs)
         self.assertEqual(
-            kwargs["config"].system_instruction, "Instruções da Viber"
+            [m["role"] for m in kwargs["contents"]],
+            ["user", "user", "model", "user"],
         )
         self.assertEqual(
-            [m["role"] for m in kwargs["contents"]], ["user", "model", "user"]
+            kwargs["contents"][0]["parts"][0]["text"], "Instruções da Viber"
         )
+        self.assertEqual(kwargs["contents"][1]["parts"][0]["text"], "oi")
 
     def test_total_tokens_aceito(self):
         cliente = self._cliente(resposta=SimpleNamespace(total_tokens=42))

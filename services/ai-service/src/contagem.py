@@ -4,13 +4,15 @@
 # tokenização do Gemini, usando o mesmo modelo e o mesmo conteúdo que
 # será enviado; aproximação tipo "quatro caracteres por token" é proibida
 # como trava. O SDK google-genai expõe a chamada assíncrona
-# cliente.aio.models.count_tokens(...), que devolve total_tokens. A
-# verificação com chamada real foi executada pelo programador em
-# 20/10/2026 (COUNT_OK no plano 09-migracao-gemini); qualquer falha ou
-# formato inesperado vira ContagemIndisponivelError e a rota responde
-# 503 sem gerar — nunca se gera "no escuro".
-from google.genai.types import CountTokensConfig
-
+# cliente.aio.models.count_tokens(...), que devolve total_tokens.
+# Descoberta na verificação real (20/10/2026): a Gemini Developer API
+# recusa CountTokensConfig.system_instruction (recurso só do modo
+# Enterprise Agent Platform) — a instrução de sistema entra então como
+# uma mensagem de usuário antes das demais, sem config. Papéis e textos
+# são os mesmos da geração; a diferença de tokenização na fronteira é de
+# poucos tokens e é coberta pela margem técnica da reserva. Qualquer
+# falha ou formato inesperado vira ContagemIndisponivelError e a rota
+# responde 503 sem gerar — nunca se gera "no escuro".
 from src.viber import MODELO_VIBER, preparar_entrada
 
 
@@ -23,15 +25,16 @@ async def contar_tokens_entrada(cliente, mensagens, modelo: str = MODELO_VIBER) 
     # + histórico + pergunta) no endpoint oficial de contagem do Gemini.
     # Por que existe: única forma permitida de dimensionar a reserva
     # financeira. Como funciona: espelha a geração com preparar_entrada
-    # (system_instruction separado e papéis user/model) e chama
-    # count_tokens; aceita apenas total_tokens inteiro ≥ 0; rede,
-    # exceções do SDK e formato inesperado viram
+    # (assistant → "model"); o system vira mensagem de usuário inicial
+    # (limitação da Developer API); aceita apenas total_tokens inteiro
+    # ≥ 0; rede, exceções do SDK e formato inesperado viram
     # ContagemIndisponivelError e a rota responde 503 sem gerar.
     system, contents = preparar_entrada(mensagens)
-    config = CountTokensConfig(system_instruction=system) if system else None
+    if system:
+        contents = [{"role": "user", "parts": [{"text": system}]}, *contents]
     try:
         resposta = await cliente.aio.models.count_tokens(
-            model=modelo, contents=contents, config=config
+            model=modelo, contents=contents
         )
     except Exception as exc:
         raise ContagemIndisponivelError("Falha ao chamar a contagem") from exc

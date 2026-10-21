@@ -688,7 +688,8 @@ def _cliente_falso(eventos=None, erro_criacao=None, erro_iteracao=None, ao_criar
             models=SimpleNamespace(
                 generate_content_stream=generate_content_stream
             ),
-            close=close,
+            # O SDK real chama o fechamento assíncrono de aclose().
+            aclose=close,
         ),
     )
 

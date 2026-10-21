@@ -129,3 +129,31 @@ Reserva padrão = entrada×1 + 400×3 + margem 1.000 = **2.300 micros**.
 - `budget.json` eventual já criado com `modelo: "gpt-5.5"`: recriar via CLI.
 - Contagem vs custo real podem divergir (tokenização); a margem de 1.000
   micros e o fechamento com usage real cobrem a diferença.
+
+## Descobertas da verificação ao vivo (20/10/2026, depois do lote)
+
+Executada pelo programador/IA com a chave real, dentro do container:
+
+1. **`countTokens` recusa `system_instruction`** na Gemini Developer API
+   (`ValueError: ... only supported in Gemini Enterprise Agent Platform
+   mode`) — a rota devolvia 503 (trava funcionou: nada foi gerado).
+   Correção TDD: a instrução de sistema entra como **mensagem de usuário
+   inicial** no `contents`, sem `config`; papéis e textos seguem os
+   mesmos da geração. Diferença de tokenização na fronteira é de poucos
+   tokens, coberta pela margem técnica.
+2. **Geração COM `system_instruction` funciona** na Developer API
+   (confirmado: `ok`, prompt=19, thinking 0).
+3. **O async client do SDK expõe `aclose()`, não `close()`** — a rotina
+   de fechamento foi corrigida para `aclose` (com fallback `close`).
+4. **Ensaio ponta a ponta aprovado**: `200 text/event-stream` com
+   `started → delta → completed` (finishReason `completed`,
+   retryAfterSeconds 10) contra o Gemini real; replay do UUID = **409**;
+   nova tentativa 1s após o fim = **429 + Retry-After: 9**; reserva
+   fechada com usage real (sem bloqueio, reservas vazias).
+5. Consumo do ensaio: 4 gerações mínimas → 10.587 micros (US$ 0,0106)
+   do teto de US$ 10.
+
+Pendência encerrada com decisão do programador (20/10/2026): o ensaio
+aprovou todas as travas e o custo real e o programador **declarou o teto
+US$10 ativo** para esta apresentação (init
+`e9e26da6-99d2-45ca-a608-107b438c61cb`).

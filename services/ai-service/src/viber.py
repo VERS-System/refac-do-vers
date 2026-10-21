@@ -1,12 +1,13 @@
-# Montagem do contexto da Viber enviado ao modelo.
+# Montagem do contexto da Viber e consumo do stream da OpenAI.
 #
 # Este módulo monta a lista de mensagens a partir da base empacotada, do
-# histórico temporário e da pergunta atual. Regras da etapa 2/3 do roadmap:
-# instruções e base vêm somente do servidor; o histórico aceita apenas
-# papéis user/assistant em pares completos, com limites de tamanho; nada
-# de perfil, cookies ou dados de conta entra aqui. Sem chamadas à OpenAI
-# neste módulo — o consumo do SDK é responsabilidade da etapa seguinte.
-
+# histórico temporário e da pergunta atual, e normaliza os eventos do SDK
+# da OpenAI para o contrato SSE público da Viber. Regras da etapa 3 do
+# roadmap: instruções e base vêm somente do servidor; o histórico aceita
+# apenas papéis user/assistant em pares completos, com limites de tamanho;
+# nada de perfil, cookies ou dados de conta entra aqui. A rota HTTP e a
+# autenticação interna ficam em src/api/viber.py; este módulo não conhece
+# request nem headers.
 from src.knowledge.carregador import BaseConhecimento
 
 # Limites do contrato (etapa 3): pergunta única, histórico em pares e
@@ -14,6 +15,20 @@ from src.knowledge.carregador import BaseConhecimento
 MAX_PERGUNTA_CHARS = 2000
 MAX_HISTORICO_PARES = 3
 MAX_HISTORICO_CHARS = 6000
+# Limite do corpo bruto da requisição interna em bytes (32 KiB), além
+# dos limites semânticos de pergunta/histórico.
+LIMITE_CORPO_BYTES = 32 * 1024
+# Parâmetros fixos do servidor: o cliente nunca envia modelo, tokens nem
+# orçamento. Pausa obrigatória entre tentativas (etapa 4) reaparece como
+# retryAfterSeconds nos eventos terminais e no header Retry-After do 429.
+MODELO_VIBER = "gpt-5.5"
+MAX_TOKENS_SAIDA = 400
+ESFORCO_RACIOCINIO = "none"
+PAUSA_SEGUNDOS = 10
+# Código de erro do contrato de stream Viber; não ampliar o enum global
+# ApiErrorCode do núcleo (etapa 3 do roadmap).
+CODIGO_ERRO_UPSTREAM = "UPSTREAM_UNAVAILABLE"
+MENSAGEM_ERRO_FIXA = "Não foi possível concluir a resposta."
 _PAPEIS_PERMITIDOS = ("user", "assistant")
 _CAMPOS_PERMITIDOS = frozenset({"role", "content"})
 
@@ -33,6 +48,36 @@ _INSTRUCAO_EXPLICAR = (
 
 class ContextoInvalidoError(Exception):
     """Pergunta ou histórico do cliente viola o contrato de contexto."""
+
+
+class FalhaUpstreamError(Exception):
+    """O provedor reportou falha (response.failed) durante o stream."""
+
+
+class SlotGeracao:
+    """Slot global único de geração da Viber (1 geração por vez)."""
+
+    def __init__(self):
+        # Flag simples em vez de asyncio.Semaphore: o teste HTTP síncrono
+        # do FastAPI executa cada requisição num loop próprio, e a flag
+        # não fica presa a nenhum loop. A rota sempre libera o slot no
+        # fim do stream ou ao devolver erro.
+        self._ocupado = False
+
+    def ocupar(self) -> bool:
+        # Tenta ocupar o slot; devolve False quando já está em uso.
+        if self._ocupado:
+            return False
+        self._ocupado = True
+        return True
+
+    def liberar(self) -> None:
+        # Libera o slot; chamada idempotente para simplificar cleanup.
+        self._ocupado = False
+
+
+# Instância única do slot, compartilhada entre requisições do serviço.
+slot_geracao = SlotGeracao()
 
 
 def montar_contexto(
@@ -109,3 +154,33 @@ def _validar_historico(historico: object) -> list[dict]:
             f"Histórico acima de {MAX_HISTORICO_CHARS} caracteres"
         )
     return list(historico)
+
+
+def normalizar_evento_sdk(evento: object) -> dict | None:
+    # Converte um evento bruto do SDK da OpenAI no formato do contrato
+    # de stream da Viber. Por que existe: isolar a interface do provedor
+    # para que o resto do serviço (e os testes) não dependam do formato
+    # cru da OpenAI. Como funciona: verifica o tipo do evento; deltas de
+    # texto viram {"type": "delta", "text": ...} (deltas vazios são
+    # ignorados); response.completed vira completed normal; incomplete
+    # por max_output_tokens vira completed com finishReason output_limit;
+    # response.failed levanta FalhaUpstreamError para virar evento error;
+    # qualquer outro tipo é ignorado e não vira texto do bot.
+    tipo = getattr(evento, "type", None)
+    if tipo == "response.output_text.delta":
+        texto = getattr(evento, "delta", "")
+        if not isinstance(texto, str) or not texto:
+            return None
+        return {"type": "delta", "text": texto}
+    if tipo == "response.completed":
+        return {"type": "completed", "finishReason": "completed"}
+    if tipo == "response.incomplete":
+        resposta = getattr(evento, "response", None)
+        detalhes = getattr(resposta, "incomplete_details", None)
+        motivo = getattr(detalhes, "reason", None)
+        if motivo == "max_output_tokens":
+            return {"type": "completed", "finishReason": "output_limit"}
+        return {"type": "completed", "finishReason": "completed"}
+    if tipo == "response.failed":
+        raise FalhaUpstreamError("Provedor reportou falha no stream")
+    return None
